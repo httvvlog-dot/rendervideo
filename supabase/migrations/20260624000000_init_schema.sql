@@ -1,5 +1,6 @@
--- Enable UUID extension
+-- Enable extensions
 create extension if not exists "uuid-ossp";
+create extension if not exists vector with schema extensions;
 
 -- 1. PROFILES
 create table public.profiles (
@@ -13,7 +14,7 @@ alter table public.profiles enable row level security;
 
 -- 2. SYSTEM_SETTINGS
 create table public.system_settings (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   setting_key text unique not null,
   setting_value text not null,
   description text,
@@ -23,7 +24,7 @@ alter table public.system_settings enable row level security;
 
 -- 3. PROVIDERS
 create table public.providers (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   provider_type text not null, -- llm, tts, storage, subtitle, image, youtube
   provider_name text not null,
   config_json jsonb default '{}'::jsonb,
@@ -35,7 +36,7 @@ alter table public.providers enable row level security;
 
 -- 4. ENCRYPTED_SECRETS
 create table public.encrypted_secrets (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   provider text not null,
   secret_name text not null,
   encrypted_value text not null,
@@ -46,7 +47,7 @@ alter table public.encrypted_secrets enable row level security;
 
 -- 5. TEMPLATES & PRESETS
 create table public.prompt_templates (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null,
   category text,
   version integer default 1,
@@ -58,7 +59,7 @@ create table public.prompt_templates (
 alter table public.prompt_templates enable row level security;
 
 create table public.voice_templates (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null,
   version integer default 1,
   provider text not null,
@@ -70,7 +71,7 @@ create table public.voice_templates (
 alter table public.voice_templates enable row level security;
 
 create table public.render_templates (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null,
   width integer not null,
   height integer not null,
@@ -81,7 +82,7 @@ create table public.render_templates (
 alter table public.render_templates enable row level security;
 
 create table public.render_presets (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null,
   transition text default 'fade',
   zoom_speed numeric default 1.0,
@@ -93,7 +94,7 @@ create table public.render_presets (
 alter table public.render_presets enable row level security;
 
 create table public.thumbnail_templates (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   name text not null,
   layout jsonb default '{}'::jsonb,
   font text,
@@ -104,7 +105,7 @@ alter table public.thumbnail_templates enable row level security;
 
 -- 6. PROJECTS
 create table public.projects (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   title text not null,
   topic text not null,
@@ -121,7 +122,7 @@ alter table public.projects enable row level security;
 
 -- 7. STORAGE & MEDIA
 create table public.storage_files (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   provider text not null,
   bucket text not null,
   path text not null,
@@ -133,20 +134,20 @@ create table public.storage_files (
 alter table public.storage_files enable row level security;
 
 create table public.media_assets (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   storage_file_id uuid references public.storage_files(id) on delete cascade not null,
   title text,
   category text,
   folder text,
   tags text[],
   keywords text[],
-  embedding vector(1536), -- for Phase 2
+  embedding extensions.vector(1536), -- for Phase 2
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 alter table public.media_assets enable row level security;
 
 create table public.audio_assets (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   project_id uuid references public.projects(id) on delete cascade,
   storage_file_id uuid references public.storage_files(id) on delete cascade not null,
   duration numeric,
@@ -155,7 +156,7 @@ create table public.audio_assets (
 alter table public.audio_assets enable row level security;
 
 create table public.music_assets (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   storage_file_id uuid references public.storage_files(id) on delete cascade not null,
   title text not null,
   category text,
@@ -167,7 +168,7 @@ alter table public.music_assets enable row level security;
 
 -- 8. GENERATION PIPELINE (Research, Script, Scenes)
 create table public.research_results (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   project_id uuid references public.projects(id) on delete cascade not null,
   content text not null,
   sources jsonb,
@@ -176,7 +177,7 @@ create table public.research_results (
 alter table public.research_results enable row level security;
 
 create table public.scripts (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   project_id uuid references public.projects(id) on delete cascade not null,
   content text not null,
   word_count integer,
@@ -185,7 +186,7 @@ create table public.scripts (
 alter table public.scripts enable row level security;
 
 create table public.scenes (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   project_id uuid references public.projects(id) on delete cascade not null,
   scene_order integer not null,
   title text,
@@ -197,7 +198,7 @@ create table public.scenes (
 alter table public.scenes enable row level security;
 
 create table public.scene_assets (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   scene_id uuid references public.scenes(id) on delete cascade not null,
   media_asset_id uuid references public.media_assets(id) on delete cascade not null,
   asset_type text not null,
@@ -207,7 +208,7 @@ alter table public.scene_assets enable row level security;
 
 -- 9. RENDERS & VERSIONS
 create table public.renders (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   project_id uuid references public.projects(id) on delete cascade not null,
   status text default 'pending',
   progress numeric default 0,
@@ -217,7 +218,7 @@ create table public.renders (
 alter table public.renders enable row level security;
 
 create table public.video_versions (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   project_id uuid references public.projects(id) on delete cascade not null,
   storage_file_id uuid references public.storage_files(id) on delete cascade not null,
   version integer not null,
@@ -228,7 +229,7 @@ alter table public.video_versions enable row level security;
 
 -- 10. WORKFLOW, JOBS & LOGS
 create table public.workflow_executions (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   project_id uuid references public.projects(id) on delete cascade not null,
   current_step text not null,
   status text default 'in_progress',
@@ -238,7 +239,7 @@ create table public.workflow_executions (
 alter table public.workflow_executions enable row level security;
 
 create table public.job_queue (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   job_type text not null,
   status text default 'pending',
   payload jsonb not null,
@@ -252,7 +253,7 @@ create table public.job_queue (
 alter table public.job_queue enable row level security;
 
 create table public.usage_logs (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   provider text not null,
   tokens integer default 0,
   images integer default 0,
@@ -263,7 +264,7 @@ create table public.usage_logs (
 alter table public.usage_logs enable row level security;
 
 create table public.provider_logs (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   provider text not null,
   status text not null,
   response_time numeric,
@@ -273,7 +274,7 @@ create table public.provider_logs (
 alter table public.provider_logs enable row level security;
 
 create table public.error_logs (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   project_id uuid references public.projects(id) on delete cascade,
   job_id uuid references public.job_queue(id) on delete cascade,
   module text not null,
@@ -284,7 +285,7 @@ create table public.error_logs (
 alter table public.error_logs enable row level security;
 
 create table public.prompt_executions (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   project_id uuid references public.projects(id) on delete cascade,
   provider text not null,
   model text not null,
@@ -296,7 +297,7 @@ create table public.prompt_executions (
 alter table public.prompt_executions enable row level security;
 
 create table public.storage_usage (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   images_count integer default 0,
   videos_count integer default 0,
