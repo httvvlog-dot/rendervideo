@@ -2,9 +2,10 @@
 
 import { useTheme } from "next-themes"
 import { Moon, Sun, Menu, Bell } from "lucide-react"
-import { Button } from "./ui/button"
+import { Button, buttonVariants } from "./ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "./ui/avatar"
+import { cn } from "@/lib/utils"
 
 export function UserTopbar() {
   const { setTheme } = useTheme()
@@ -24,12 +25,10 @@ export function UserTopbar() {
         </Button>
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Toggle theme</span>
-            </Button>
+          <DropdownMenuTrigger className={buttonVariants({ variant: "ghost", size: "icon" })}>
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => setTheme("light")}>Light</DropdownMenuItem>
@@ -39,12 +38,10 @@ export function UserTopbar() {
         </DropdownMenu>
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-indigo-100 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-100">US</AvatarFallback>
-              </Avatar>
-            </Button>
+          <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative h-8 w-8 rounded-full")}>
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-indigo-100 text-indigo-900 dark:bg-indigo-900 dark:text-indigo-100">US</AvatarFallback>
+            </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem>Profile</DropdownMenuItem>
