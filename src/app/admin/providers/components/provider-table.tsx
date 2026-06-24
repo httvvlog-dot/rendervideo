@@ -2,11 +2,14 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MoreHorizontal, Plus, Settings2, Trash2 } from "lucide-react"
+import { MoreHorizontal, Plus, Settings2, Trash2, Loader2 } from "lucide-react"
+import { saveProvider, deleteProvider } from "../actions"
 
 export function ProviderTable({ providers, type }: { providers: any[], type: string }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [selectedProvider, setSelectedProvider] = useState<any | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const openSheet = (provider: any = null) => {
     setSelectedProvider(provider)
@@ -16,6 +19,48 @@ export function ProviderTable({ providers, type }: { providers: any[], type: str
   const closeSheet = () => {
     setIsSheetOpen(false)
     setTimeout(() => setSelectedProvider(null), 300)
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSaving(true)
+    try {
+      const formData = new FormData(e.currentTarget)
+      const payload = {
+        id: selectedProvider?.id,
+        provider_type: type,
+        provider_name: formData.get("provider_name"),
+        is_active: formData.get("is_active") === "on",
+        is_default: formData.get("is_default") === "on",
+        priority: parseInt(formData.get("priority") as string || "0"),
+        config: {
+          apiKey: formData.get("apiKey"),
+          defaultModel: formData.get("defaultModel"),
+          fallbackModel: formData.get("fallbackModel"),
+          voice: formData.get("voice"),
+          bucket: formData.get("bucket"),
+        }
+      }
+      await saveProvider(payload)
+      closeSheet()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!selectedProvider || !confirm("Are you sure you want to delete this provider?")) return
+    setIsDeleting(true)
+    try {
+      await deleteProvider(selectedProvider.id)
+      closeSheet()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -104,16 +149,16 @@ export function ProviderTable({ providers, type }: { providers: any[], type: str
               </div>
               
               <div className="p-6 flex-1">
-                {/* Form placeholder */}
-                <form className="space-y-4">
+                <form id="provider-form" onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Provider Name</label>
-                    <input type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.provider_name || ''} />
+                    <input name="provider_name" required type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.provider_name || ''} />
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">API Key</label>
+                    <label className="text-sm font-medium">API Key / Secret Key</label>
                     <input 
+                      name="apiKey"
                       type="password" 
                       className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" 
                       placeholder={selectedProvider?._hasSecret ? "•••••••••••••••• (Set)" : "Enter API Key"} 
@@ -121,25 +166,62 @@ export function ProviderTable({ providers, type }: { providers: any[], type: str
                     <p className="text-xs text-slate-500">API keys are securely masked and never sent to the browser.</p>
                   </div>
                   
-                  {/* Dynamic fields based on type would go here */}
                   {type === 'llm' && (
                     <>
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Default Model</label>
-                        <input type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.config_json?.defaultModel || ''} />
+                        <input name="defaultModel" type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.config_json?.defaultModel || ''} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Fallback Model</label>
+                        <input name="fallbackModel" type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.config_json?.fallbackModel || ''} />
                       </div>
                     </>
                   )}
+
+                  {type === 'tts' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Default Voice ID</label>
+                      <input name="voice" type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.config_json?.voice || ''} />
+                    </div>
+                  )}
+
+                  {type === 'storage' && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Bucket Name</label>
+                      <input name="bucket" type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.config_json?.bucket || ''} />
+                    </div>
+                  )}
+
+                  <div className="pt-4 space-y-4 border-t mt-6">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Active Status</label>
+                      <input name="is_active" type="checkbox" defaultChecked={selectedProvider ? selectedProvider.is_active : true} className="h-4 w-4 rounded border-slate-300" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Set as Default Provider</label>
+                      <input name="is_default" type="checkbox" defaultChecked={selectedProvider ? selectedProvider.is_default : false} className="h-4 w-4 rounded border-slate-300" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Priority (Higher runs first)</label>
+                      <input name="priority" type="number" defaultValue={selectedProvider?.priority || 0} className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" />
+                    </div>
+                  </div>
                 </form>
               </div>
               
-              <div className="p-6 border-t bg-slate-50 dark:bg-slate-900 flex justify-between">
-                {selectedProvider && (
-                  <button className="text-red-600 hover:text-red-700 p-2"><Trash2 className="h-5 w-5" /></button>
-                )}
-                <div className="flex gap-2 ml-auto">
-                  <button onClick={closeSheet} className="px-4 py-2 border rounded-md text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Cancel</button>
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700">Save Changes</button>
+              <div className="p-6 border-t bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
+                {selectedProvider ? (
+                  <button type="button" onClick={handleDelete} disabled={isDeleting} className="text-red-600 hover:text-red-700 p-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20">
+                    {isDeleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
+                  </button>
+                ) : <div />}
+                <div className="flex gap-2">
+                  <button type="button" onClick={closeSheet} className="px-4 py-2 border rounded-md text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Cancel</button>
+                  <button type="submit" form="provider-form" disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 flex items-center">
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                  </button>
                 </div>
               </div>
             </motion.div>
