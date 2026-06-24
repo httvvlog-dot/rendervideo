@@ -2,10 +2,10 @@
 
 -- Note: In a real Supabase Auth setup, creating users requires inserting into auth.users.
 -- Since this is a seed script for local dev, we insert a mock admin user.
-insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000000', 'admin@taovideo.com') on conflict do nothing;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000000', 'acc792003@gmail.com') on conflict do nothing;
 
 insert into public.profiles (id, email, full_name, role)
-values ('00000000-0000-0000-0000-000000000000', 'admin@taovideo.com', 'System Admin', 'admin')
+values ('00000000-0000-0000-0000-000000000000', 'acc792003@gmail.com', 'System Admin', 'admin')
 on conflict do nothing;
 
 -- 2. Providers Seed
