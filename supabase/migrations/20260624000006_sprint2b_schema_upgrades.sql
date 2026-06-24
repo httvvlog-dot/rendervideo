@@ -1,19 +1,7 @@
 -- Sprint 2B Schema Upgrades
 
--- 1. Create Audit Logs Table
-create table public.audit_logs (
-    id uuid default gen_random_uuid() primary key,
-    user_id uuid references public.profiles(id) on delete set null,
-    action text not null, -- 'Create', 'Update', 'Archive', 'Delete'
-    entity_type text not null, -- 'Provider', 'Prompt', 'Voice', 'Render', 'Settings'
-    entity_id uuid,
-    old_data jsonb,
-    new_data jsonb,
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
--- Enable RLS for Audit Logs
-alter table public.audit_logs enable row level security;
+-- 1. Audit Logs (Already created in migration 20260624000001_audit_logs_indexes.sql)
+-- We just ensure RLS policy exists if it was missed
 create policy "Admins can view audit logs"
   on public.audit_logs for select
   using ( public.is_admin() );

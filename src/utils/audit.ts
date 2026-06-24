@@ -34,8 +34,8 @@ export async function logAudit(payload: AuditPayload) {
       action: payload.action,
       entity_type: payload.entityType,
       entity_id: payload.entityId,
-      old_data: payload.oldData || null,
-      new_data: payload.newData || null
+      old_value: payload.oldData || null,
+      new_value: payload.newData || null
     })
 
   if (error) {
