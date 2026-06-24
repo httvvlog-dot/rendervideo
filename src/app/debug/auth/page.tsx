@@ -1,6 +1,8 @@
 import { createClient } from "@/utils/supabase/server"
+import { requireAdmin } from "@/utils/roles"
 
 export default async function AuthDebugPage() {
+  await requireAdmin()
   const supabase = await createClient()
 
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
