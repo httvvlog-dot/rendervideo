@@ -243,6 +243,10 @@ create table public.job_queue (
   status text default 'pending',
   payload jsonb not null,
   attempts integer default 0,
+  priority integer default 1,
+  scheduled_at timestamp with time zone default timezone('utc'::text, now()),
+  started_at timestamp with time zone,
+  completed_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 alter table public.job_queue enable row level security;
