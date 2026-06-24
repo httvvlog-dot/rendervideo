@@ -31,7 +31,6 @@ alter table public.voice_templates
 
 -- 5. Render Templates Upgrade
 alter table public.render_templates
-  add column transition text,
   add column subtitle_style jsonb,
   add column ken_burns boolean default false,
   add column zoom_speed numeric,
