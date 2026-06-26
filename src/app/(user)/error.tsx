@@ -1,9 +1,10 @@
-"use client"
+"use client" // Error components must be Client Components
 
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { AlertCircle } from "lucide-react"
 
-export default function ErrorBoundary({
+export default function Error({
   error,
   reset,
 }: {
@@ -11,17 +12,16 @@ export default function ErrorBoundary({
   reset: () => void
 }) {
   useEffect(() => {
-    // Optionally log the error to an error reporting service
+    // Log the error to an error reporting service
     console.error(error)
   }, [error])
 
   return (
-    <div className="flex h-[50vh] flex-col items-center justify-center space-y-4 text-center">
-      <h2 className="text-2xl font-bold tracking-tight">Something went wrong!</h2>
-      <p className="text-slate-500 dark:text-slate-400 max-w-md">
-        An unexpected error occurred while loading this page. We've been notified.
-      </p>
-      <Button onClick={() => reset()} variant="default">
+    <div className="flex h-[50vh] w-full flex-col items-center justify-center gap-4">
+      <AlertCircle className="h-10 w-10 text-red-500" />
+      <h2 className="text-xl font-bold">Something went wrong!</h2>
+      <p className="text-muted-foreground max-w-md text-center">{error.message || "An unexpected error occurred."}</p>
+      <Button onClick={() => reset()} variant="outline">
         Try again
       </Button>
     </div>
