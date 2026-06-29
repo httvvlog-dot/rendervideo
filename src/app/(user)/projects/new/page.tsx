@@ -94,17 +94,17 @@ export default function NewProjectWizard() {
           {steps.map((step) => (
             <li key={step.id} className="flex flex-col items-center gap-2">
               <div
-                className={\`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-background \${
+                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-background ${
                   currentStep === step.id
                     ? "border-indigo-600 text-indigo-600 dark:border-indigo-500 dark:text-indigo-500"
                     : currentStep > step.id
                     ? "border-emerald-500 bg-emerald-500 text-white"
                     : "border-slate-200 text-slate-400 dark:border-slate-800"
-                }\`}
+                }`}
               >
                 {currentStep > step.id ? <Check className="h-5 w-5" /> : <span className="text-sm font-medium">{step.id}</span>}
               </div>
-              <span className={\`text-xs font-medium \${currentStep === step.id ? "text-foreground" : "text-muted-foreground"}\`}>
+              <span className={`text-xs font-medium ${currentStep === step.id ? "text-foreground" : "text-muted-foreground"}`}>
                 {step.title}
               </span>
             </li>
