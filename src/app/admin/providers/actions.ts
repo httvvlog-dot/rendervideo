@@ -11,6 +11,7 @@ export async function getProviders() {
   const { data, error } = await supabase
     .from("providers")
     .select("*")
+    .is("deleted_at", null)
     .order("provider_type", { ascending: true })
     .order("priority", { ascending: false })
 
@@ -108,7 +109,10 @@ export async function deleteProvider(id: string) {
 
   const { data: oldData } = await supabase.from("providers").select("*").eq("id", id).single()
   
-  const { error } = await supabase.from("providers").delete().eq("id", id)
+  const { error } = await supabase.from("providers").update({ 
+    is_active: false, 
+    deleted_at: new Date().toISOString() 
+  }).eq("id", id)
   if (error) return { error: error.message }
 
   if (oldData) {

@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Activity, Check, ChevronRight, Save } from "lucide-react"
+import { createProject } from "./actions"
 
 const steps = [
   { id: 1, title: "Topic" },
@@ -20,11 +22,12 @@ const steps = [
 export default function NewProjectWizard() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isSaving, setIsSaving] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
   
   // Autosave Draft State
   const [projectData, setProjectData] = useState({
     topic: "",
-    language: "English",
+    language: "vi",
     duration: "10", // minutes
     voiceProvider: "ElevenLabs",
     llmProvider: "Gemini",
@@ -53,6 +56,17 @@ export default function NewProjectWizard() {
   const handlePrev = () => {
     if (currentStep > 1) {
       setCurrentStep(c => c - 1)
+    }
+  }
+
+  const handleCreate = async () => {
+    setIsGenerating(true)
+    try {
+      await createProject(projectData)
+      localStorage.removeItem("project_draft")
+    } catch (error) {
+      console.error(error)
+      setIsGenerating(false)
     }
   }
 
@@ -135,6 +149,23 @@ export default function NewProjectWizard() {
                 </div>
               )}
 
+              {currentStep === 2 && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Language</Label>
+                    <Select value={projectData.language} onValueChange={(val) => setProjectData({...projectData, language: val})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vi">Vietnamese (vi-VN)</SelectItem>
+                        <SelectItem value="en">English (en-US)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
               {currentStep === 3 && (
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -149,10 +180,54 @@ export default function NewProjectWizard() {
                 </div>
               )}
 
-              {/* Placeholders for other steps */}
-              {[2, 4, 5, 6].includes(currentStep) && (
-                <div className="flex h-full items-center justify-center border-2 border-dashed rounded-md text-muted-foreground">
-                  Configuration UI for {steps[currentStep-1].title} (Sprint 2C)
+              {currentStep === 4 && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Voice Provider</Label>
+                    <Select value={projectData.voiceProvider} onValueChange={(val) => setProjectData({...projectData, voiceProvider: val})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Voice Provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ElevenLabs">ElevenLabs (Premium)</SelectItem>
+                        <SelectItem value="GoogleTTS">Google TTS (Standard)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 5 && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Script LLM Provider</Label>
+                    <Select value={projectData.llmProvider} onValueChange={(val) => setProjectData({...projectData, llmProvider: val})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select LLM" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Gemini">Google Gemini 1.5 Pro</SelectItem>
+                        <SelectItem value="OpenAI">OpenAI GPT-4o</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 6 && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Video Resolution</Label>
+                    <Select value={projectData.resolution} onValueChange={(val) => setProjectData({...projectData, resolution: val})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Resolution" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1080p">1080p (FHD)</SelectItem>
+                        <SelectItem value="4K">4K (UHD)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               )}
 
@@ -165,13 +240,19 @@ export default function NewProjectWizard() {
 
             </CardContent>
             <CardFooter className="flex justify-between border-t p-6">
-              <Button variant="outline" onClick={handlePrev} disabled={currentStep === 1}>
+              <Button variant="outline" onClick={handlePrev} disabled={currentStep === 1 || isGenerating}>
                 Previous
               </Button>
-              <Button onClick={handleNext} disabled={currentStep === steps.length}>
-                {currentStep === steps.length - 1 ? "Review" : "Next"}
-                {currentStep < steps.length - 1 && <ChevronRight className="ml-2 h-4 w-4" />}
-              </Button>
+              {currentStep === steps.length ? (
+                <Button onClick={handleCreate} disabled={isGenerating}>
+                  {isGenerating ? <><Activity className="mr-2 h-4 w-4 animate-spin" /> Creating...</> : "Confirm & Create"}
+                </Button>
+              ) : (
+                <Button onClick={handleNext}>
+                  Next
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              )}
             </CardFooter>
           </Card>
         </div>
@@ -206,11 +287,6 @@ export default function NewProjectWizard() {
                 <span className="text-indigo-600 dark:text-indigo-400">≈ ${cost.total}</span>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button className="w-full" disabled={currentStep !== 7}>
-                Confirm & Generate
-              </Button>
-            </CardFooter>
           </Card>
         </div>
       </div>

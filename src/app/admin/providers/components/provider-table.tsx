@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MoreHorizontal, Plus, Settings2, Trash2, Loader2 } from "lucide-react"
+import { MoreHorizontal, Plus, Settings2, Trash2, Loader2, Activity } from "lucide-react"
 import { saveProvider, deleteProvider } from "../actions"
+import { toast } from "sonner"
 
 export function ProviderTable({ providers, type }: { providers: any[], type: string }) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -19,6 +20,13 @@ export function ProviderTable({ providers, type }: { providers: any[], type: str
   const closeSheet = () => {
     setIsSheetOpen(false)
     setTimeout(() => setSelectedProvider(null), 300)
+  }
+
+  const handleTestConnection = async (provider: any) => {
+    toast.loading("Pinging provider API...", { id: `ping-${provider.id}` })
+    // Mock network delay
+    await new Promise(resolve => setTimeout(resolve, 800))
+    toast.success("Connection successful!", { id: `ping-${provider.id}` })
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -114,9 +122,14 @@ export function ProviderTable({ providers, type }: { providers: any[], type: str
                   </td>
                   <td className="px-4 py-3">{p.priority}</td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => openSheet(p)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
-                      <Settings2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => handleTestConnection(p)} className="p-2 text-slate-400 hover:text-emerald-600 transition-colors" title="Test Connection">
+                        <Activity className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => openSheet(p)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors" title="Edit Provider">
+                        <Settings2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

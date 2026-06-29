@@ -1,21 +1,22 @@
-import { ReactNode } from "react"
-import { requireAdmin } from "@/utils/roles"
 import { AdminSidebar } from "@/components/admin-sidebar"
 import { AdminTopbar } from "@/components/admin-topbar"
+import { getCurrentUser } from "@/utils/auth-service"
+import { redirect } from "next/navigation"
 
-export default async function AdminLayout({ children }: { children: ReactNode }) {
-  // Enforce admin role for all routes within /admin
-  await requireAdmin()
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const user = await getCurrentUser()
+
+  if (!user || user.role !== "admin") {
+    redirect("/dashboard")
+  }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
       <AdminSidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div className="flex flex-1 flex-col overflow-hidden lg:pl-64">
         <AdminTopbar />
-        <main className="flex-1 p-6 overflow-auto">
-          <div className="mx-auto max-w-6xl">
-            {children}
-          </div>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {children}
         </main>
       </div>
     </div>
