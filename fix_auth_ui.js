@@ -1,4 +1,10 @@
-"use client"
+const fs = require('fs');
+const path = require('path');
+
+const loginPagePath = path.resolve(process.cwd(), 'src/app/login/page.tsx');
+const homePagePath = path.resolve(process.cwd(), 'src/app/page.tsx');
+
+const loginContent = `"use client"
 
 import { useState, useEffect, Suspense } from "react"
 import { motion } from "framer-motion"
@@ -138,4 +144,21 @@ export default function LoginPage() {
       </motion.div>
     </div>
   )
+}
+`;
+
+try {
+  fs.writeFileSync(loginPagePath, loginContent, 'utf8');
+  console.log('[OK] Patched src/app/login/page.tsx');
+  
+  let homeContent = fs.readFileSync(homePagePath, 'utf8');
+  // Update the Sign up button link on homepage to pass ?tab=register
+  homeContent = homeContent.replace(/<Link href="\\/login">\\s*<Button className="bg-indigo-600/g, '<Link href="/login?tab=register">\\n            <Button className="bg-indigo-600');
+  homeContent = homeContent.replace(/<Link href="\\/login">\\s*<Button size="lg"/g, '<Link href="/login?tab=register">\\n            <Button size="lg"');
+  fs.writeFileSync(homePagePath, homeContent, 'utf8');
+  console.log('[OK] Patched src/app/page.tsx');
+  
+  console.log("\\n🎉 Auth UI patched successfully. You can now register new accounts!");
+} catch (err) {
+  console.error('[ERROR] Failed to patch:', err.message);
 }

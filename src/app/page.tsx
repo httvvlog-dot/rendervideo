@@ -14,7 +14,7 @@ export default function Home() {
           <Link href="/login" className="text-sm font-medium hover:text-indigo-600 transition-colors">
             Log in
           </Link>
-          <Link href="/login">
+          <Link href="/login?tab=register">
             <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6">
               Sign up
             </Button>
@@ -36,7 +36,7 @@ export default function Home() {
         </p>
 
         <div className="flex items-center space-x-4 mb-20">
-          <Link href="/login">
+          <Link href="/login?tab=register">
             <Button size="lg" className="h-14 px-8 text-lg bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all">
               Start Creating for Free <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
