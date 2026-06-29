@@ -153,7 +153,7 @@ export default function NewProjectWizard() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Language</Label>
-                    <Select value={projectData.language} onValueChange={(val) => setProjectData({...projectData, language: val})}>
+                    <Select value={projectData.language} onValueChange={(val) => setProjectData({...projectData, language: val as string})}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Language" />
                       </SelectTrigger>
@@ -184,7 +184,7 @@ export default function NewProjectWizard() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Voice Provider</Label>
-                    <Select value={projectData.voiceProvider} onValueChange={(val) => setProjectData({...projectData, voiceProvider: val})}>
+                    <Select value={projectData.voiceProvider} onValueChange={(val) => setProjectData({...projectData, voiceProvider: val as string})}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Voice Provider" />
                       </SelectTrigger>
@@ -201,7 +201,7 @@ export default function NewProjectWizard() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Script LLM Provider</Label>
-                    <Select value={projectData.llmProvider} onValueChange={(val) => setProjectData({...projectData, llmProvider: val})}>
+                    <Select value={projectData.llmProvider} onValueChange={(val) => setProjectData({...projectData, llmProvider: val as string})}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select LLM" />
                       </SelectTrigger>
@@ -218,7 +218,7 @@ export default function NewProjectWizard() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Video Resolution</Label>
-                    <Select value={projectData.resolution} onValueChange={(val) => setProjectData({...projectData, resolution: val})}>
+                    <Select value={projectData.resolution} onValueChange={(val) => setProjectData({...projectData, resolution: val as string})}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Resolution" />
                       </SelectTrigger>

@@ -13,7 +13,7 @@ export async function login(formData: FormData) {
   }
   const { error } = await supabase.auth.signInWithPassword(data)
   if (error) {
-    redirect("/login?message=Could not authenticate user")
+    return { error: "Could not authenticate user" }
   }
   const user = await getCurrentUser()
   if (user?.role === "admin") {
@@ -32,7 +32,7 @@ export async function signup(formData: FormData) {
   }
   const { error } = await supabase.auth.signUp(data)
   if (error) {
-    redirect("/login?message=Could not authenticate user")
+    return { error: "Could not authenticate user" }
   }
   revalidatePath("/dashboard")
   redirect("/dashboard")
