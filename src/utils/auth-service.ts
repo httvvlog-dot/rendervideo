@@ -25,6 +25,10 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   console.log("PROFILE RESULT", profile)
   console.log("ROLE RESULT", profile?.role)
 
+
+  console.log("PROFILE RESULT", profile)
+  console.log("ROLE RESULT", profile?.role)
+
   return {
     id: user.id,
     email: user.email || "",
