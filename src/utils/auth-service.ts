@@ -22,12 +22,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .single();
 
 
-  console.log("======== AUTH DEBUG ========");
-  console.log("USER ID:", user.id);
-  console.log("EMAIL:", user.email);
-  console.log("PROFILE ROLE:", profile?.role);
-  console.log("PROFILE DATA:", profile);
-  console.log("============================");
+  console.log("PROFILE RESULT", profile)
+  console.log("ROLE RESULT", profile?.role)
 
   return {
     id: user.id,
