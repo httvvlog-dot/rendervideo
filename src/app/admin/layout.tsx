@@ -6,6 +6,13 @@ import { redirect } from "next/navigation"
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser()
 
+  console.log("=== ADMIN DEBUG ===");
+  console.log("auth user id:", user?.id);
+  console.log("profile:", user);
+  console.log("profile.role:", user?.role);
+  console.log("role check result:", user?.role === "admin");
+
+
   if (!user || user.role !== "admin") {
     redirect("/dashboard")
   }
