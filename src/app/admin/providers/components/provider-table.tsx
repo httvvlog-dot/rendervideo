@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MoreHorizontal, Plus, Settings2, Trash2, Loader2, Activity } from "lucide-react"
-import { saveProvider, deleteProvider } from "../actions"
+import { saveProvider, deleteProvider, testOpenRouterConnection } from "../actions"
 import { toast } from "sonner"
 
 export function ProviderTable({ providers, type }: { providers: any[], type: string }) {
@@ -162,65 +162,31 @@ export function ProviderTable({ providers, type }: { providers: any[], type: str
               </div>
               
               <div className="p-6 flex-1">
-                <form id="provider-form" onSubmit={handleSubmit} className="space-y-4">
+                
+<form id="provider-form" onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Provider Name</label>
-                    <input name="provider_name" required type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.provider_name || ''} />
+                    <input name="provider_name" required type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.provider_name || ''} readOnly={!!selectedProvider} />
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">API Key / Secret Key</label>
+                    <label className="text-sm font-medium">API Key</label>
                     <input 
                       name="apiKey"
                       type="password" 
                       className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" 
                       placeholder={selectedProvider?._hasSecret ? "•••••••••••••••• (Set)" : "Enter API Key"} 
                     />
-                    <p className="text-xs text-slate-500">API keys are securely masked and never sent to the browser.</p>
                   </div>
                   
-                  {type === 'llm' && (
-                    <>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Default Model</label>
-                        <input name="defaultModel" type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.config_json?.defaultModel || ''} />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Fallback Model</label>
-                        <input name="fallbackModel" type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.config_json?.fallbackModel || ''} />
-                      </div>
-                    </>
-                  )}
-
-                  {type === 'tts' && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Default Voice ID</label>
-                      <input name="voice" type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.config_json?.voice || ''} />
-                    </div>
-                  )}
-
-                  {type === 'storage' && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Bucket Name</label>
-                      <input name="bucket" type="text" className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" defaultValue={selectedProvider?.config_json?.bucket || ''} />
-                    </div>
-                  )}
-
                   <div className="pt-4 space-y-4 border-t mt-6">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Active Status</label>
+                      <label className="text-sm font-medium">Enable Provider</label>
                       <input name="is_active" type="checkbox" defaultChecked={selectedProvider ? selectedProvider.is_active : true} className="h-4 w-4 rounded border-slate-300" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Set as Default Provider</label>
-                      <input name="is_default" type="checkbox" defaultChecked={selectedProvider ? selectedProvider.is_default : false} className="h-4 w-4 rounded border-slate-300" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Priority (Higher runs first)</label>
-                      <input name="priority" type="number" defaultValue={selectedProvider?.priority || 0} className="w-full border rounded-md px-3 py-2 text-sm bg-transparent" />
                     </div>
                   </div>
                 </form>
+
               </div>
               
               <div className="p-6 border-t bg-slate-50 dark:bg-slate-900 flex justify-between items-center">

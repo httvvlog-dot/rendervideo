@@ -122,3 +122,42 @@ export async function deleteProvider(id: string) {
   revalidatePath("/admin/providers")
   return { success: true }
 }
+
+export async function testOpenRouterConnection(providerId: string | null, apiKeyInput: string | null) {
+  await requireAdmin();
+  const supabase = await createClient();
+  
+  let actualKey = apiKeyInput;
+  if (!actualKey || actualKey === "••••••••••••••••") {
+    if (!providerId) return { success: false, error: "No API Key provided" };
+    const { data } = await supabase.from("providers").select("config_json").eq("id", providerId).single();
+    if (!data || !data.config_json?.apiKey) return { success: false, error: "No API Key found in database" };
+    actualKey = data.config_json.apiKey;
+  }
+
+  try {
+    const startTime = Date.now();
+    const res = await fetch("https://openrouter.ai/api/v1/models", {
+      headers: {
+        "Authorization": `Bearer ${actualKey}`
+      }
+    });
+    
+    const latency = Date.now() - startTime;
+    
+    if (!res.ok) {
+      return { success: false, error: `API returned status ${res.status}`, status: res.status };
+    }
+    
+    const data = await res.json();
+    return { 
+      success: true, 
+      latency, 
+      status: res.status, 
+      modelCount: data.data?.length || 0,
+      models: data.data?.slice(0, 5).map((m: any) => m.id) || []
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
