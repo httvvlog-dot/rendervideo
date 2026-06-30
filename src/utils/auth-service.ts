@@ -17,7 +17,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   // Fetch role and profile data
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name, avatar_url")
+    .select("role, full_name")
     .eq("id", user.id)
     .single();
 
