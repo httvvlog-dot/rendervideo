@@ -7,7 +7,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { cn } from "@/lib/utils"
 
-export function AdminTopbar() {
+export function AdminTopbar({ user }: { user?: any }) {
+  const getInitials = (email: string) => {
+    if (!email) return "AD";
+    return email.substring(0, 2).toUpperCase();
+  };
   const { setTheme } = useTheme()
 
   return (
@@ -40,12 +44,17 @@ export function AdminTopbar() {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        
+        <div className="hidden md:flex flex-col items-end mr-2">
+          <span className="text-sm font-medium leading-none">{user?.email || "Admin"}</span>
+          <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-1 bg-blue-50 dark:bg-blue-900/30 px-1.5 rounded uppercase">{user?.role || "Admin"}</span>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative h-8 w-8 rounded-full")}>
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100">AD</AvatarFallback>
+              <AvatarFallback className="bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100">{getInitials(user?.email)}</AvatarFallback>
             </Avatar>
-          </DropdownMenuTrigger>
+</DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Sign out</DropdownMenuItem>

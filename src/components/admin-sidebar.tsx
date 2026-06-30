@@ -2,13 +2,17 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Server, Settings, FileCode2, Video } from "lucide-react"
+import { LayoutDashboard, Users, Server, Settings, FileCode2, Video, ScrollText } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const adminNavItems = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { name: "System Validation", href: "/admin/system", icon: Server },
   { name: "Providers", href: "/admin/providers", icon: Server },
+  { name: "Templates", href: "/admin/templates", icon: FileCode2 },
+  { name: "Users", href: "/admin/users", icon: Users },
+  { name: "Settings", href: "/admin/settings", icon: Settings },
+  { name: "Logs", href: "/admin/logs", icon: ScrollText },
+  { name: "System Validation", href: "/admin/system", icon: Server },
 ]
 
 export function AdminSidebar() {
