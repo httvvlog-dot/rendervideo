@@ -33,7 +33,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     id: user.id,
     email: user.email || "",
     full_name: profile?.full_name || null,
-    avatar_url: profile?.avatar_url || null,
+    avatar_url: user.user_metadata?.avatar_url || null,
     role: profile?.role || "user",
   };
 }
