@@ -22,7 +22,7 @@ export default async function UserLayout({
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
       <UserSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden lg:pl-64">
         <UserTopbar />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
