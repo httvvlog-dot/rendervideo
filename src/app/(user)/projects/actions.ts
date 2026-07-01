@@ -67,7 +67,7 @@ export async function duplicateProject(projectId: string) {
 
   // Remove id, dates, and update title/status
   const { id, created_at, updated_at, ...copyData } = existing
-  copyData.title = \`\${copyData.title} (Copy)\`
+  copyData.title = `${copyData.title} (Copy)`
   copyData.status = "draft"
   copyData.workflow_state = {
     research: "pending",
