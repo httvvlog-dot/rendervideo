@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
+import { createAdminClient } from "@/utils/supabase/admin"
 import { requireAdmin } from "@/utils/roles"
 import { logAudit } from "@/utils/audit"
 import { revalidatePath } from "next/cache"
