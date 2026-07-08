@@ -12,8 +12,8 @@ export function ProviderWorkspaceClient({ provider }: { provider: any }) {
   const [activeTab, setActiveTab] = useState("configuration")
 
   const getIcon = () => {
-    const name = provider.provider_name.toLowerCase()
-    const type = provider.provider_type
+    const name = (provider?.provider_name || "").toLowerCase()
+    const type = provider?.provider_type
     if (name.includes("openrouter") || type === 'llm') return <Server className="h-6 w-6 text-indigo-500" />
     if (name.includes("elevenlabs") || type === 'tts') return <Volume2 className="h-6 w-6 text-blue-500" />
     if (name.includes("whisper") || type === 'subtitle') return <Mic className="h-6 w-6 text-violet-500" />
@@ -22,7 +22,7 @@ export function ProviderWorkspaceClient({ provider }: { provider: any }) {
   }
 
   const renderConfigurationForm = () => {
-    const name = provider.provider_name.toLowerCase()
+    const name = (provider?.provider_name || "").toLowerCase()
     if (name.includes("openrouter")) return <OpenRouterForm provider={provider} />
     if (name.includes("elevenlabs")) return <ElevenLabsForm provider={provider} />
     if (name.includes("cloudflare") || name.includes("r2")) return <CloudflareR2Form provider={provider} />
@@ -45,12 +45,12 @@ export function ProviderWorkspaceClient({ provider }: { provider: any }) {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
-              {provider.provider_name}
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${provider.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}`}>
-                {provider.is_active ? 'Active' : 'Disabled'}
+              {provider?.provider_name || 'Unnamed Provider'}
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${provider?.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}`}>
+                {provider?.is_active ? 'Active' : 'Disabled'}
               </span>
             </h1>
-            <p className="text-sm text-slate-500 capitalize">{provider.provider_type} Provider</p>
+            <p className="text-sm text-slate-500 capitalize">{provider?.provider_type} Provider</p>
           </div>
         </div>
       </div>

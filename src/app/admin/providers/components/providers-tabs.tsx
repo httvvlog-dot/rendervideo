@@ -6,10 +6,11 @@ import { ProviderCards } from "./provider-cards"
 export function ProvidersTabs({ initialData }: { initialData: any[] }) {
   const [activeTab, setActiveTab] = useState("llm")
   
-  const llmProviders = initialData.filter(p => p.provider_type === "llm")
-  const ttsProviders = initialData.filter(p => p.provider_type === "tts")
-  const storageProviders = initialData.filter(p => p.provider_type === "storage")
-  const subtitleProviders = initialData.filter(p => p.provider_type === "subtitle")
+  const safeData = initialData || []
+  const llmProviders = safeData.filter(p => p.provider_type === "llm")
+  const ttsProviders = safeData.filter(p => p.provider_type === "tts")
+  const storageProviders = safeData.filter(p => p.provider_type === "storage")
+  const subtitleProviders = safeData.filter(p => p.provider_type === "subtitle")
 
   const tabs = [
     { id: "llm", label: "LLM" },

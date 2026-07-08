@@ -32,7 +32,7 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
   }
 
   const getIcon = (providerName: string) => {
-    const name = providerName.toLowerCase()
+    const name = (providerName || "").toLowerCase()
     if (name.includes("openrouter") || type === 'llm') return <Server className="h-8 w-8 text-indigo-500" />
     if (name.includes("elevenlabs") || type === 'tts') return <Volume2 className="h-8 w-8 text-blue-500" />
     if (name.includes("whisper") || type === 'subtitle') return <Mic className="h-8 w-8 text-violet-500" />
@@ -43,7 +43,7 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {providers.map((p) => (
+        {(providers || []).map((p) => (
           <div 
             key={p.id} 
             className="group relative border rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all flex flex-col"
@@ -57,7 +57,7 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
                   {p.is_active ? 'Active' : 'Disabled'}
                 </span>
               </div>
-              <h3 className="text-xl font-bold mb-1">{p.provider_name}</h3>
+              <h3 className="text-xl font-bold mb-1">{p.provider_name || 'Unnamed Provider'}</h3>
               <div className="flex items-center gap-2 mt-4 text-sm capitalize">
                 <span className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
                   <span className={`h-2.5 w-2.5 rounded-full ${p.health_status === 'healthy' ? 'bg-green-500' : p.health_status === 'warning' ? 'bg-yellow-500' : p.health_status === 'offline' ? 'bg-red-500' : 'bg-slate-400'}`}></span>
