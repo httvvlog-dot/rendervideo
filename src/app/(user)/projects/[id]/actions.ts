@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server"
 import { getCurrentUser } from "@/utils/auth-service"
 import { revalidatePath } from "next/cache"
 
+/** @deprecated Use generateScript in script-actions.ts instead */
 export async function generateScript(projectId: string) {
   const user = await getCurrentUser()
   if (!user) throw new Error("Unauthorized")

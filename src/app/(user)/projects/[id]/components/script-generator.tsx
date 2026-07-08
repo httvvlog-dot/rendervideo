@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Play, RotateCw, Loader2 } from "lucide-react"
-import { generateScript } from "../actions"
+import { generateScript } from "../script-actions"
 import { toast } from "sonner"
 
 interface ScriptGeneratorProps {
