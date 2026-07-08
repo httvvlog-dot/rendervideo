@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { saveProvider } from "../../../../actions"
+import { saveProvider } from "../../../actions"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 
