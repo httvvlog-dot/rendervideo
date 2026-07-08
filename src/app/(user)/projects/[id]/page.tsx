@@ -7,15 +7,17 @@ import { ArrowLeft, Play, Settings, CheckCircle2, Circle, XCircle, Loader2 } fro
 import Link from "next/link"
 import { deleteProject } from "../actions"
 import { ScriptManager } from "./components/script-manager"
+import { ProjectMedia } from "./components/project-media"
 
-export default async function ProjectDetailPage({ params }: { params: { id: string } }) {
+export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await getCurrentUser()
   const supabase = await createClient()
 
   const { data: project } = await supabase
     .from('projects')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('user_id', user?.id)
     .single()
 
@@ -24,8 +26,14 @@ export default async function ProjectDetailPage({ params }: { params: { id: stri
   const { data: scripts } = await supabase
     .from('scripts')
     .select('*')
-    .eq('project_id', params.id)
+    .eq('project_id', id)
     .order('version', { ascending: false })
+
+  const { data: projectMedia } = await supabase
+    .from('project_media')
+    .select('*')
+    .eq('project_id', id)
+    .order('created_at', { ascending: false })
 
   const wf = project.workflow_state || {
     research: "pending", script: "pending", scene: "pending", voice: "pending", subtitle: "pending", render: "pending"
