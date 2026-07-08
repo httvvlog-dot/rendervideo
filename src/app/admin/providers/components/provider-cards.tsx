@@ -22,7 +22,7 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
         toast.error(res.error)
       } else {
         toast.success("Created! Redirecting to workspace...")
-        router.push(\`/admin/providers/\${res.id}\`)
+        router.push(`/admin/providers/${res.id}`)
       }
     } catch (err: any) {
       toast.error(err.message)
@@ -53,14 +53,14 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   {getIcon(p.provider_name)}
                 </div>
-                <span className={\`px-2.5 py-1 rounded-full text-xs font-semibold \${p.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}\`}>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${p.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}`}>
                   {p.is_active ? 'Active' : 'Disabled'}
                 </span>
               </div>
               <h3 className="text-xl font-bold mb-1">{p.provider_name}</h3>
               <div className="flex items-center gap-2 mt-4 text-sm capitalize">
                 <span className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
-                  <span className={\`h-2.5 w-2.5 rounded-full \${p.health_status === 'healthy' ? 'bg-green-500' : p.health_status === 'warning' ? 'bg-yellow-500' : p.health_status === 'offline' ? 'bg-red-500' : 'bg-slate-400'}\`}></span>
+                  <span className={`h-2.5 w-2.5 rounded-full ${p.health_status === 'healthy' ? 'bg-green-500' : p.health_status === 'warning' ? 'bg-yellow-500' : p.health_status === 'offline' ? 'bg-red-500' : 'bg-slate-400'}`}></span>
                   {p.health_status}
                 </span>
                 {p.is_default && (
@@ -70,7 +70,7 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
             </div>
             <div className="border-t bg-slate-50 dark:bg-slate-800/50 p-4">
               <button 
-                onClick={() => router.push(\`/admin/providers/\${p.id}\`)}
+                onClick={() => router.push(`/admin/providers/${p.id}`)}
                 className="w-full flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-2.5 rounded-lg text-sm font-semibold transition-colors"
               >
                 Configure Workspace

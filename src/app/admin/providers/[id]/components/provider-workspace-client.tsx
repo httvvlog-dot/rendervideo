@@ -46,7 +46,7 @@ export function ProviderWorkspaceClient({ provider }: { provider: any }) {
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
               {provider.provider_name}
-              <span className={\`px-2.5 py-0.5 rounded-full text-xs font-semibold \${provider.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}\`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${provider.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'}`}>
                 {provider.is_active ? 'Active' : 'Disabled'}
               </span>
             </h1>
@@ -60,33 +60,33 @@ export function ProviderWorkspaceClient({ provider }: { provider: any }) {
         <div className="flex space-x-6">
           <button
             onClick={() => setActiveTab("configuration")}
-            className={\`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 \${
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
               activeTab === "configuration"
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }\`}
+            }`}
           >
             <Settings className="h-4 w-4" />
             Configuration
           </button>
           <button
             onClick={() => setActiveTab("diagnostics")}
-            className={\`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 \${
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
               activeTab === "diagnostics"
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }\`}
+            }`}
           >
             <Activity className="h-4 w-4" />
             Diagnostics
           </button>
           <button
             onClick={() => setActiveTab("logs")}
-            className={\`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 \${
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
               activeTab === "logs"
                 ? "border-blue-600 text-blue-600"
                 : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }\`}
+            }`}
           >
             <TerminalSquare className="h-4 w-4" />
             Logs
