@@ -16,19 +16,19 @@ export async function getProviders() {
     .select("*")
     .order("provider_type", { ascending: true })
 
-  if (provError) throw new Error(provError.message)
+  if (provError) { console.error("Provider Error:", provError); return []; }
 
   // Fetch credentials
-  const { data: credentials, error: credError } = await supabase
+  let { data: credentials, error: credError } = await supabase
     .from("provider_credentials")
     .select("*")
     .order("priority", { ascending: false })
 
-  if (credError) throw new Error(credError.message)
+  if (credError) { console.error("Credential Error:", credError); credentials = []; }
 
   // Map credentials to providers and mask API keys
-  const mappedProviders = providers.map(p => {
-    const pCreds = credentials
+  const mappedProviders = (providers || []).map(p => {
+    const pCreds = (credentials || [])
       .filter(c => c.provider_id === p.id)
       .map(cred => {
         const safeConfig = { ...cred.config_json } as any
