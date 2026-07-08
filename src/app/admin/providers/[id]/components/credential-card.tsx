@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Activity, Edit, Trash2, Power, PowerOff, CheckCircle2, AlertTriangle, XCircle, Star } from "lucide-react"
-import { toggleCredential, deleteCredential, setDefaultCredential, testCredentialConnection } from "../../../actions"
+import { toggleCredential, deleteCredential, setDefaultCredential, testCredentialConnection } from "../../actions"
 import { toast } from "sonner"
 
 export function CredentialCard({ credential, providerKey, onEdit }: { credential: any, providerKey: string, onEdit: (c: any) => void }) {
