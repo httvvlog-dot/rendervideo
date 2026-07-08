@@ -1,4 +1,10 @@
-import { ProviderRuntimeOptions, ExecuteParams } from "./types"
+import { ProviderRuntimeOptions } from "./types"
+
+export interface RetryEngineParams<T> {
+  step: any;
+  projectId?: string;
+  operation: (credential: any) => Promise<T>;
+}
 import { HealthTracker } from "./health-tracker"
 import { TelemetryRecorder } from "./telemetry-recorder"
 import { RuntimeLogger } from "./runtime-logger"
@@ -16,7 +22,7 @@ export class RetryEngine {
     this.logger = new RuntimeLogger();
   }
 
-  async executeWithRetry<T>(credential: any, params: ExecuteParams<T>): Promise<{ success: boolean, data?: T, error?: any }> {
+  async executeWithRetry<T>(credential: any, params: RetryEngineParams<T>): Promise<{ success: boolean, data?: T, error?: any }> {
     const maxRetries = this.options.retryCount ?? 1;
     const retryDelay = this.options.retryDelay ?? 1000;
     
