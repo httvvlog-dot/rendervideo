@@ -1,7 +1,7 @@
 import { createClient } from "./supabase/server"
 
 type AuditAction = "Create" | "Update" | "Archive" | "Delete"
-type EntityType = "Provider" | "Prompt" | "Voice" | "Render" | "Settings"
+type EntityType = "Provider" | "ProviderCredential" | "Prompt" | "Voice" | "Render" | "Settings"
 
 interface AuditPayload {
   action: AuditAction
