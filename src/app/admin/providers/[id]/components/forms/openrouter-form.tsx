@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { saveProvider, testOpenRouterConnection } from "../../actions"
+import { saveProvider, testOpenRouterConnection } from "../../../actions"
 import { toast } from "sonner"
 import { Activity, CheckCircle2, XCircle } from "lucide-react"
 import { SecretInput } from "../../../components/secret-input"

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { saveProvider, syncElevenLabsVoices } from "../../actions"
+import { saveProvider, syncElevenLabsVoices } from "../../../actions"
 import { toast } from "sonner"
 import { Activity, DownloadCloud } from "lucide-react"
 import { SecretInput } from "../../../components/secret-input"

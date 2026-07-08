@@ -7,7 +7,7 @@ import { OpenRouterForm } from "./forms/openrouter-form"
 import { ElevenLabsForm } from "./forms/elevenlabs-form"
 import { CloudflareR2Form } from "./forms/cloudflare-r2-form"
 import { GenericForm } from "./forms/generic-form"
-import { DiagnosticsPanel } from "../../../components/diagnostics-panel"
+import { DiagnosticsPanel } from "../../components/diagnostics-panel"
 
 export function ProviderWorkspaceClient({ provider }: { provider: any }) {
   const [activeTab, setActiveTab] = useState("general")
