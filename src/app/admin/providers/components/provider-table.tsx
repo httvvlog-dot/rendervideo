@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MoreHorizontal, Plus, Settings2, Trash2, Loader2, Activity } from "lucide-react"
-import { saveProvider, deleteProvider, testOpenRouterConnection } from "../actions"
+import { saveProvider, deleteProvider, testOpenRouterConnection, syncElevenLabsVoices } from "../actions"
 import { toast } from "sonner"
 
 export function ProviderTable({ providers, type }: { providers: any[], type: string }) {
@@ -20,6 +20,15 @@ export function ProviderTable({ providers, type }: { providers: any[], type: str
   const closeSheet = () => {
     setIsSheetOpen(false)
     setTimeout(() => setSelectedProvider(null), 300)
+  }
+
+    const handleSyncVoices = async (provider: any) => {
+    const toastId = toast.loading('Syncing...');
+    try {
+      const result = await syncElevenLabsVoices(provider.id);
+      if (result.success) toast.success(result.message, { id: toastId });
+      else toast.error(result.error, { id: toastId });
+    } catch (err: any) { toast.error('Failed to sync', { id: toastId }); }
   }
 
   const handleTestConnection = async (provider: any) => {

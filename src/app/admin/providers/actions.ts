@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache"
 
 export async function getProviders() {
   await requireAdmin()
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const { data, error } = await supabase
     .from("providers")
     .select("*")
@@ -45,7 +45,7 @@ export async function getProviders() {
 
 export async function saveProvider(formData: any) {
   await requireAdmin()
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Extract common fields
   const id = formData.id
@@ -106,7 +106,7 @@ export async function saveProvider(formData: any) {
 
 export async function deleteProvider(id: string) {
   await requireAdmin()
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: oldData } = await supabase.from("providers").select("*").eq("id", id).single()
   
@@ -126,7 +126,7 @@ export async function deleteProvider(id: string) {
 
 export async function testOpenRouterConnection(providerId: string | null, apiKeyInput: string | null) {
   await requireAdmin();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   
   let actualKey = apiKeyInput;
   if (!actualKey || actualKey === "••••••••••••••••") {
@@ -159,6 +159,26 @@ export async function testOpenRouterConnection(providerId: string | null, apiKey
       models: data.data?.slice(0, 5).map((m: any) => m.id) || []
     };
   } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function syncElevenLabsVoices(providerId: string) {
+  const supabase = createAdminClient();
+  const { data: provider } = await supabase.from('providers').select('*').eq('id', providerId).single();
+  if (!provider || !provider.config_json?.apiKey) return { success: false, error: 'API Key missing' };
+  try {
+    const res = await fetch('https://api.elevenlabs.io/v1/voices', { headers: { 'xi-api-key': provider.config_json.apiKey } });
+    if (!res.ok) { await supabase.from('providers').update({ health_status: 'warning' }).eq('id', providerId); return { success: false, error: 'API Error' }; }
+    const data = await res.json();
+    const voices = data.voices || [];
+    if (voices.length === 0) return { success: true, count: 0, message: 'No voices' };
+    const catalogEntries = voices.map((v: any) => ({ provider: 'ElevenLabs', voice_id: v.voice_id, name: v.name, preview_url: v.preview_url }));
+    await supabase.from('voice_catalog').upsert(catalogEntries, { onConflict: 'voice_id' });
+    await supabase.from('providers').update({ health_status: 'healthy' }).eq('id', providerId);
+    return { success: true, count: voices.length, message: 'Synced ' + voices.length + ' voices.' };
+  } catch (err: any) {
+    await supabase.from('providers').update({ health_status: 'offline' }).eq('id', providerId);
     return { success: false, error: err.message };
   }
 }
