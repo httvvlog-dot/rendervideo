@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ProviderTable } from "./provider-table"
+import { ProviderCards } from "./provider-cards"
 
 export function ProvidersTabs({ initialData }: { initialData: any[] }) {
   const [activeTab, setActiveTab] = useState("llm")
@@ -36,10 +36,10 @@ export function ProvidersTabs({ initialData }: { initialData: any[] }) {
         ))}
       </div>
       
-      {activeTab === "llm" && <ProviderTable providers={llmProviders} type="llm" />}
-      {activeTab === "tts" && <ProviderTable providers={ttsProviders} type="tts" />}
-      {activeTab === "storage" && <ProviderTable providers={storageProviders} type="storage" />}
-      {activeTab === "subtitle" && <ProviderTable providers={subtitleProviders} type="subtitle" />}
+      {activeTab === "llm" && <ProviderCards providers={llmProviders} type="llm" />}
+      {activeTab === "tts" && <ProviderCards providers={ttsProviders} type="tts" />}
+      {activeTab === "storage" && <ProviderCards providers={storageProviders} type="storage" />}
+      {activeTab === "subtitle" && <ProviderCards providers={subtitleProviders} type="subtitle" />}
     </div>
   )
 }

@@ -182,3 +182,16 @@ export async function syncElevenLabsVoices(providerId: string) {
     return { success: false, error: err.message };
   }
 }
+
+export async function createProvider(type: string, name: string) {
+  await requireAdmin();
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.from('providers').insert({ 
+    provider_type: type, 
+    provider_name: name,
+    is_active: true,
+    health_status: 'unknown'
+  }).select('id').single();
+  if (error) return { error: error.message };
+  return { id: data.id };
+}
