@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowLeft, Server, Volume2, Mic, Cloud, Database, Activity, LayoutGrid, TerminalSquare, PieChart, Box } from "lucide-react"
+import { ArrowLeft, Server, Volume2, Mic, Cloud, Database, Activity, LayoutGrid, TerminalSquare, PieChart, Box, Settings } from "lucide-react"
 import Link from "next/link"
 import { OpenRouterForm } from "./forms/openrouter-form"
 import { ElevenLabsForm } from "./forms/elevenlabs-form"
