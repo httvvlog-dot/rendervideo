@@ -84,7 +84,7 @@ export async function uploadToS3(
         "Content-Type": mimeType,
         "Content-Length": buffer.length.toString()
       },
-      body: buffer
+      body: buffer as unknown as BodyInit
     });
 
     if (!response.ok) {
