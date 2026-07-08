@@ -4,13 +4,14 @@ import { ProviderWorkspaceClient } from "./components/provider-workspace-client"
 
 export const dynamic = "force-dynamic"
 
-export default async function ProviderWorkspacePage({ params }: { params: { id: string } }) {
+export default async function ProviderWorkspacePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = createAdminClient()
   
   const { data: provider, error } = await supabase
     .from("providers")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single()
 
   if (error || !provider) {
