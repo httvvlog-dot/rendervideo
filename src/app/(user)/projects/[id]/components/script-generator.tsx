@@ -19,12 +19,8 @@ export function ScriptGenerator({ projectId, workflowState }: ScriptGeneratorPro
     toast.loading(isRetry ? "Retrying script generation..." : "Generating script...", { id: "script-gen" })
     
     try {
-      const res = await generateScript(projectId)
-      if (res.error) {
-        toast.error("Failed: " + res.error, { id: "script-gen" })
-      } else {
-        toast.success("Script generated successfully!", { id: "script-gen" })
-      }
+      await generateScript(projectId)
+      toast.success("Script generated successfully!", { id: "script-gen" })
     } catch (err: any) {
       toast.error(err.message || "An unexpected error occurred", { id: "script-gen" })
     } finally {
