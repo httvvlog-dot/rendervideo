@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Activity, Edit, Trash2, Power, PowerOff, CheckCircle2, AlertTriangle, XCircle, Star } from "lucide-react"
+import { PROVIDER_HEALTH_STATUS } from "@/utils/provider-runtime/types"
 import { toggleCredential, deleteCredential, setDefaultCredential, testCredentialConnection } from "../../actions"
 import { toast } from "sonner"
 
@@ -56,10 +57,10 @@ export function CredentialCard({ credential, providerKey, onEdit }: { credential
           
           <div className="flex items-center gap-4 text-sm font-medium">
             <span className="flex items-center gap-1.5 capitalize text-slate-600 dark:text-slate-300">
-              {credential.health_status === 'healthy' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
-              {credential.health_status === 'warning' && <AlertTriangle className="h-4 w-4 text-yellow-500" />}
-              {credential.health_status === 'offline' && <XCircle className="h-4 w-4 text-red-500" />}
-              {credential.health_status === 'unknown' && <Activity className="h-4 w-4 text-slate-400" />}
+              {credential.health_status === PROVIDER_HEALTH_STATUS.HEALTHY && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+              {credential.health_status === PROVIDER_HEALTH_STATUS.WARNING && <AlertTriangle className="h-4 w-4 text-yellow-500" />}
+              {credential.health_status === PROVIDER_HEALTH_STATUS.OFFLINE && <XCircle className="h-4 w-4 text-red-500" />}
+              {credential.health_status === PROVIDER_HEALTH_STATUS.UNKNOWN && <Activity className="h-4 w-4 text-slate-400" />}
               {credential.health_status}
             </span>
             {credential.latency && (

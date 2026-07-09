@@ -85,7 +85,9 @@ function ActivityIcon(props: any) {
   )
 }
 
-function StatusRow({ icon, label, status, note }: { icon: React.ReactNode, label: string, status: "healthy" | "error" | "pending", note?: string }) {
+export type SystemHealthStatus = "healthy" | "error" | "pending";
+
+function StatusRow({ icon, label, status, note }: { icon: React.ReactNode, label: string, status: SystemHealthStatus, note?: string }) {
   return (
     <div className="flex items-center justify-between py-2 border-b last:border-0">
       <div className="flex items-center gap-3">

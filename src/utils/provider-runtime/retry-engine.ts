@@ -6,6 +6,7 @@ export interface RetryEngineParams<T> {
   operation: (credential: any) => Promise<T>;
 }
 import { HealthTracker } from "./health-tracker"
+import { PROVIDER_HEALTH_STATUS } from "./types"
 import { TelemetryRecorder } from "./telemetry-recorder"
 import { RuntimeLogger } from "./runtime-logger"
 
@@ -64,8 +65,8 @@ export class RetryEngine {
         const { status } = await this.healthTracker.recordFailure(credentialId, error);
 
         // Determine if we should retry
-        const isRetryable = status === "rate_limited" || status === "timeout" || status === "warning";
-        const willRetry = attempts <= maxRetries && isRetryable && status !== "offline";
+        const isRetryable = status === PROVIDER_HEALTH_STATUS.RATE_LIMITED || status === PROVIDER_HEALTH_STATUS.TIMEOUT || status === PROVIDER_HEALTH_STATUS.WARNING;
+        const willRetry = attempts <= maxRetries && isRetryable;
 
         await this.logger.log({
           providerId, credentialId, projectId: params.projectId, step: params.step,

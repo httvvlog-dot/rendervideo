@@ -1,5 +1,17 @@
 export type PipelineStep = "SCRIPT" | "VOICE" | "SCENE" | "RENDER" | "UPLOAD" | "TEST";
 
+export const PROVIDER_HEALTH_STATUS = {
+  HEALTHY: "healthy",
+  WARNING: "warning",
+  OFFLINE: "offline",
+  RATE_LIMITED: "rate_limited",
+  UNAUTHORIZED: "unauthorized",
+  TIMEOUT: "timeout",
+  UNKNOWN: "unknown",
+} as const;
+
+export type ProviderHealthStatus = typeof PROVIDER_HEALTH_STATUS[keyof typeof PROVIDER_HEALTH_STATUS];
+
 export interface ProviderRuntimeOptions {
   retryCount?: number;
   retryDelay?: number; // ms

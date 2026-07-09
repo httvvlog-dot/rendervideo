@@ -1,12 +1,13 @@
 "use client"
 
 import { Activity, Clock, AlertTriangle, CheckCircle, XCircle } from "lucide-react"
+import { PROVIDER_HEALTH_STATUS } from "@/utils/provider-runtime/types"
 
 export function DiagnosticsPanel({ provider }: { provider: any }) {
-  const healthStatus = provider?.health_status || "unknown"
+  const healthStatus = provider?.health_status || PROVIDER_HEALTH_STATUS.UNKNOWN
   
   // Fake or real values based on provider state
-  const latency = provider?.latency || (healthStatus === "healthy" ? "120ms" : "N/A")
+  const latency = provider?.latency || (healthStatus === PROVIDER_HEALTH_STATUS.HEALTHY ? "120ms" : "N/A")
   const lastChecked = provider?.updated_at ? new Date(provider.updated_at).toLocaleString() : "Never"
   const apiVersion = "v1" // Could be dynamic in the future
   
@@ -20,10 +21,10 @@ export function DiagnosticsPanel({ provider }: { provider: any }) {
             Health Status
           </div>
           <div className="flex items-center gap-2">
-            {healthStatus === 'healthy' && <CheckCircle className="h-5 w-5 text-green-500" />}
-            {healthStatus === 'warning' && <AlertTriangle className="h-5 w-5 text-yellow-500" />}
-            {healthStatus === 'offline' && <XCircle className="h-5 w-5 text-red-500" />}
-            {healthStatus === 'unknown' && <Activity className="h-5 w-5 text-slate-400" />}
+            {healthStatus === PROVIDER_HEALTH_STATUS.HEALTHY && <CheckCircle className="h-5 w-5 text-green-500" />}
+            {healthStatus === PROVIDER_HEALTH_STATUS.WARNING && <AlertTriangle className="h-5 w-5 text-yellow-500" />}
+            {healthStatus === PROVIDER_HEALTH_STATUS.OFFLINE && <XCircle className="h-5 w-5 text-red-500" />}
+            {healthStatus === PROVIDER_HEALTH_STATUS.UNKNOWN && <Activity className="h-5 w-5 text-slate-400" />}
             <span className="font-semibold capitalize text-lg">{healthStatus}</span>
           </div>
         </div>
@@ -56,7 +57,7 @@ export function DiagnosticsPanel({ provider }: { provider: any }) {
         </div>
       </div>
 
-      {healthStatus === 'offline' && (
+      {healthStatus === PROVIDER_HEALTH_STATUS.OFFLINE && (
         <div className="bg-red-50 dark:bg-red-900/10 text-red-600 border border-red-200 dark:border-red-900/30 rounded-xl p-4 flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
           <div>

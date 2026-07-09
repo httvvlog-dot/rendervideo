@@ -1,5 +1,7 @@
 import { createAdminClient } from "@/utils/supabase/admin"
 
+import { PROVIDER_HEALTH_STATUS } from "./types";
+
 export class CredentialSelector {
   constructor(private providerKey: string) {}
 
@@ -26,7 +28,7 @@ export class CredentialSelector {
     if (cErr) throw new Error(cErr.message)
 
     // Filter out permanently offline ones
-    const available = credentials.filter(c => c.health_status !== "offline")
+    const available = credentials.filter(c => c.health_status !== PROVIDER_HEALTH_STATUS.OFFLINE)
     
     // If all are offline, we still want to try them because we shouldn't completely block execution
     // unless they are explicitly is_active=false. 

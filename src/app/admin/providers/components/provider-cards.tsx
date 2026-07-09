@@ -1,6 +1,7 @@
 "use client"
 
 import { Server, Database, Volume2, Mic, ArrowRight, Cloud, Settings, Activity } from "lucide-react"
+import { PROVIDER_HEALTH_STATUS } from "@/utils/provider-runtime/types"
 import { useRouter } from "next/navigation"
 
 export function ProviderCards({ providers, type }: { providers: any[], type: string }) {
@@ -24,7 +25,7 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
         
         // Find default credential or highest priority to show primary health
         const primaryCred = credentials.find((c: any) => c.is_default) || credentials[0]
-        const healthStatus = primaryCred?.health_status || 'unknown'
+        const healthStatus = primaryCred?.health_status || PROVIDER_HEALTH_STATUS.UNKNOWN
 
         return (
           <div 
@@ -43,7 +44,7 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
               
               <div className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300 capitalize">
-                  <span className={`h-2.5 w-2.5 rounded-full ${healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'warning' ? 'bg-yellow-500' : healthStatus === 'offline' ? 'bg-red-500' : 'bg-slate-400'}`}></span>
+                  <span className={`h-2.5 w-2.5 rounded-full ${healthStatus === PROVIDER_HEALTH_STATUS.HEALTHY ? 'bg-green-500' : healthStatus === PROVIDER_HEALTH_STATUS.WARNING ? 'bg-yellow-500' : healthStatus === PROVIDER_HEALTH_STATUS.OFFLINE ? 'bg-red-500' : 'bg-slate-400'}`}></span>
                   {healthStatus}
                 </span>
                 <span className="font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">

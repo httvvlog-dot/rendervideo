@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { createAdminClient } from "@/utils/supabase/admin"
+import { PROVIDER_HEALTH_STATUS } from "@/utils/provider-runtime/types"
 import { requireAdmin } from "@/utils/roles"
 import { logAudit } from "@/utils/audit"
 import { revalidatePath } from "next/cache"
@@ -212,14 +213,14 @@ export async function testCredentialConnection(credential_id: string) {
     const latency = Date.now() - startTime;
     
     if (!res.ok) {
-      await supabase.from("provider_credentials").update({ health_status: 'offline', last_error: `Status ${res.status}`, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
+      await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: `Status ${res.status}`, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
       return { success: false, error: `API returned status ${res.status}`, status: res.status };
     }
     
-    await supabase.from("provider_credentials").update({ health_status: 'healthy', latency, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
+    await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.HEALTHY, latency, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
     return { success: true, latency, status: res.status };
   } catch (err: any) {
-    await supabase.from("provider_credentials").update({ health_status: 'offline', last_error: err.message, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
+    await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: err.message, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
     return { success: false, error: err.message };
   }
 }
