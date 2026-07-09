@@ -1,12 +1,18 @@
+import { getProviders } from "./actions"
 import { ProvidersTabs } from "./components/providers-tabs"
+import { LogOut } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
 export default async function ProvidersPage() {
+  const providers = await getProviders()
+
   return (
-    <div className="p-10">
-      <h1 className="text-2xl font-bold mb-4">TEST LEVEL 3 - RENDER COMPONENTS (NO DATA)</h1>
-      <ProvidersTabs initialData={[]} />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">TEST LEVEL 4 - FULL INTEGRATION</h1>
+      </div>
+      <ProvidersTabs initialData={providers} />
     </div>
   )
 }
