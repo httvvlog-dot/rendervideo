@@ -1,3 +1,10 @@
+const fs = require('fs');
+const path = require('path');
+
+const filePath = path.join(__dirname, 'src/app/login/actions.ts');
+
+try {
+  let content = `
 "use server"
 
 import { revalidatePath } from "next/cache"
@@ -42,4 +49,11 @@ export async function signup(formData: FormData) {
   
   revalidatePath("/dashboard")
   redirect("/dashboard")
-}\n
+}
+`;
+
+  fs.writeFileSync(filePath, content.trim() + '\\n', 'utf8');
+  console.log("[OK] Đã sửa file actions.ts thành công (bản V2)!");
+} catch (e) {
+  console.error("[ERROR]", e.message);
+}
