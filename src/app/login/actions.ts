@@ -13,7 +13,11 @@ export async function login(formData: FormData) {
   }
   const { error } = await supabase.auth.signInWithPassword(data)
   if (error) {
-    return { error: "Could not authenticate user" }
+    return { error: error.message }
+  }
+  
+  if (signUpData?.user && !signUpData?.session) {
+    return { error: "Đăng ký thành công! Vui lòng kiểm tra hộp thư email của bạn để xác nhận tài khoản." }
   }
   const user = await getCurrentUser()
   if (user?.role === "admin") {
@@ -30,9 +34,9 @@ export async function signup(formData: FormData) {
     email: formData.get("email") as string,
     password: formData.get("password") as string,
   }
-  const { error } = await supabase.auth.signUp(data)
+  const { data: signUpData, error } = await supabase.auth.signUp(data)
   if (error) {
-    return { error: "Could not authenticate user" }
+    return { error: error.message }
   }
   revalidatePath("/dashboard")
   redirect("/dashboard")
