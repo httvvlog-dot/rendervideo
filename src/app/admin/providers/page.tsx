@@ -1,12 +1,12 @@
-import { getProviders } from "./actions"
+import { ProvidersTabs } from "./components/providers-tabs"
 
 export const dynamic = "force-dynamic"
 
 export default async function ProvidersPage() {
-  const providers = await getProviders()
   return (
-    <div className="p-10 text-2xl font-bold">
-      TEST LEVEL 2 - DATA FETCHING ONLY
+    <div className="p-10">
+      <h1 className="text-2xl font-bold mb-4">TEST LEVEL 3 - RENDER COMPONENTS (NO DATA)</h1>
+      <ProvidersTabs initialData={[]} />
     </div>
   )
 }
