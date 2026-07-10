@@ -42,4 +42,4 @@ export async function signup(formData: FormData) {
   
   revalidatePath("/dashboard")
   redirect("/dashboard")
-}\n
+}
