@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Play, Settings, CheckCircle2, Circle, XCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { deleteProject } from "../actions"
-import { ScriptManager } from "./components/script-manager"
-import { ProjectMedia } from "./components/project-media"
+import { TimelineEditor } from "./components/timeline-editor"
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,17 +22,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   if (!project) notFound()
 
-  const { data: scripts } = await supabase
-    .from('scripts')
+  const { data: scenes } = await supabase
+    .from('project_scenes')
     .select('*')
     .eq('project_id', id)
-    .order('version', { ascending: false })
-
-  const { data: projectMedia } = await supabase
-    .from('project_media')
-    .select('*')
-    .eq('project_id', id)
-    .order('created_at', { ascending: false })
+    .order('sort_order', { ascending: true })
 
   const wf = project.workflow_state || {
     research: "pending", script: "pending", scene: "pending", voice: "pending", subtitle: "pending", render: "pending"
@@ -92,7 +85,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
           
-          <ScriptManager projectId={project.id} scripts={scripts || []} />
+          <TimelineEditor initialScenes={scenes || []} />
           
         </div>
         
