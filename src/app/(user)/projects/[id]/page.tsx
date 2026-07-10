@@ -1,9 +1,8 @@
-
 import { getCurrentUser } from "@/utils/auth-service"
 import { createClient } from "@/utils/supabase/server"
 import { notFound, redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Play, Settings, CheckCircle2, Circle, XCircle, Loader2 } from "lucide-react"
+import { ArrowLeft, Play, Settings, Save } from "lucide-react"
 import Link from "next/link"
 import { deleteProject } from "../actions"
 import { TimelineEditor } from "./components/timeline-editor"
@@ -35,76 +34,68 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     .eq('project_id', id)
     .order('created_at', { ascending: false })
 
-  const wf = project.workflow_state || {
-    research: "pending", script: "pending", scene: "pending", voice: "pending", subtitle: "pending", render: "pending"
-  }
-
-  const steps = [
-    { key: "research", label: "Research", icon: "🔍" },
-    { key: "script", label: "Script", icon: "📝" },
-    { key: "voice", label: "Voice", icon: "🎙️" },
-    { key: "subtitle", label: "Subtitle", icon: "💬" },
-    { key: "render", label: "Render", icon: "🎬" },
-  ]
-
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-20">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link href="/projects">
-            <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
+    <div className="mx-auto max-w-7xl space-y-6 pb-20 mt-6 px-4">
+      
+      {/* 1. Project Settings Panel (Sticky Header) */}
+      <div className="bg-slate-900 text-slate-100 rounded-xl shadow-lg border border-slate-800 p-4 sticky top-4 z-50 flex items-center justify-between">
+        <div className="flex items-center space-x-6">
+          <Link href="/projects" className="text-slate-400 hover:text-white transition-colors">
+            <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
-            <p className="text-sm text-muted-foreground">{project.topic}</p>
+            <h1 className="text-lg font-bold tracking-tight">{project.title}</h1>
+            <div className="flex items-center space-x-4 text-xs text-slate-400 mt-1 font-mono">
+              <span>Duration: {project.video_length}s</span>
+              <span>•</span>
+              <span>Aspect: 9:16</span>
+              <span>•</span>
+              <span>Res: 1080x1920</span>
+              <span>•</span>
+              <span>FPS: 30</span>
+              <span>•</span>
+              <span>Preset: TikTok / Reels</span>
+            </div>
           </div>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline"><Settings className="mr-2 h-4 w-4" /> Settings</Button>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white"><Play className="mr-2 h-4 w-4" /> Pipeline Menu</Button>
+        <div className="flex items-center space-x-3">
+          <Button variant="secondary" size="sm" className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700">
+            <Settings className="w-4 h-4 mr-2" /> Format
+          </Button>
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white">
+            <Save className="w-4 h-4 mr-2" /> Save Draft
+          </Button>
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
-          <div className="bg-white dark:bg-slate-900 border rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Generation Pipeline</h2>
-            
-            <div className="relative border-l border-slate-200 dark:border-slate-800 ml-3 space-y-8 py-2">
-              {steps.map((step, idx) => (
-                <div key={step.key} className="relative pl-8">
-                  <StateIcon state={wf[step.key]} />
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium flex items-center text-slate-900 dark:text-slate-100">
-                        {step.icon} {step.label}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {wf[step.key] === 'pending' && 'Waiting to start...'}
-                        {wf[step.key] === 'processing' && 'Working on it...'}
-                        {wf[step.key] === 'completed' && 'Completed successfully'}
-                        {wf[step.key] === 'failed' && 'Error occurred'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        
+        {/* Main Workspace (Assets + Timeline) */}
+        <div className="xl:col-span-3 space-y-6">
           
-          <ProjectMedia projectId={project.id} initialMedia={projectMedia || []} />
+          {/* 2. Media Assets */}
+          <ProjectMedia projectId={project.id} initialMedia={projectMedia || []} targetDuration={project.video_length} />
           
-          <TimelineEditor initialScenes={scenes || []} />
-          
+          {/* 3. Multi-Track Timeline & Inspector */}
+          {projectMedia && projectMedia.length > 0 && (
+            <TimelineEditor initialScenes={scenes || []} />
+          )}
+
         </div>
         
+        {/* Sidebar */}
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 border rounded-xl p-6 shadow-sm">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Project Info</h2>
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between"><dt className="text-muted-foreground">Language</dt><dd className="font-medium uppercase">{project.language}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">Duration</dt><dd className="font-medium">{project.video_length} mins</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">Status</dt><dd className="font-medium capitalize">{project.status}</dd></div>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Export Settings</h2>
+            <dl className="space-y-4 text-sm">
+              <div>
+                <dt className="text-muted-foreground mb-1">Renderer</dt>
+                <dd className="font-medium bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">Cloud FFmpeg Worker</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground mb-1">Format</dt>
+                <dd className="font-medium bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">MP4 (H.264 / AAC)</dd>
+              </div>
             </dl>
           </div>
           
@@ -116,14 +107,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </form>
           </div>
         </div>
+
       </div>
     </div>
   )
-}
-
-function StateIcon({ state }: { state: string }) {
-  if (state === 'completed') return <CheckCircle2 className="absolute -left-[11px] top-0.5 h-6 w-6 text-green-500 bg-white dark:bg-slate-900 rounded-full" />
-  if (state === 'failed') return <XCircle className="absolute -left-[11px] top-0.5 h-6 w-6 text-red-500 bg-white dark:bg-slate-900 rounded-full" />
-  if (state === 'processing') return <Loader2 className="absolute -left-[11px] top-0.5 h-6 w-6 text-yellow-500 animate-spin bg-white dark:bg-slate-900 rounded-full" />
-  return <Circle className="absolute -left-[11px] top-0.5 h-6 w-6 text-slate-300 dark:text-slate-700 bg-white dark:bg-slate-900 rounded-full" />
 }
