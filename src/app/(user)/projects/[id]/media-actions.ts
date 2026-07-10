@@ -42,18 +42,30 @@ export async function uploadProjectMedia(projectId: string, formData: FormData) 
       }
     });
 
-    // 5. Save to database
-    const { error: dbErr } = await supabase.from("storage_files").insert({
+    // 5. Save to database (storage_files for global asset rule)
+    const { data: storageFile, error: storageErr } = await supabase.from("storage_files").insert({
+      provider: "cloudflare_r2",
+      bucket: uploadResult.bucket,
+      path: uploadResult.objectKey,
+      mime_type: file.type,
+      size: file.size,
+      public_url: uploadResult.publicUrl
+    }).select("id").single()
+
+    if (storageErr) return { error: "Failed to record file in storage_files: " + storageErr.message }
+
+    // Save to project_media (for UI timeline)
+    const { error: dbErr } = await supabase.from("project_media").insert({
       project_id: projectId,
+      user_id: user.id,
       file_name: file.name,
       storage_key: uploadResult.objectKey,
-      bucket: uploadResult.bucket,
+      public_url: uploadResult.publicUrl,
       mime_type: file.type,
-      size_bytes: file.size,
-      public_url: uploadResult.publicUrl
+      file_size: file.size
     })
 
-    if (dbErr) return { error: "Failed to record file in database: " + dbErr.message }
+    if (dbErr) return { error: "Failed to record file in project_media: " + dbErr.message }
 
     revalidatePath(`/projects/${projectId}`)
     return { success: true, url: uploadResult.publicUrl }
