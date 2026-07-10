@@ -2,8 +2,6 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { getCurrentUser } from "@/utils/auth-service"
-import { redirect } from "next/navigation"
-
 export async function createProject(formData: any) {
   const user = await getCurrentUser()
   if (!user) {
@@ -31,5 +29,5 @@ export async function createProject(formData: any) {
     throw new Error(error.message)
   }
 
-  redirect(`/projects/${data.id}`)
+  return { id: data.id }
 }

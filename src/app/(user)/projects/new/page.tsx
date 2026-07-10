@@ -7,9 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Activity, Plus, Play } from "lucide-react"
 import { createProject } from "./actions"
+import { useRouter } from "next/navigation"
 
 export default function NewProject() {
   const [isGenerating, setIsGenerating] = useState(false)
+  const router = useRouter()
   
   const [projectData, setProjectData] = useState({
     name: "",
@@ -20,7 +22,10 @@ export default function NewProject() {
     if (!projectData.name.trim()) return
     setIsGenerating(true)
     try {
-      await createProject(projectData)
+      const res = await createProject(projectData)
+      if (res?.id) {
+        router.push(`/projects/${res.id}`)
+      }
     } catch (error) {
       console.error(error)
       setIsGenerating(false)
