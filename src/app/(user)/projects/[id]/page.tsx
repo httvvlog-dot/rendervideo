@@ -7,6 +7,7 @@ import { ArrowLeft, Play, Settings, CheckCircle2, Circle, XCircle, Loader2 } fro
 import Link from "next/link"
 import { deleteProject } from "../actions"
 import { TimelineEditor } from "./components/timeline-editor"
+import { ProjectMedia } from "./components/project-media"
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,6 +28,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     .select('*')
     .eq('project_id', id)
     .order('sort_order', { ascending: true })
+
+  const { data: projectMedia } = await supabase
+    .from('project_media')
+    .select('*')
+    .eq('project_id', id)
+    .order('created_at', { ascending: false })
 
   const wf = project.workflow_state || {
     research: "pending", script: "pending", scene: "pending", voice: "pending", subtitle: "pending", render: "pending"
@@ -84,6 +91,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               ))}
             </div>
           </div>
+          
+          <ProjectMedia projectId={project.id} initialMedia={projectMedia || []} />
           
           <TimelineEditor initialScenes={scenes || []} />
           
