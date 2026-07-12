@@ -97,3 +97,70 @@ export async function uploadToS3(
     return { success: false, error: err.message };
   }
 }
+
+export async function deleteFromS3(
+  config: S3Config,
+  bucket: string,
+  key: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const method = "DELETE";
+    const service = "s3";
+    const region = config.region || "auto";
+    const host = new URL(config.endpoint).host;
+    
+    const canonicalUri = `/${bucket}/${key.split('/').map(encodeURIComponent).join('/')}`;
+    
+    const now = new Date();
+    const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
+    const dateStamp = amzDate.substring(0, 8);
+
+    const payloadHash = sha256("");
+
+    const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
+    const signedHeaders = "host;x-amz-content-sha256;x-amz-date";
+
+    const canonicalRequest = [
+      method,
+      canonicalUri,
+      "",
+      canonicalHeaders,
+      signedHeaders,
+      payloadHash
+    ].join("\n");
+
+    const algorithm = "AWS4-HMAC-SHA256";
+    const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+    const stringToSign = [
+      algorithm,
+      amzDate,
+      credentialScope,
+      sha256(canonicalRequest)
+    ].join("\n");
+
+    const signingKey = getSignatureKey(config.secretAccessKey, dateStamp, region, service);
+    const signature = hmac(signingKey, stringToSign).toString("hex");
+
+    const authorizationHeader = `${algorithm} Credential=${config.accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+    const url = `${config.endpoint}${canonicalUri}`;
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Authorization": authorizationHeader,
+        "x-amz-date": amzDate,
+        "x-amz-content-sha256": payloadHash
+      }
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      return { success: false, error: `Delete failed: ${response.status} ${text}` };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}

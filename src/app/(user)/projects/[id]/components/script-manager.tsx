@@ -1,18 +1,42 @@
-
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Play, RotateCcw, Trash, FileText, Loader2, Clock, Zap, DollarSign } from "lucide-react"
 import { generateScript, deleteScriptVersion } from "../script-actions"
 import { toast } from "sonner"
+import { createClient } from "@/utils/supabase/client"
+import { ScriptSectionList } from "./script-section-list"
 
-export function ScriptManager({ projectId, scripts }: { projectId: string, scripts: any[] }) {
+export function ScriptManager({ projectId, scripts, project }: { projectId: string, scripts: any[], project?: any }) {
   const [isGenerating, setIsGenerating] = useState(false)
-  const [activeVersion, setActiveVersion] = useState<number>(scripts.length > 0 ? scripts[0].version : 0)
+  const [activeVersion, setActiveVersion] = useState<number>(scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0)
+  const [sections, setSections] = useState<any[]>([])
+  const [isLoadingSections, setIsLoadingSections] = useState(false)
 
   const activeScript = scripts.find(s => s.version === activeVersion)
+  const supabase = createClient()
+
+  useEffect(() => {
+    async function loadSections() {
+      if (!activeScript) return
+      setIsLoadingSections(true)
+      const { data, error } = await supabase
+        .from('script_sections')
+        .select('*')
+        .eq('script_id', activeScript.id)
+        .order('section_index', { ascending: true })
+      
+      if (!error && data) {
+        setSections(data)
+      } else {
+        setSections([])
+      }
+      setIsLoadingSections(false)
+    }
+    loadSections()
+  }, [activeScript, supabase])
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -20,8 +44,6 @@ export function ScriptManager({ projectId, scripts }: { projectId: string, scrip
     try {
       await generateScript(projectId)
       toast.success("Script generated successfully!", { id: toastId })
-      // Newest version will be passed down via Server Components revalidation,
-      // but we can assume it will be max version + 1
       const maxV = scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0
       setActiveVersion(maxV + 1)
     } catch (err: any) {
@@ -41,7 +63,7 @@ export function ScriptManager({ projectId, scripts }: { projectId: string, scrip
       toast.success("Deleted", { id: 'del' })
       const remaining = scripts.filter(s => s.id !== activeScript.id)
       if (remaining.length > 0) {
-        setActiveVersion(remaining[0].version)
+        setActiveVersion(Math.max(...remaining.map(s => s.version)))
       } else {
         setActiveVersion(0)
       }
@@ -67,7 +89,7 @@ export function ScriptManager({ projectId, scripts }: { projectId: string, scrip
 
   return (
     <div className="mt-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold flex items-center">
           <FileText className="h-5 w-5 mr-2 text-indigo-500" /> Script Manager
         </h2>
@@ -100,12 +122,20 @@ export function ScriptManager({ projectId, scripts }: { projectId: string, scrip
             <span className="flex items-center"><DollarSign className="h-3.5 w-3.5 mr-0.5" /> {activeScript.cost || 0}</span>
             <span>{activeScript.word_count} words</span>
           </div>
-          <CardContent className="p-0">
-            <textarea 
-              readOnly 
-              className="w-full h-80 p-4 bg-transparent resize-none focus:outline-none focus:ring-0 font-serif leading-relaxed text-slate-800 dark:text-slate-200"
-              value={activeScript.content}
-            />
+          <CardContent className="p-4 bg-slate-100/50 dark:bg-slate-900/20">
+            {isLoadingSections ? (
+              <div className="flex items-center justify-center h-40">
+                <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+              </div>
+            ) : sections.length > 0 && project ? (
+              <ScriptSectionList project={project} sections={sections} />
+            ) : (
+              <textarea 
+                readOnly 
+                className="w-full h-80 p-4 bg-white dark:bg-slate-900 border rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 font-serif leading-relaxed text-slate-800 dark:text-slate-200"
+                value={activeScript.content}
+              />
+            )}
           </CardContent>
         </Card>
       )}
