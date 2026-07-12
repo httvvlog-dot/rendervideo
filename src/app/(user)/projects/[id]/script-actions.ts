@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server"
 import { getCurrentUser } from "@/utils/auth-service"
 import { revalidatePath } from "next/cache"
 import { ProviderRuntime, OpenRouterAdapter } from "@/utils/provider-runtime"
+import { extractJSONObject } from "@/utils/extract-json-object"
 import { z } from "zod"
 import { normalizeDurations } from "./duration-normalization"
 
@@ -78,15 +79,10 @@ Important:
 
     const { content, tokensInput, tokensOutput, cost } = responseData;
     
-    let parsedJson;
-    try {
-      const match = content.match(/\{[\s\S]*\}/);
-      const cleaned = match ? match[0] : content;
-      parsedJson = JSON.parse(cleaned);
-    } catch (e) {
-      throw new Error("Failed to parse AI response as JSON");
-    }
-
+    // Extract raw JSON
+    const parsedJson = extractJSONObject(content);
+    
+    // Validate schema
     const validated = ScriptResponseSchema.parse(parsedJson);
 
     validated.sections.forEach((s, idx) => {
