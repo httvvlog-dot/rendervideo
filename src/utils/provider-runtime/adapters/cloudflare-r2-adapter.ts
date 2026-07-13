@@ -48,7 +48,7 @@ export class CloudflareR2Adapter implements ProviderAdapter<R2Args, R2Result> {
       throw new Error("Missing arguments for UPLOAD");
     }
 
-    const objectKey = `projects/${args.projectId}/media/${args.fileName}`;
+    const objectKey = args.objectKey || `projects/${args.projectId}/media/${args.fileName}`;
 
     const uploadRes = await uploadToS3(
       {

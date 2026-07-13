@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "worker:render": "node --env-file=.env.worker --import tsx src/worker/render-worker.ts",
+    "worker:check": "node --env-file=.env.worker --import tsx src/worker/render-check.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -30,6 +32,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -37,6 +40,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }

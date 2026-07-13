@@ -21,7 +21,9 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
     .from('project_scenes')
     .select('*')
     .eq('project_id', projectId)
+    .order('start_time', { ascending: true })
     .order('sort_order', { ascending: true })
+    .order('id', { ascending: true })
 
   if (scenesError || !scenes) throw new Error("Failed to fetch scenes")
   if (scenes.length === 0) throw new Error("Timeline is empty")
@@ -40,29 +42,43 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
   const mediaMap = new Map(projectMedia.map(m => [m.id, m]))
 
   // 5 & 6 & 7. Convert to integer ms, validate timing and media
-  let totalDurationMs = 0
-  const renderScenes: RenderScene[] = []
+  let expectedNextStartTimeMs = 0;
+  const renderScenes: RenderScene[] = [];
 
-  for (const scene of scenes) {
-    const startTimeMs = Math.round(Number(scene.start_time) * 1000)
-    const endTimeMs = Math.round(Number(scene.end_time) * 1000)
-    const durationMs = Math.round(Number(scene.duration) * 1000)
+  for (let i = 0; i < scenes.length; i++) {
+    const scene = scenes[i];
+    const startTimeMs = Math.round(Number(scene.start_time) * 1000);
+    const endTimeMs = Math.round(Number(scene.end_time) * 1000);
+    const durationMs = Math.round(Number(scene.duration) * 1000);
 
     // Validations
-    if (startTimeMs < 0) throw new Error(`Scene ${scene.id} has negative start time`)
-    if (durationMs <= 0) throw new Error(`Scene ${scene.id} has zero or negative duration`)
-    if (endTimeMs <= startTimeMs) throw new Error(`Scene ${scene.id} end time <= start time`)
+    if (startTimeMs < 0) throw new Error(`Scene ${scene.id} has negative start time`);
+    if (durationMs <= 0) throw new Error(`Scene ${scene.id} has zero or negative duration`);
+    if (endTimeMs <= startTimeMs) throw new Error(`Scene ${scene.id} end time <= start time`);
     
     // Strict duration parity validation (preventing DB desync)
     if (endTimeMs - startTimeMs !== durationMs) {
-      throw new Error(`Scene ${scene.id} duration mismatch: ${endTimeMs} - ${startTimeMs} != ${durationMs}`)
+      throw new Error(`Scene ${scene.id} duration mismatch: ${endTimeMs} - ${startTimeMs} != ${durationMs}`);
     }
 
-    if (!scene.media_id) throw new Error(`Scene ${scene.id} has no media_id`)
-    const media = mediaMap.get(scene.media_id)
-    if (!media || !media.public_url) throw new Error(`Scene ${scene.id} references missing or unresolved media`)
+    // Gap / Overlap validation for Sprint 4C MVP
+    if (i === 0 && startTimeMs !== 0) {
+      throw new Error(`First scene must start at 0ms. Starts at ${startTimeMs}ms`);
+    }
+    if (startTimeMs < expectedNextStartTimeMs) {
+      throw new Error(`Overlap detected at scene ${scene.id}. Expected >= ${expectedNextStartTimeMs}ms, got ${startTimeMs}ms`);
+    }
+    if (startTimeMs > expectedNextStartTimeMs) {
+      throw new Error(`Gap detected at scene ${scene.id}. Expected ${expectedNextStartTimeMs}ms, got ${startTimeMs}ms`);
+    }
 
-    const transitionDurationMs = Math.round(Number(scene.transition_duration || 0) * 1000)
+    expectedNextStartTimeMs = endTimeMs;
+
+    if (!scene.media_id) throw new Error(`Scene ${scene.id} has no media_id`);
+    const media = mediaMap.get(scene.media_id);
+    if (!media || !media.public_url) throw new Error(`Scene ${scene.id} references missing or unresolved media`);
+
+    const transitionDurationMs = Math.round(Number(scene.transition_duration || 0) * 1000);
 
     renderScenes.push({
       id: scene.id,
@@ -87,15 +103,11 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
         endY: Number(scene.end_y ?? 0.0),
         opacity: Number(scene.opacity ?? 1.0)
       }
-    })
-
-    if (endTimeMs > totalDurationMs) {
-      totalDurationMs = endTimeMs
-    }
+    });
   }
 
-  // Final total duration validation
-  // Actually, we could just rely on the last scene's end time, but let's use the max end time.
+  const totalDurationMs = expectedNextStartTimeMs;
+
   
   // 8. Produce canonical TimelineJSON
   const timelineJSON: TimelineJSON = {

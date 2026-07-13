@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Play, Pause, Download, Music, Mic, Type, Image as ImageIcon, RotateCcw } from "lucide-react"
-import { RenderQueue } from "./render-queue"
+import { RenderQueueReal } from "./render-queue-real"
 import { normalizePreviewScenes, PreviewScene } from "@/utils/timeline/normalize-preview-scenes"
 import { ClientPreviewPlayer } from "./client-preview-player"
 
@@ -26,7 +26,7 @@ interface Scene {
   section_id?: string
 }
 
-export function TimelineEditor({ initialScenes, media = [] }: { initialScenes: Scene[], media?: any[] }) {
+export function TimelineEditor({ initialScenes, media = [], projectId }: { initialScenes: Scene[], media?: any[], projectId: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [renderJobId, setRenderJobId] = useState<string | undefined>(undefined)
 
@@ -145,7 +145,21 @@ export function TimelineEditor({ initialScenes, media = [] }: { initialScenes: S
         <Button 
           size="sm" 
           className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/20"
-          onClick={() => setRenderJobId(Date.now().toString())}
+          onClick={async () => {
+            try {
+              const res = await fetch('/api/render', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId })
+              });
+              const data = await res.json();
+              if (data.jobId) {
+                setRenderJobId(data.jobId);
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }}
           disabled={!!renderJobId}
         >
           <Download className="w-4 h-4 mr-2" /> Render Video (MP4)
@@ -243,7 +257,7 @@ export function TimelineEditor({ initialScenes, media = [] }: { initialScenes: S
       </div>
     </div>
     
-    <RenderQueue jobId={renderJobId} onRenderAgain={() => setRenderJobId(Date.now().toString())} />
+    <RenderQueueReal jobId={renderJobId} onRenderAgain={() => setRenderJobId(undefined)} />
     </>
   )
 }
