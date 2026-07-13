@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Play, RotateCcw, Trash, FileText, Loader2, Clock, Zap, DollarSign } from "lucide-react"
-import { generateScript, deleteScriptVersion } from "../script-actions"
+import { generateScript, deleteScriptVersion, setActiveScript } from "../script-actions"
 import { toast } from "sonner"
 import { createClient } from "@/utils/supabase/client"
 import { ScriptSectionList } from "./script-section-list"
@@ -44,6 +44,8 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
     try {
       await generateScript(projectId)
       toast.success("Script generated successfully!", { id: toastId })
+      // When generating a new script, we don't automatically set it as the active version for timeline,
+      // but we do show it in the UI.
       const maxV = scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0
       setActiveVersion(maxV + 1)
     } catch (err: any) {
@@ -72,6 +74,17 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
     }
   }
 
+  const handleSetActive = async () => {
+    if (!activeScript) return
+    const toastId = toast.loading("Setting active script...")
+    try {
+      await setActiveScript(projectId, activeScript.id)
+      toast.success("Active script updated", { id: toastId })
+    } catch (err: any) {
+      toast.error(err.message, { id: toastId })
+    }
+  }
+
   if (scripts.length === 0) {
     return (
       <Card className="border-dashed border-2 bg-slate-50/50 dark:bg-slate-900/50 mt-6">
@@ -89,10 +102,21 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
 
   return (
     <div className="mt-6 space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold flex items-center">
-          <FileText className="h-5 w-5 mr-2 text-indigo-500" /> Script Manager
-        </h2>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
+        <div className="flex items-center space-x-4">
+          <h2 className="text-lg font-semibold flex items-center">
+            <FileText className="h-5 w-5 mr-2 text-indigo-500" /> Script Manager
+          </h2>
+          {project?.active_script_id === activeScript?.id ? (
+            <span className="px-2.5 py-1 bg-green-100 text-green-800 text-xs rounded-md font-medium border border-green-200">
+              Active for Timeline
+            </span>
+          ) : (
+            <Button onClick={handleSetActive} variant="outline" size="sm" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50">
+              Set as Active Version
+            </Button>
+          )}
+        </div>
         <div className="flex items-center space-x-2">
           <select 
             value={activeVersion} 
@@ -100,7 +124,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
             className="border rounded-md px-3 py-1.5 text-sm bg-white dark:bg-slate-900 font-medium"
           >
             {scripts.map(s => (
-              <option key={s.id} value={s.version}>Version {s.version} ({new Date(s.created_at).toLocaleTimeString()})</option>
+              <option key={s.id} value={s.version}>Version {s.version} {s.id === project?.active_script_id ? "(Active)" : ""} ({new Date(s.created_at).toLocaleTimeString()})</option>
             ))}
           </select>
           <Button onClick={handleGenerate} disabled={isGenerating} variant="outline" size="sm">

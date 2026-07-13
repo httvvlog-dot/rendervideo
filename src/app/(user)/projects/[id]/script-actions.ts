@@ -194,3 +194,24 @@ export async function updateScriptSection(sectionId: string, projectId: string, 
   revalidatePath(`/projects/${projectId}`)
   return { success: true }
 }
+
+export async function setActiveScript(projectId: string, scriptId: string) {
+  const user = await getCurrentUser()
+  if (!user) throw new Error("Unauthorized")
+
+  const supabase = await createClient()
+
+  // Verify invariant: project belongs to user
+  const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("user_id", user.id).single()
+  if (!project) throw new Error("Unauthorized or project not found")
+
+  // Verify invariant: script belongs to project
+  const { data: script } = await supabase.from("scripts").select("id, project_id").eq("id", scriptId).single()
+  if (!script || script.project_id !== projectId) throw new Error("Invalid script")
+
+  const { error } = await supabase.from("projects").update({ active_script_id: scriptId }).eq("id", projectId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}

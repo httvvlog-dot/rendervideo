@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Image as ImageIcon, Check, X, Edit2, AlertTriangle } from "lucide-react"
 import { updateScriptSection } from "../script-actions"
 import { toast } from "sonner"
+import { SectionMediaUploader } from "./section-media-uploader"
 
 export function ScriptSectionCard({ section, projectId, startTime }: { section: any, projectId: string, startTime: number }) {
   const [isEditing, setIsEditing] = useState(false)
@@ -127,13 +128,11 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
           )}
 
           {!isEditing && (
-            <div className="bg-slate-100 dark:bg-slate-800/50 border border-dashed border-slate-300 dark:border-slate-700 rounded-md p-4 flex flex-col items-center justify-center text-center opacity-70">
-              <ImageIcon className="h-6 w-6 text-slate-400 mb-2" />
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                Requires ~{section.recommended_image_count} images
-              </p>
-              <p className="text-[10px] text-slate-500 mt-1">Image upload coming in next phase</p>
-            </div>
+            <SectionMediaUploader 
+              sectionId={section.id} 
+              projectId={projectId} 
+              recommendedCount={section.recommended_image_count} 
+            />
           )}
         </div>
       </CardContent>

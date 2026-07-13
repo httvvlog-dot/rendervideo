@@ -2,79 +2,171 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { getCurrentUser } from "@/utils/auth-service"
+import { revalidatePath } from "next/cache"
 
-export async function generateTimeline(projectId: string, targetDuration: number, newUploadCount: number) {
+export type TimelineActionResult =
+  | { success: true; code: "TIMELINE_CREATED"; sceneCount: number; totalDurationMs: number }
+  | { success: true; code: "TIMELINE_REBUILT"; sceneCount: number; totalDurationMs: number }
+  | { success: false; code: "TIMELINE_ALREADY_EXISTS"; existingSceneCount: number }
+  | { success: false; code: "SECTION_MEDIA_MISSING"; missingSections: Array<{ sectionId: string; sectionIndex: number; title: string | null }> }
+  | { success: false; code: "NO_ACTIVE_SCRIPT" }
+  | { success: false; code: "INVALID_ACTIVE_SCRIPT" }
+  | { success: false; code: "TIMELINE_VALIDATION_FAILED"; message: string }
+
+async function buildTimelineCore(projectId: string, isRebuild: boolean): Promise<TimelineActionResult> {
   const user = await getCurrentUser()
-  if (!user) throw new Error("Unauthorized")
+  if (!user) return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: "Unauthorized" }
 
   const supabase = await createClient()
 
-  // 1. Fetch all media
-  const { data: mediaItems, error: mediaError } = await supabase
+  // 1. Verify project and active script securely
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id, user_id, active_script_id")
+    .eq("id", projectId)
+    .eq("user_id", user.id)
+    .single()
+
+  if (!project) return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: "Project not found or access denied" }
+  if (!project.active_script_id) return { success: false, code: "NO_ACTIVE_SCRIPT" }
+
+  const { data: activeScript } = await supabase
+    .from("scripts")
+    .select("id, project_id")
+    .eq("id", project.active_script_id)
+    .single()
+
+  if (!activeScript || activeScript.project_id !== projectId) {
+    return { success: false, code: "INVALID_ACTIVE_SCRIPT" }
+  }
+
+  // 2. Fetch sections
+  const { data: sections, error: sectionsErr } = await supabase
+    .from("script_sections")
+    .select("*")
+    .eq("script_id", project.active_script_id)
+    .order("section_index", { ascending: true })
+
+  if (sectionsErr || !sections || sections.length === 0) {
+    return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: "No sections found in the active script." }
+  }
+
+  // 3. Fetch all assigned media for this project
+  const { data: mediaItems, error: mediaErr } = await supabase
     .from("project_media")
     .select("*")
     .eq("project_id", projectId)
-    .order("created_at", { ascending: true })
+    .not("section_id", "is", null)
+    .order("section_sort_order", { ascending: true })
 
-  if (mediaError) throw new Error(mediaError.message)
-  if (!mediaItems || mediaItems.length === 0) return { success: true }
+  if (mediaErr) return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: "Failed to fetch media." }
 
-  // 2. Fetch existing scenes
-  const { data: scenes, error: scenesError } = await supabase
-    .from("project_scenes")
-    .select("*")
-    .eq("project_id", projectId)
-    .order("sort_order", { ascending: true })
-
-  if (scenesError) throw new Error(scenesError.message)
-
-  const existingScenes = scenes || []
-  const existingMediaIds = new Set(existingScenes.map(s => s.media_id))
-
-  // 3. Find newly uploaded media that are not in the timeline
-  const newMediaItems = mediaItems.filter(m => !existingMediaIds.has(m.id))
-
-  if (newMediaItems.length === 0) return { success: true } // Nothing to append
-
-  // 4. Calculate duration
-  let durationToApply = 5.0 // fallback
-  
-  if (existingScenes.length === 0) {
-    // Initial generation: Divide target duration equally
-    durationToApply = targetDuration / newMediaItems.length
-    // round to 1 decimal
-    durationToApply = Math.max(1, Math.round(durationToApply * 10) / 10)
-  } else {
-    // Append Equal logic: Average of existing scenes
-    const totalExistingDuration = existingScenes.reduce((sum, s) => sum + s.duration, 0)
-    durationToApply = totalExistingDuration / existingScenes.length
-    durationToApply = Math.max(1, Math.round(durationToApply * 10) / 10)
+  const mediaBySectionId = new Map<string, any[]>()
+  for (const media of mediaItems || []) {
+    if (!mediaBySectionId.has(media.section_id)) {
+      mediaBySectionId.set(media.section_id, [])
+    }
+    mediaBySectionId.get(media.section_id)!.push(media)
   }
 
-  // 5. Create new scenes
-  const newScenesToInsert = newMediaItems.map((media, index) => {
-    return {
-      project_id: projectId,
-      media_id: media.id,
-      duration: durationToApply,
-      sort_order: existingScenes.length + index,
-      start_time: 0, // start_time will be calculated dynamically by the compiler
-      easing: "linear",
-      start_scale: 1.0,
-      end_scale: 1.0,
-      start_x: 0,
-      end_x: 0,
-      start_y: 0,
-      end_y: 0,
-      transition_parameters: {}
+  // 4. Construct scenes with strict assertions
+  const newScenes = []
+  const missingSections = []
+  let globalCursorMs = 0
+  let globalSortOrder = 0
+  let expectedGlobalTotalMs = 0
+
+  for (const section of sections) {
+    const sectionMedia = mediaBySectionId.get(section.id) || []
+    
+    if (sectionMedia.length === 0) {
+      missingSections.push({
+        sectionId: section.id,
+        sectionIndex: section.section_index,
+        title: section.title
+      })
+      continue
     }
+
+    const sectionDurationMs = Math.round(Number(section.duration_seconds) * 1000)
+    expectedGlobalTotalMs += sectionDurationMs
+    
+    const mediaCount = sectionMedia.length
+    const baseDurationMs = Math.floor(sectionDurationMs / mediaCount)
+    const remainderMs = sectionDurationMs - (baseDurationMs * mediaCount)
+
+    let actualSectionAccumulatorMs = 0
+
+    for (let i = 0; i < mediaCount; i++) {
+      const media = sectionMedia[i]
+      const isLastMedia = i === mediaCount - 1
+      const durationMs = isLastMedia ? baseDurationMs + remainderMs : baseDurationMs
+
+      // Assertions
+      if (durationMs <= 0) {
+        return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: `Scene duration <= 0 calculated in section ${section.section_index}` }
+      }
+
+      const startTimeMs = globalCursorMs
+      const endTimeMs = startTimeMs + durationMs
+
+      newScenes.push({
+        media_id: media.id,
+        section_id: section.id,
+        duration: durationMs / 1000.0,
+        start_time: startTimeMs / 1000.0,
+        end_time: endTimeMs / 1000.0,
+        sort_order: globalSortOrder
+      })
+
+      actualSectionAccumulatorMs += durationMs
+      globalCursorMs = endTimeMs
+      globalSortOrder++
+    }
+
+    // Final section assertion
+    if (actualSectionAccumulatorMs !== sectionDurationMs) {
+      return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: `Math invariant violation: Section ${section.section_index} sum (${actualSectionAccumulatorMs}ms) does not match target (${sectionDurationMs}ms)` }
+    }
+  }
+
+  if (missingSections.length > 0) {
+    return { success: false, code: "SECTION_MEDIA_MISSING", missingSections }
+  }
+
+  // Global assertions
+  if (globalCursorMs !== expectedGlobalTotalMs) {
+    return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: `Math invariant violation: Global timeline total (${globalCursorMs}ms) does not match target (${expectedGlobalTotalMs}ms)` }
+  }
+
+  // 5. Atomic RPC execution
+  const { error: rpcErr } = await supabase.rpc("replace_project_timeline", {
+    p_project_id: projectId,
+    p_script_id: project.active_script_id,
+    p_scenes: newScenes,
+    p_replace_existing: isRebuild
   })
 
-  const { error: insertError } = await supabase
-    .from("project_scenes")
-    .insert(newScenesToInsert)
+  if (rpcErr) {
+    if (rpcErr.message.includes("TIMELINE_ALREADY_EXISTS")) {
+      const { count } = await supabase.from("project_scenes").select("*", { count: "exact", head: true }).eq("project_id", projectId)
+      return { success: false, code: "TIMELINE_ALREADY_EXISTS", existingSceneCount: count || 0 }
+    }
+    return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: rpcErr.message }
+  }
 
-  if (insertError) throw new Error(insertError.message)
+  revalidatePath(`/projects/${projectId}`)
+  
+  if (isRebuild) {
+    return { success: true, code: "TIMELINE_REBUILT", sceneCount: newScenes.length, totalDurationMs: expectedGlobalTotalMs }
+  }
+  return { success: true, code: "TIMELINE_CREATED", sceneCount: newScenes.length, totalDurationMs: expectedGlobalTotalMs }
+}
 
-  return { success: true }
+export async function generateTimeline(projectId: string): Promise<TimelineActionResult> {
+  return await buildTimelineCore(projectId, false)
+}
+
+export async function rebuildTimeline(projectId: string): Promise<TimelineActionResult> {
+  return await buildTimelineCore(projectId, true)
 }

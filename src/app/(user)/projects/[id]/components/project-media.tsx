@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { uploadProjectMedia, deleteProjectMedia } from "../media-actions"
-import { generateTimeline } from "../timeline-actions"
 import { toast } from "sonner"
 import { Loader2, Trash2, Image as ImageIcon, Video, Music, Mic, Type, Layers, Box } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -45,9 +44,6 @@ export function ProjectMedia({ projectId, initialMedia, targetDuration }: { proj
     
     if (uploadCount > 0) {
       toast.success(`Successfully uploaded ${uploadCount} image(s)`)
-      // Automatically generate/append timeline
-      toast.info("Updating timeline...")
-      await generateTimeline(projectId, targetDuration, uploadCount)
       router.refresh()
     }
 
@@ -165,3 +161,4 @@ export function ProjectMedia({ projectId, initialMedia, targetDuration }: { proj
     </div>
   )
 }
+

@@ -4,13 +4,21 @@ import { createClient } from "@/utils/supabase/server"
 import { revalidatePath } from "next/cache"
 import { ProviderRuntime, CloudflareR2Adapter } from "@/utils/provider-runtime"
 
-export async function uploadProjectMedia(projectId: string, formData: FormData) {
+export async function uploadProjectMedia(projectId: string, formData: FormData, sectionId?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Unauthorized" }
 
   const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("user_id", user.id).single()
   if (!project) return { error: "Project not found or access denied" }
+
+  // Validate section ownership if provided
+  if (sectionId) {
+    const { data: section } = await supabase.from("script_sections").select("project_id").eq("id", sectionId).single()
+    if (!section || section.project_id !== projectId) {
+      return { error: "Section not found or does not belong to this project" }
+    }
+  }
 
   const file = formData.get("file") as File
   if (!file) return { error: "No file provided" }
@@ -55,6 +63,20 @@ export async function uploadProjectMedia(projectId: string, formData: FormData) 
 
     if (storageErr) return { error: "Failed to record file in storage_files: " + storageErr.message }
 
+    // Calculate sort order if assigning to section
+    let sortOrder = 0;
+    if (sectionId) {
+       const { data: existingMedia } = await supabase
+         .from("project_media")
+         .select("section_sort_order")
+         .eq("section_id", sectionId)
+         .order("section_sort_order", { ascending: false })
+         .limit(1)
+       if (existingMedia && existingMedia.length > 0 && existingMedia[0].section_sort_order !== null) {
+         sortOrder = existingMedia[0].section_sort_order + 1;
+       }
+    }
+
     // Save to project_media (for UI timeline)
     const { error: dbErr } = await supabase.from("project_media").insert({
       project_id: projectId,
@@ -63,7 +85,9 @@ export async function uploadProjectMedia(projectId: string, formData: FormData) 
       storage_key: uploadResult.objectKey,
       public_url: uploadResult.publicUrl,
       mime_type: file.type,
-      file_size: file.size
+      file_size: file.size,
+      section_id: sectionId || null,
+      section_sort_order: sectionId ? sortOrder : null
     })
 
     if (dbErr) return { error: "Failed to record file in project_media: " + dbErr.message }
@@ -184,4 +208,97 @@ export async function deleteProjectMedia(fileId: string, projectId: string) {
       sharedObjectPreserved: true
     };
   }
+}
+
+export async function getSectionMedia(sectionId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  const { data, error } = await supabase
+    .from("project_media")
+    .select("*")
+    .eq("section_id", sectionId)
+    .order("section_sort_order", { ascending: true })
+
+  if (error) throw new Error("Failed to fetch section media")
+  return data
+}
+
+export async function assignMediaToSection(mediaId: string, sectionId: string, projectId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Unauthorized" }
+
+  // Verify project ownership
+  const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("user_id", user.id).single()
+  if (!project) return { error: "Unauthorized or project not found" }
+
+  // Verify section ownership
+  const { data: section } = await supabase.from("script_sections").select("project_id").eq("id", sectionId).single()
+  if (!section || section.project_id !== projectId) return { error: "Invalid section" }
+
+  // Verify media ownership
+  const { data: media } = await supabase.from("project_media").select("project_id").eq("id", mediaId).single()
+  if (!media || media.project_id !== projectId) return { error: "Invalid media" }
+
+  // Get max sort order
+  const { data: existingMedia } = await supabase
+    .from("project_media")
+    .select("section_sort_order")
+    .eq("section_id", sectionId)
+    .order("section_sort_order", { ascending: false })
+    .limit(1)
+    
+  let sortOrder = 0;
+  if (existingMedia && existingMedia.length > 0 && existingMedia[0].section_sort_order !== null) {
+    sortOrder = existingMedia[0].section_sort_order + 1;
+  }
+
+  const { error } = await supabase
+    .from("project_media")
+    .update({ section_id: sectionId, section_sort_order: sortOrder })
+    .eq("id", mediaId)
+
+  if (error) return { error: error.message }
+  
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}
+
+export async function unassignMediaFromSection(mediaId: string, projectId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Unauthorized" }
+
+  // Securely update only if project matches user
+  const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("user_id", user.id).single()
+  if (!project) return { error: "Unauthorized" }
+
+  const { error } = await supabase
+    .from("project_media")
+    .update({ section_id: null, section_sort_order: null })
+    .eq("id", mediaId)
+    .eq("project_id", projectId)
+
+  if (error) return { error: error.message }
+  
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}
+
+export async function reorderSectionMedia(sectionId: string, orderedMediaIds: string[], projectId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Unauthorized" }
+
+  const { error } = await supabase.rpc("reorder_section_media", {
+    p_section_id: sectionId,
+    p_ordered_media_ids: orderedMediaIds
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
 }

@@ -2,11 +2,13 @@ import { getCurrentUser } from "@/utils/auth-service"
 import { createClient } from "@/utils/supabase/server"
 import { notFound, redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Play, Settings, Save } from "lucide-react"
+import { ArrowLeft, Settings, Save } from "lucide-react"
 import Link from "next/link"
 import { deleteProject } from "../actions"
 import { TimelineEditor } from "./components/timeline-editor"
 import { ProjectMedia } from "./components/project-media"
+import { ScriptManager } from "./components/script-manager"
+import { TimelineGeneratorButton } from "./components/timeline-generator-button"
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,6 +24,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   if (!project) notFound()
 
+  const { data: scripts } = await supabase
+    .from('scripts')
+    .select('*')
+    .eq('project_id', id)
+    .order('version', { ascending: true })
+
   const { data: scenes } = await supabase
     .from('project_scenes')
     .select('*')
@@ -34,9 +42,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     .eq('project_id', id)
     .order('created_at', { ascending: false })
 
+  const hasExistingScenes = scenes !== null && scenes.length > 0;
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-20 mt-6 px-4">
-      
       {/* 1. Project Settings Panel (Sticky Header) */}
       <div className="bg-slate-900 text-slate-100 rounded-xl shadow-lg border border-slate-800 p-4 sticky top-4 z-50 flex items-center justify-between">
         <div className="flex items-center space-x-6">
@@ -49,12 +58,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <span>Duration: {project.video_length}s</span>
               <span>•</span>
               <span>Aspect: 9:16</span>
-              <span>•</span>
-              <span>Res: 1080x1920</span>
-              <span>•</span>
-              <span>FPS: 30</span>
-              <span>•</span>
-              <span>Preset: TikTok / Reels</span>
             </div>
           </div>
         </div>
@@ -73,35 +76,33 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         {/* Main Workspace (Assets + Timeline) */}
         <div className="xl:col-span-3 space-y-6">
           
-          {/* 2. Media Assets */}
+          <ScriptManager projectId={project.id} scripts={scripts || []} project={project} />
+          
+          {/* Global Media Assets (for non-section specific logic) */}
           <ProjectMedia projectId={project.id} initialMedia={projectMedia || []} targetDuration={project.video_length} />
           
-          {/* 3. Multi-Track Timeline & Inspector */}
-          {projectMedia && projectMedia.length > 0 && (
-            <TimelineEditor initialScenes={scenes || []} />
-          )}
+          {/* Timeline Generation & Editor */}
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Timeline Editor</h2>
+              <TimelineGeneratorButton projectId={project.id} hasExistingScenes={hasExistingScenes} />
+            </div>
+
+            {hasExistingScenes ? (
+              <TimelineEditor initialScenes={scenes || []} />
+            ) : (
+              <div className="p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-800 text-slate-500">
+                No timeline generated yet. Upload media to your script sections and click "Generate Timeline".
+              </div>
+            )}
+          </div>
 
         </div>
         
         {/* Sidebar */}
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 border rounded-xl p-6 shadow-sm">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Export Settings</h2>
-            <dl className="space-y-4 text-sm">
-              <div>
-                <dt className="text-muted-foreground mb-1">Renderer</dt>
-                <dd className="font-medium bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">Cloud FFmpeg Worker</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground mb-1">Format</dt>
-                <dd className="font-medium bg-slate-100 dark:bg-slate-800 p-2 rounded text-xs font-mono">MP4 (H.264 / AAC)</dd>
-              </div>
-            </dl>
-          </div>
-          
           <div className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/50 rounded-xl p-6 shadow-sm">
             <h2 className="text-sm font-semibold text-red-800 dark:text-red-400 uppercase tracking-wider mb-2">Danger Zone</h2>
-            <p className="text-xs text-red-600 dark:text-red-500 mb-4">Once deleted, you cannot restore this project.</p>
             <form action={async () => { "use server"; await deleteProject(project.id); redirect('/projects'); }}>
               <Button type="submit" variant="destructive" className="w-full">Delete Project</Button>
             </form>
