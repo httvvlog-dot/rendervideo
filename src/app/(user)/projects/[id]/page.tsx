@@ -89,7 +89,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {hasExistingScenes ? (
-              <TimelineEditor initialScenes={scenes || []} />
+              <TimelineEditor initialScenes={scenes || []} media={projectMedia || []} />
             ) : (
               <div className="p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-800 text-slate-500">
                 No timeline generated yet. Upload media to your script sections and click "Generate Timeline".
