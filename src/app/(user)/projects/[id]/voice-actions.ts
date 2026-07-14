@@ -28,7 +28,7 @@ export async function generateMissingProjectVoice(projectId: string) {
   // 2. Fetch active script sections
   const { data: sections, error: sectionsErr } = await supabase
     .from("script_sections")
-    .select("id, content, voice_media_id, section_index")
+    .select("id, narration, voice_media_id, section_index")
     .eq("script_id", project.active_script_id)
     .order("section_index", { ascending: true })
 
@@ -59,15 +59,16 @@ export async function generateMissingProjectVoice(projectId: string) {
 
     try {
       // a. Generate TTS
-      const audioBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {
-        step: "VOICE",
+      const generateResult = await ttsRuntime.execute(new ElevenLabsAdapter(), {
+        step: "TTS",
         projectId: projectId,
-        args: { text: section.content }
+        args: { text: section.narration }
       });
 
       // b. Parse duration
       let durationMs = 0;
       try {
+        const audioBuffer = generateResult;
         const metadata = await mm.parseBuffer(new Uint8Array(audioBuffer), 'audio/mpeg');
         if (metadata.format.duration) {
           durationMs = Math.round(metadata.format.duration * 1000);
