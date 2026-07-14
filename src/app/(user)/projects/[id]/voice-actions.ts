@@ -32,7 +32,15 @@ export async function generateMissingProjectVoice(projectId: string) {
     .eq("script_id", project.active_script_id)
     .order("section_index", { ascending: true })
 
-  if (sectionsErr || !sections) return { success: false, code: "DB_ERROR", message: "Failed to fetch sections" }
+  if (sectionsErr || !sections) {
+    const rawDetails = sectionsErr ? ` [${sectionsErr.code}] ${sectionsErr.message} ${sectionsErr.hint || ''}` : " [null]";
+    return {
+      success: false,
+      code: "DB_ERROR",
+      message: `Failed to fetch sections: ${rawDetails}`,
+      rawError: sectionsErr
+    }
+  }
 
   let generatedCount = 0;
   let skippedCount = 0;
