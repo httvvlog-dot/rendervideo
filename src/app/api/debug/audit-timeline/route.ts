@@ -86,7 +86,13 @@ export async function GET(request: Request) {
     report.steps.step4_admin_scenes_count = adminScenesCount || 0
 
     // 5. Audit RLS Policies
-    const { data: rlsCheck } = await adminClient.rpc('exec_sql', { sql: 'SELECT tablename, rowsecurity FROM pg_tables WHERE tablename = \'project_scenes\'' }).catch(() => ({ data: 'RPC exec_sql not available' }))
+    let rlsCheck = null;
+    try {
+      const res = await adminClient.rpc('exec_sql', { sql: 'SELECT tablename, rowsecurity FROM pg_tables WHERE tablename = \'project_scenes\'' })
+      rlsCheck = res.data;
+    } catch(e) {
+      rlsCheck = 'RPC exec_sql not available';
+    }
     
     const { data: policies, error: policiesErr } = await adminClient
       .from("pg_policies")
