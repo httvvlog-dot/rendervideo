@@ -1,0 +1,9 @@
+UPDATE public.provider_credentials
+SET config_json = '{
+  "accountId": "Dc4af8ec105578ab467bbbe8fe01e6a0c",
+  "accessKeyId": "92cd61cbc9034856c8e16db91c672d61",
+  "secretAccessKey": "Dhttps://c4af8ec105578ab467bbbe8fe01e6a0c.r2.cloudflarestorage.com",
+  "bucket": "taovideo",
+  "publicUrl": "https://pub-6a4b725013fd477abb67e9c32523e300.r2.dev "
+}'::jsonb
+WHERE provider_id = (SELECT id FROM public.providers WHERE provider_key = 'cloudflare_r2');
