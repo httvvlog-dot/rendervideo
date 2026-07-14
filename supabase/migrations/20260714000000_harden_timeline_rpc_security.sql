@@ -56,9 +56,35 @@ BEGIN
     DELETE FROM public.project_scenes WHERE project_id = p_project_id;
   END IF;
 
+  -- Setup privilege controls
+  -- Make sure public and anon cannot execute, only authenticated can.
+
   -- Insert new scenes from JSON array
   FOR v_scene IN SELECT * FROM jsonb_array_elements(p_scenes)
   LOOP
+    -- 6. Verify that section_id exists and belongs to the script and project
+    IF (v_scene->>'section_id') IS NOT NULL THEN
+      PERFORM 1 FROM public.script_sections 
+      WHERE id = (v_scene->>'section_id')::UUID 
+        AND script_id = p_script_id 
+        AND project_id = p_project_id;
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Invalid section_id % or section does not belong to the active script/project', v_scene->>'section_id';
+      END IF;
+    END IF;
+
+    -- 7. Verify that media_id belongs to the project
+    IF (v_scene->>'media_id') IS NOT NULL THEN
+      PERFORM 1 FROM public.project_media 
+      WHERE id = (v_scene->>'media_id')::UUID 
+        AND project_id = p_project_id;
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Invalid media_id % or media does not belong to the project', v_scene->>'media_id';
+      END IF;
+    END IF;
+
+    -- 8. (Media assignment compatibility is structurally implicitly valid because we already verified both belong to the project, but we could enforce more if strictly required. At the moment, just ensuring they belong to the same project is sufficient based on DB schema).
+
     INSERT INTO public.project_scenes (
       project_id,
       media_id,
@@ -95,3 +121,8 @@ BEGIN
   END LOOP;
 END;
 $$;
+
+-- Revoke default privileges and grant to authenticated
+REVOKE ALL ON FUNCTION public.replace_project_timeline(UUID, UUID, JSONB, BOOLEAN) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.replace_project_timeline(UUID, UUID, JSONB, BOOLEAN) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.replace_project_timeline(UUID, UUID, JSONB, BOOLEAN) TO service_role;
