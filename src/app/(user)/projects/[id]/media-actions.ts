@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
+import { createAdminClient } from "@/utils/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { ProviderRuntime, CloudflareR2Adapter } from "@/utils/provider-runtime"
 
@@ -52,7 +53,8 @@ export async function uploadProjectMedia(projectId: string, formData: FormData, 
     });
 
     // 5. Save to database (storage_files for global asset rule)
-    const { data: storageFile, error: storageErr } = await supabase.from("storage_files").insert({
+    const adminClient = createAdminClient();
+    const { data: storageFile, error: storageErr } = await adminClient.from("storage_files").insert({
       provider: "cloudflare_r2",
       bucket: uploadResult.bucket,
       path: uploadResult.objectKey,
@@ -61,7 +63,17 @@ export async function uploadProjectMedia(projectId: string, formData: FormData, 
       public_url: uploadResult.publicUrl
     }).select("id").single()
 
-    if (storageErr) return { error: "Failed to record file in storage_files: " + storageErr.message }
+    if (storageErr) {
+      // Rollback R2 upload
+      try {
+        await runtime.execute(new CloudflareR2Adapter(), {
+          step: "UPLOAD", projectId: projectId, args: { action: "DELETE", objectKey: uploadResult.objectKey }
+        });
+      } catch (e) {
+        console.error("Failed to rollback R2 upload:", e);
+      }
+      return { error: "Failed to record file in storage_files: " + storageErr.message, uploadSucceeded: true, rollbackAttempted: true, databasePersisted: false }
+    }
 
     // Calculate sort order if assigning to section
     let sortOrder = 0;
@@ -90,7 +102,19 @@ export async function uploadProjectMedia(projectId: string, formData: FormData, 
       section_sort_order: sectionId ? sortOrder : null
     })
 
-    if (dbErr) return { error: "Failed to record file in project_media: " + dbErr.message }
+    if (dbErr) {
+      // Rollback storage_files
+      await adminClient.from("storage_files").delete().eq("id", storageFile.id);
+      // Rollback R2 upload
+      try {
+        await runtime.execute(new CloudflareR2Adapter(), {
+          step: "UPLOAD", projectId: projectId, args: { action: "DELETE", objectKey: uploadResult.objectKey }
+        });
+      } catch (e) {
+        console.error("Failed to rollback R2 upload:", e);
+      }
+      return { error: "Failed to record file in project_media: " + dbErr.message, uploadSucceeded: true, rollbackAttempted: true, databasePersisted: false }
+    }
 
     revalidatePath(`/projects/${projectId}`)
     return { success: true, url: uploadResult.publicUrl }
