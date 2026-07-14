@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js"
-import { TimelineJSON, RenderScene } from "./core"
+import { TimelineJSON, RenderScene, RenderAudioTrack } from "./core"
 
 export async function compileTimeline(supabase: SupabaseClient, projectId: string): Promise<TimelineJSON> {
   // 1. Authenticate user
@@ -109,6 +109,47 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
   const totalDurationMs = expectedNextStartTimeMs;
 
   
+  // 7b. Compile Audio Tracks (Voice)
+  const sectionIds = Array.from(new Set(scenes.map(s => s.section_id).filter(Boolean)))
+  const audioTracks: RenderAudioTrack[] = []
+
+  if (sectionIds.length > 0) {
+    const { data: sectionsData } = await supabase
+      .from('script_sections')
+      .select('id, voice_media_id, voice_duration_ms')
+      .in('id', sectionIds)
+
+    if (sectionsData) {
+      const voiceMediaIds = sectionsData.map(s => s.voice_media_id).filter(Boolean)
+      if (voiceMediaIds.length > 0) {
+        const { data: voiceMedia } = await supabase
+          .from('project_media')
+          .select('id, public_url')
+          .in('id', voiceMediaIds)
+
+        const voiceMediaMap = new Map(voiceMedia?.map(m => [m.id, m.public_url]) || [])
+        
+        for (const section of sectionsData) {
+          if (section.voice_media_id && voiceMediaMap.has(section.voice_media_id)) {
+            const sectionScenes = renderScenes.filter(s => s.sectionId === section.id)
+            if (sectionScenes.length > 0) {
+              const startTimeMs = Math.min(...sectionScenes.map(s => s.startTimeMs))
+              audioTracks.push({
+                id: crypto.randomUUID(),
+                type: "voice",
+                sectionId: section.id,
+                mediaId: section.voice_media_id,
+                sourceUrl: voiceMediaMap.get(section.voice_media_id)!,
+                startTimeMs: startTimeMs,
+                durationMs: Number(section.voice_duration_ms) || 0
+              })
+            }
+          }
+        }
+      }
+    }
+  }
+
   // 8. Produce canonical TimelineJSON
   const timelineJSON: TimelineJSON = {
     version: 1,
@@ -122,7 +163,8 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
       fps: 30,
       codec: "h264"
     },
-    scenes: renderScenes
+    scenes: renderScenes,
+    audioTracks: audioTracks
   }
 
   return timelineJSON

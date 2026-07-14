@@ -13,7 +13,7 @@ export type TimelineActionResult =
   | { success: false; code: "INVALID_ACTIVE_SCRIPT" }
   | { success: false; code: "TIMELINE_VALIDATION_FAILED"; message: string }
 
-async function buildTimelineCore(projectId: string, isRebuild: boolean): Promise<TimelineActionResult> {
+async function buildTimelineCore(projectId: string, isRebuild: boolean = false, useVoiceDuration: boolean = false): Promise<TimelineActionResult> {
   const user = await getCurrentUser()
   if (!user) return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: "Unauthorized" }
 
@@ -56,6 +56,7 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean): Promise
     .from("project_media")
     .select("*")
     .eq("project_id", projectId)
+    .eq("asset_type", "image")
     .not("section_id", "is", null)
     .order("section_sort_order", { ascending: true })
 
@@ -88,7 +89,18 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean): Promise
       continue
     }
 
-    const sectionDurationMs = Math.round(Number(section.duration_seconds) * 1000)
+    let sectionDurationMs = Math.round(Number(section.duration_seconds) * 1000)
+    
+    if (useVoiceDuration) {
+      if (section.voice_duration_ms) {
+        sectionDurationMs = Number(section.voice_duration_ms)
+      } else {
+        // If there's no voice, what to do? User requirement says:
+        // "Each section with voice must have at least one image scene." 
+        // If there is no voice, we probably fallback to AI duration so that timeline still generates.
+        // Wait, "Generate Voice -> Sync Timeline to Voice". We will just fallback to original duration if voice_duration_ms is missing.
+      }
+    }
     expectedGlobalTotalMs += sectionDurationMs
     
     const mediaCount = sectionMedia.length
@@ -169,4 +181,8 @@ export async function generateTimeline(projectId: string): Promise<TimelineActio
 
 export async function rebuildTimeline(projectId: string): Promise<TimelineActionResult> {
   return await buildTimelineCore(projectId, true)
+}
+
+export async function syncTimelineToVoice(projectId: string): Promise<TimelineActionResult> {
+  return await buildTimelineCore(projectId, true, true)
 }

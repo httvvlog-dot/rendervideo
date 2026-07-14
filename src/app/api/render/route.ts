@@ -31,6 +31,16 @@ const RenderSceneSchema = z.object({
   transform: TransformSchema,
 }).strict()
 
+const RenderAudioTrackSchema = z.object({
+  id: z.string().uuid(),
+  type: z.literal("voice"),
+  sectionId: z.string().uuid(),
+  mediaId: z.string().uuid(),
+  sourceUrl: z.string().url(),
+  startTimeMs: z.number().nonnegative(),
+  durationMs: z.number().positive(),
+}).strict()
+
 const TimelineJSONSchema = z.object({
   version: z.literal(1),
   projectId: z.string().uuid(),
@@ -44,6 +54,7 @@ const TimelineJSONSchema = z.object({
     codec: z.string(),
   }).strict(),
   scenes: z.array(RenderSceneSchema).min(1),
+  audioTracks: z.array(RenderAudioTrackSchema).optional(),
 }).strict()
 
 export async function POST(req: Request) {

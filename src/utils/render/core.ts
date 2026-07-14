@@ -26,6 +26,17 @@ export type TimelineJSON = {
     codec: string;
   };
   scenes: RenderScene[];
+  audioTracks?: RenderAudioTrack[];
+};
+
+export type RenderAudioTrack = {
+  id: string;
+  type: "voice";
+  sectionId: string;
+  mediaId: string;
+  sourceUrl: string;
+  startTimeMs: number;
+  durationMs: number;
 };
 
 export type RenderScene = {

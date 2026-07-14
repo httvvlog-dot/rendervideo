@@ -1,14 +1,6 @@
 export * from "./openrouter-adapter";
 export * from "./cloudflare-r2-adapter";
-
-// Skeletons for future migration
-export interface ElevenLabsArgs { text: string; voiceId?: string; }
-export interface ElevenLabsResult { audioBuffer: Buffer; durationSec: number; }
-export class ElevenLabsAdapter {
-  async execute(credential: any, args: ElevenLabsArgs): Promise<ElevenLabsResult> {
-    throw new Error("Not implemented");
-  }
-}
+export * from "./elevenlabs-adapter";
 
 export interface WhisperArgs { audioBuffer: Buffer; }
 export interface WhisperResult { srtContent: string; durationSec: number; }

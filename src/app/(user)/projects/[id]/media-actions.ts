@@ -98,6 +98,7 @@ export async function uploadProjectMedia(projectId: string, formData: FormData, 
       public_url: uploadResult.publicUrl,
       mime_type: file.type,
       file_size: file.size,
+      asset_type: "image",
       section_id: sectionId || null,
       section_sort_order: sectionId ? sortOrder : null
     })

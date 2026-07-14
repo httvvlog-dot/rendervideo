@@ -9,6 +9,7 @@ import { TimelineEditor } from "./components/timeline-editor"
 import { ProjectMedia } from "./components/project-media"
 import { ScriptManager } from "./components/script-manager"
 import { TimelineGeneratorButton } from "./components/timeline-generator-button"
+import { VoiceGeneratorButtons } from "./components/voice-generator-buttons"
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,9 +41,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     .from('project_media')
     .select('*')
     .eq('project_id', id)
+    .eq('asset_type', 'image')
     .order('created_at', { ascending: false })
 
   const hasExistingScenes = scenes !== null && scenes.length > 0;
+  const activeScript = scripts?.find(s => s.id === project.active_script_id);
+  const activeSections = activeScript?.script_sections || [];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-20 mt-6 px-4">
@@ -85,11 +89,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">Timeline Editor</h2>
-              <TimelineGeneratorButton projectId={project.id} hasExistingScenes={hasExistingScenes} />
+              <div className="flex items-center space-x-2">
+                <VoiceGeneratorButtons projectId={project.id} />
+                <TimelineGeneratorButton projectId={project.id} hasExistingScenes={hasExistingScenes} />
+              </div>
             </div>
 
             {hasExistingScenes ? (
-              <TimelineEditor initialScenes={scenes || []} media={projectMedia || []} projectId={project.id} />
+              <TimelineEditor initialScenes={scenes || []} media={projectMedia || []} projectId={project.id} sections={activeSections} />
             ) : (
               <div className="p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-800 text-slate-500">
                 No timeline generated yet. Upload media to your script sections and click "Generate Timeline".

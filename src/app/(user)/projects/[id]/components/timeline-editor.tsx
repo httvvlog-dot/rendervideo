@@ -26,7 +26,7 @@ interface Scene {
   section_id?: string
 }
 
-export function TimelineEditor({ initialScenes, media = [], projectId }: { initialScenes: Scene[], media?: any[], projectId: string }) {
+export function TimelineEditor({ initialScenes, media = [], projectId, sections = [] }: { initialScenes: Scene[], media?: any[], projectId: string, sections?: any[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [renderJobId, setRenderJobId] = useState<string | undefined>(undefined)
 
@@ -36,6 +36,26 @@ export function TimelineEditor({ initialScenes, media = [], projectId }: { initi
   const totalDurationMs = previewScenes.length > 0 
     ? previewScenes[previewScenes.length - 1].endTimeMs 
     : 0
+
+  // 1b. Map sections to Voice Track Blocks
+  const voiceBlocks = useMemo(() => {
+    const blocks: { id: string, startMs: number, durationMs: number }[] = []
+    for (const section of sections) {
+      if (section.voice_media_id && section.voice_duration_ms) {
+        // Find start time from scenes
+        const sectionScenes = previewScenes.filter(s => s.sectionId === section.id)
+        if (sectionScenes.length > 0) {
+          const startMs = Math.min(...sectionScenes.map(s => s.startTimeMs))
+          blocks.push({
+            id: section.id,
+            startMs: startMs,
+            durationMs: section.voice_duration_ms
+          })
+        }
+      }
+    }
+    return blocks
+  }, [sections, previewScenes])
 
   // 2. Playback State
   const [isPlaying, setIsPlaying] = useState(false)
@@ -231,13 +251,29 @@ export function TimelineEditor({ initialScenes, media = [], projectId }: { initi
               </div>
             </div>
 
-            {/* VOICE TRACK (Disabled) */}
-            <div className="flex opacity-50 grayscale pointer-events-none">
+            {/* VOICE TRACK */}
+            <div className="flex relative z-0 mt-2">
               <div className="w-24 shrink-0 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 px-2 rounded-l-md">
                 <Mic className="w-3 h-3 mr-1" /> Voice
               </div>
-              <div className="flex-1 bg-slate-200 dark:bg-[#1a1d2d] rounded-r-md border-y border-r border-slate-300 dark:border-slate-800 p-2 min-h-[3rem] flex items-center justify-center text-xs text-slate-400">
-                [ Next Sprint: AI TTS Generation ]
+              <div className="flex-1 bg-slate-200 dark:bg-[#1a1d2d] rounded-r-md border-y border-r border-slate-300 dark:border-slate-800 shadow-inner relative min-h-[3rem] overflow-hidden">
+                {voiceBlocks.length > 0 ? voiceBlocks.map(block => (
+                  <div
+                    key={block.id}
+                    className="absolute top-1 bottom-1 bg-emerald-600/80 hover:bg-emerald-500 border border-emerald-400 rounded flex items-center justify-center text-[10px] text-white shadow-sm overflow-hidden whitespace-nowrap px-2 transition-colors cursor-pointer"
+                    style={{
+                      left: `${totalDurationMs > 0 ? (block.startMs / totalDurationMs) * 100 : 0}%`,
+                      width: `${totalDurationMs > 0 ? (block.durationMs / totalDurationMs) * 100 : 0}%`
+                    }}
+                    title={`Voice Duration: ${(block.durationMs/1000).toFixed(1)}s`}
+                  >
+                    <Mic className="w-3 h-3 mr-1 opacity-50 shrink-0" /> {(block.durationMs/1000).toFixed(1)}s
+                  </div>
+                )) : (
+                  <div className="flex items-center justify-center w-full h-full text-xs text-slate-400">
+                    No Voice Tracks (Run Generate Voice)
+                  </div>
+                )}
               </div>
             </div>
 
