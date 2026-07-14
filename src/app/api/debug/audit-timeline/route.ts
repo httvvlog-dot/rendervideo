@@ -96,6 +96,16 @@ export async function GET(request: Request) {
 
     report.steps.step6_scenes_after = scenesAfter || 0
 
+    // 7. Admin verification to check RLS
+    const { createAdminClient } = await import("@/utils/supabase/admin")
+    const adminClient = createAdminClient()
+    const { count: adminScenesCount } = await adminClient
+      .from("project_scenes")
+      .select("*", { count: "exact", head: true })
+      .eq("project_id", projectId)
+      
+    report.steps.step7_admin_scenes_count = adminScenesCount || 0
+
     return NextResponse.json({ success: true, report }, { status: 200 })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
