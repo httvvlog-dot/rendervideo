@@ -59,7 +59,7 @@ export async function generateMissingProjectVoice(projectId: string) {
 
     try {
       // a. Generate TTS
-      const generateResult = await ttsRuntime.execute(new ElevenLabsAdapter(), {
+      const audioBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {
         step: "VOICE",
         projectId: projectId,
         args: { text: section.narration }
@@ -68,7 +68,7 @@ export async function generateMissingProjectVoice(projectId: string) {
       // b. Parse duration
       let durationMs = 0;
       try {
-        const audioBuffer = generateResult;
+
         const metadata = await mm.parseBuffer(new Uint8Array(audioBuffer), 'audio/mpeg');
         if (metadata.format.duration) {
           durationMs = Math.round(metadata.format.duration * 1000);
