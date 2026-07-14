@@ -18,10 +18,20 @@ export function VoiceGeneratorButtons({ projectId }: { projectId: string }) {
     const toastId = toast.loading("Generating AI Voice...")
     try {
       const res = await generateMissingProjectVoice(projectId)
+      console.log("[GenerateVoice] result:", res)
+      
       if (res.success) {
-        toast.success(`Generated ${res.generatedCount} voices (${res.skippedCount} skipped)`, { id: toastId })
-        if (res.failedSections && res.failedSections.length > 0) {
-          toast.warning(`Failed to generate ${res.failedSections.length} sections`, { id: toastId })
+        if (res.generatedCount > 0) {
+          toast.success(`Generated ${res.generatedCount} voices`, { id: toastId })
+          if (res.failedSections && res.failedSections.length > 0) {
+            toast.warning(`Failed to generate ${res.failedSections.length} sections: ${res.failedSections[0]?.error}`, { id: toastId })
+          }
+        } else if (res.failedSections && res.failedSections.length > 0) {
+          toast.error(`Voice generation failed for ${res.failedSections.length} sections. Error: ${res.failedSections[0]?.error}`, { id: toastId })
+        } else if (res.skippedCount > 0) {
+          toast.success(`No new voices generated. Existing voices were preserved.`, { id: toastId })
+        } else {
+          toast.success(`No sections to generate.`, { id: toastId })
         }
         router.refresh()
       } else {

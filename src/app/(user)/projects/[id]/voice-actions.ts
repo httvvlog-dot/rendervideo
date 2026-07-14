@@ -8,7 +8,26 @@ import { ElevenLabsAdapter } from "@/utils/provider-runtime/adapters/elevenlabs-
 import * as mm from 'music-metadata'
 import { revalidatePath } from "next/cache"
 
-export async function generateMissingProjectVoice(projectId: string) {
+export type GenerateVoiceResult =
+  | {
+      success: true
+      generatedCount: number
+      skippedCount: number
+      failedSections: Array<{
+        sectionId: string
+        sectionIndex: number
+        error: string
+      }>
+    }
+  | {
+      success: false
+      code: string
+      message: string
+      rawError?: any
+    }
+
+export async function generateMissingProjectVoice(projectId: string): Promise<GenerateVoiceResult> {
+  console.log("[VOICE] START projectId=", projectId);
   const supabase = await createClient()
   
   // 1. Authenticate user & verify project ownership
@@ -23,7 +42,9 @@ export async function generateMissingProjectVoice(projectId: string) {
     .single()
 
   if (projErr || !project) return { success: false, code: "NOT_FOUND", message: "Project not found or unauthorized" }
+  console.log("[VOICE] PROJECT_VERIFIED projectId=", projectId);
   if (!project.active_script_id) return { success: false, code: "NO_ACTIVE_SCRIPT", message: "Project has no active script" }
+  console.log("[VOICE] ACTIVE_SCRIPT_FOUND scriptId=", project.active_script_id);
 
   // 2. Fetch active script sections
   const { data: sections, error: sectionsErr } = await supabase
@@ -41,10 +62,11 @@ export async function generateMissingProjectVoice(projectId: string) {
       rawError: sectionsErr
     }
   }
+  console.log(`[VOICE] SECTIONS_FETCHED count=${sections.length}`);
 
   let generatedCount = 0;
   let skippedCount = 0;
-  const failedSections = [];
+  const failedSections: Array<{ sectionId: string, sectionIndex: number, error: string }> = [];
 
   const ttsRuntime = new ProviderRuntime("elevenlabs", { retryCount: 2, retryDelay: 1000 });
   const storageRuntime = new ProviderRuntime("cloudflare_r2", { retryCount: 2, retryDelay: 500 });
@@ -57,13 +79,16 @@ export async function generateMissingProjectVoice(projectId: string) {
       continue;
     }
 
+    console.log(`[VOICE] SECTION_START index=${section.section_index}`);
     try {
       // a. Generate TTS
+      console.log(`[VOICE] TTS_REQUEST_START section_index=${section.section_index}`);
       const audioBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {
         step: "VOICE",
         projectId: projectId,
         args: { text: section.narration }
       });
+      console.log(`[VOICE] TTS_REQUEST_SUCCESS bytes=${audioBuffer.byteLength}`);
 
       // b. Parse duration
       let durationMs = 0;
@@ -76,8 +101,10 @@ export async function generateMissingProjectVoice(projectId: string) {
       } catch (err) {
         console.warn("music-metadata failed to parse duration:", err);
       }
+      console.log(`[VOICE] AUDIO_DURATION_PARSED durationMs=${durationMs}`);
 
       // c. Upload to R2
+      console.log(`[VOICE] R2_UPLOAD_START section_index=${section.section_index}`);
       const fileName = `voice_${projectId}_section_${section.section_index}_${Date.now()}.mp3`;
       const uploadResult = await storageRuntime.execute(new CloudflareR2Adapter(), {
         step: "UPLOAD",
@@ -90,6 +117,7 @@ export async function generateMissingProjectVoice(projectId: string) {
           projectId: projectId
         }
       });
+      console.log("[VOICE] R2_UPLOAD_SUCCESS publicUrl=", uploadResult.publicUrl);
 
       // d. Save to storage_files (Global Asset Rule)
       const { data: storageFile, error: storageErr } = await adminClient.from("storage_files").insert({
@@ -111,7 +139,7 @@ export async function generateMissingProjectVoice(projectId: string) {
         } catch (e) {
           orphanedStorageRisk = true;
         }
-        failedSections.push({ sectionId: section.id, error: "storage_files insert failed", orphanedStorageRisk });
+        failedSections.push({ sectionId: section.id, sectionIndex: section.section_index, error: "storage_files insert failed" });
         continue;
       }
 
@@ -132,9 +160,10 @@ export async function generateMissingProjectVoice(projectId: string) {
       if (mediaErr) {
         // This is a complex rollback since we have a storage_files record.
         // We will attempt rollback, but the system prioritizes not losing data.
-        failedSections.push({ sectionId: section.id, error: "project_media insert failed", orphanedStorageRisk: true });
+        failedSections.push({ sectionId: section.id, sectionIndex: section.section_index, error: "project_media insert failed" });
         continue;
       }
+      console.log("[VOICE] PROJECT_MEDIA_INSERT_SUCCESS media_id=", mediaInsert.id);
 
       // f. Update script_sections
       const { error: sectionUpdateErr } = await supabase.from("script_sections").update({
@@ -143,18 +172,20 @@ export async function generateMissingProjectVoice(projectId: string) {
       }).eq("id", section.id);
 
       if (sectionUpdateErr) {
-        failedSections.push({ sectionId: section.id, error: "script_sections update failed" });
+        failedSections.push({ sectionId: section.id, sectionIndex: section.section_index, error: "script_sections update failed" });
         continue;
       }
+      console.log("[VOICE] SECTION_UPDATE_SUCCESS section_id=", section.id);
 
       generatedCount++;
 
     } catch (error: any) {
-      console.error(`Failed to generate voice for section ${section.id}:`, error);
-      failedSections.push({ sectionId: section.id, error: error.message });
+      console.log(`[VOICE] SECTION_FAILED index=${section.section_index} code=${error.code || 'UNKNOWN'} message=${error.message}`);
+      failedSections.push({ sectionId: section.id, sectionIndex: section.section_index, error: error.message });
     }
   }
 
+  console.log(`[VOICE] COMPLETE generated=${generatedCount} skipped=${skippedCount} failed=${failedSections.length}`);
   revalidatePath(`/projects/${projectId}`);
   return { success: true, generatedCount, skippedCount, failedSections };
 }
