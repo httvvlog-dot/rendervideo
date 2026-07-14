@@ -42,7 +42,9 @@ async function runTest() {
     });
     console.log("Upload Success:", uploadResult);
   } catch (err: any) {
-    console.error("Upload Failed:", err.message);
+    console.error("Upload Failed:");
+    console.dir(err, { depth: null });
+    console.error("Message:", err.message);
   }
 }
 
