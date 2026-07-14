@@ -42,14 +42,18 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
     setIsGenerating(true)
     const toastId = toast.loading("Generating script via OpenRouter...")
     try {
-      await generateScript(projectId)
+      const res = await generateScript(projectId)
+      if (res && res.error) {
+        toast.error(res.error, { id: toastId })
+        return
+      }
       toast.success("Script generated successfully!", { id: toastId })
       // When generating a new script, we don't automatically set it as the active version for timeline,
       // but we do show it in the UI.
       const maxV = scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0
       setActiveVersion(maxV + 1)
     } catch (err: any) {
-      toast.error(err.message, { id: toastId })
+      toast.error(err.message || "An unexpected error occurred", { id: toastId })
     } finally {
       setIsGenerating(false)
     }
@@ -61,7 +65,11 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
     
     toast.loading("Deleting...", { id: 'del' })
     try {
-      await deleteScriptVersion(activeScript.id, projectId)
+      const res = await deleteScriptVersion(activeScript.id, projectId)
+      if (res && res.error) {
+        toast.error(res.error, { id: 'del' })
+        return
+      }
       toast.success("Deleted", { id: 'del' })
       const remaining = scripts.filter(s => s.id !== activeScript.id)
       if (remaining.length > 0) {
@@ -70,7 +78,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
         setActiveVersion(0)
       }
     } catch (err: any) {
-      toast.error(err.message, { id: 'del' })
+      toast.error(err.message || "An unexpected error occurred", { id: 'del' })
     }
   }
 
@@ -78,10 +86,14 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
     if (!activeScript) return
     const toastId = toast.loading("Setting active script...")
     try {
-      await setActiveScript(projectId, activeScript.id)
+      const res = await setActiveScript(projectId, activeScript.id)
+      if (res && res.error) {
+        toast.error(res.error, { id: toastId })
+        return
+      }
       toast.success("Active script updated", { id: toastId })
     } catch (err: any) {
-      toast.error(err.message, { id: toastId })
+      toast.error(err.message || "An unexpected error occurred", { id: toastId })
     }
   }
 

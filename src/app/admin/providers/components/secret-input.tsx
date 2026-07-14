@@ -6,11 +6,13 @@ import { Eye, EyeOff, Copy, RefreshCw, Check } from "lucide-react"
 export function SecretInput({ 
   name, 
   defaultValue, 
-  placeholder 
+  placeholder,
+  onChange
 }: { 
   name: string, 
   defaultValue?: string, 
-  placeholder?: string 
+  placeholder?: string,
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
 }) {
   const [isVisible, setIsVisible] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
@@ -39,7 +41,10 @@ export function SecretInput({
         type={isVisible ? "text" : "password"}
         name={name}
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => {
+          setValue(e.target.value)
+          onChange && onChange(e)
+        }}
         placeholder={placeholder}
         readOnly={isMasked}
         className={`w-full border rounded-lg px-4 py-2.5 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-24 ${isMasked ? 'text-slate-400 font-mono tracking-widest' : ''}`}

@@ -187,6 +187,55 @@ export async function setDefaultCredential(id: string, provider_id: string) {
   return { success: true }
 }
 
+export async function getOpenRouterModels(credentialId?: string, clientApiKey?: string) {
+  await requireAdmin();
+  let apiKey = clientApiKey;
+
+  if (credentialId) {
+    const supabase = createAdminClient();
+    const { data: cred } = await supabase.from("provider_credentials").select("config_json").eq("id", credentialId).single();
+    if (cred && cred.config_json) {
+      apiKey = cred.config_json.apiKey || cred.config_json.api_key;
+    }
+  }
+
+  try {
+    const headers: Record<string, string> = {};
+    if (apiKey) {
+      headers["Authorization"] = `Bearer ${apiKey}`;
+    }
+    
+    const res = await fetch("https://openrouter.ai/api/v1/models", { headers });
+    if (!res.ok) {
+      return { success: false, error: `Failed to fetch models: ${res.status}` };
+    }
+
+    const data = await res.json();
+    if (!data || !Array.isArray(data.data)) {
+      return { success: false, error: "Invalid response format from OpenRouter" };
+    }
+
+    const models = data.data.map((m: any) => {
+      const parts = m.id.split("/");
+      const provider = parts.length > 1 ? parts[0] : "other";
+      return {
+        id: m.id,
+        name: m.name,
+        provider: provider,
+        contextLength: m.context_length,
+        pricing: {
+          prompt: m.pricing?.prompt,
+          completion: m.pricing?.completion
+        }
+      };
+    });
+
+    return { success: true, models };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 export async function testCredentialConnection(credential_id: string) {
   await requireAdmin();
   const supabase = createAdminClient();
@@ -202,23 +251,58 @@ export async function testCredentialConnection(credential_id: string) {
     let res;
 
     if (providerKey === "openrouter") {
-      res = await fetch("https://openrouter.ai/api/v1/models", { headers: { "Authorization": `Bearer ${config.apiKey}` } });
+      const apiKey = config.apiKey || config.api_key;
+      const defaultModel = config.default_model || config.defaultModel;
+      
+      if (!apiKey) return { success: false, error: "OPENROUTER_AUTH_FAILED: Missing API Key" };
+      if (!defaultModel) return { success: false, error: "MODEL_NOT_SELECTED: Missing Default Model" };
+
+      // Perform an actual completion test with max_tokens: 1
+      res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { 
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: defaultModel,
+          messages: [{ role: "user", content: "hi" }],
+          max_tokens: 1
+        })
+      });
+
+      const latency = Date.now() - startTime;
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const errMsg = errData.error?.message || `Status ${res.status}`;
+        
+        await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: `Connection Failed: ${errMsg}`, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
+        
+        if (res.status === 401 || res.status === 403) {
+           return { success: false, error: "OPENROUTER_AUTH_FAILED", status: res.status, details: errMsg };
+        } else if (res.status === 404 || errMsg.toLowerCase().includes("does not exist") || errMsg.toLowerCase().includes("model")) {
+           return { success: false, error: "MODEL_NOT_AVAILABLE", status: res.status, details: errMsg };
+        }
+        
+        return { success: false, error: "OPENROUTER_CONNECTION_FAILED", status: res.status, details: errMsg };
+      }
+
+      await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.HEALTHY, latency, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
+      return { success: true, latency, status: res.status };
+
     } else if (providerKey === "elevenlabs") {
       res = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": config.apiKey } });
+      const latency = Date.now() - startTime;
+      if (!res.ok) {
+        await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: `Status ${res.status}`, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
+        return { success: false, error: `API returned status ${res.status}`, status: res.status };
+      }
+      await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.HEALTHY, latency, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
+      return { success: true, latency, status: res.status };
     } else {
-      // Cloudflare, Whisper, Render worker skips deep validation for now
       return { success: true, message: "Credential format looks valid. Deep test not implemented for this provider yet.", latency: 0 };
     }
-    
-    const latency = Date.now() - startTime;
-    
-    if (!res.ok) {
-      await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: `Status ${res.status}`, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
-      return { success: false, error: `API returned status ${res.status}`, status: res.status };
-    }
-    
-    await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.HEALTHY, latency, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
-    return { success: true, latency, status: res.status };
   } catch (err: any) {
     await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: err.message, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
     return { success: false, error: err.message };

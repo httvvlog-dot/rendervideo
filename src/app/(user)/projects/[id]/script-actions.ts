@@ -127,34 +127,37 @@ Important:
     await supabase.from("projects").update({
       workflow_state: { ...project.workflow_state, script: "failed" }
     }).eq("id", projectId)
-    throw new Error(`Script generation failed: ${err.message}`)
+    return { error: `Script generation failed: ${err.message}` }
   }
 }
 
 export async function deleteScriptVersion(scriptId: string, projectId: string) {
-  const user = await getCurrentUser()
-  if (!user) throw new Error("Unauthorized")
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Unauthorized" }
 
-  const supabase = await createClient()
+    const supabase = await createClient()
 
-  const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("user_id", user.id).single()
-  if (!project) throw new Error("Unauthorized")
+    const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("user_id", user.id).single()
+    if (!project) return { error: "Unauthorized" }
 
-  const { error } = await supabase.from("scripts").delete().eq("id", scriptId)
-  if (error) return { error: error.message }
+    const { error } = await supabase.from("scripts").delete().eq("id", scriptId).eq("project_id", projectId)
+    if (error) return { error: error.message }
 
-  const { count } = await supabase.from("scripts").select("*", { count: "exact", head: true }).eq("project_id", projectId)
-  
-  if (count === 0) {
-    const { data: proj } = await supabase.from("projects").select("workflow_state").eq("id", projectId).single()
+    // If it was the active script, we might want to unset it or just let the client handle it.
+    // Client currently sets active to another one before calling delete on the active one, or deletes a non-active one.
+    // But we should check if project.active_script_id is null now, or just let DB cascade handle if needed.
+    const { data: proj } = await supabase.from("projects").select("active_script_id, workflow_state").eq("id", projectId).single()
     if (proj) {
       const newState = { ...proj.workflow_state, script: "pending" }
       await supabase.from("projects").update({ workflow_state: newState, status: "draft" }).eq("id", projectId)
     }
-  }
 
-  revalidatePath(`/projects/${projectId}`)
-  return { success: true }
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message }
+  }
 }
 
 export async function updateScriptSection(sectionId: string, projectId: string, patch: any) {
@@ -196,22 +199,26 @@ export async function updateScriptSection(sectionId: string, projectId: string, 
 }
 
 export async function setActiveScript(projectId: string, scriptId: string) {
-  const user = await getCurrentUser()
-  if (!user) throw new Error("Unauthorized")
+  try {
+    const user = await getCurrentUser()
+    if (!user) return { error: "Unauthorized" }
 
-  const supabase = await createClient()
+    const supabase = await createClient()
 
-  // Verify invariant: project belongs to user
-  const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("user_id", user.id).single()
-  if (!project) throw new Error("Unauthorized or project not found")
+    // Verify invariant: project belongs to user
+    const { data: project } = await supabase.from("projects").select("id").eq("id", projectId).eq("user_id", user.id).single()
+    if (!project) return { error: "Unauthorized or project not found" }
 
-  // Verify invariant: script belongs to project
-  const { data: script } = await supabase.from("scripts").select("id, project_id").eq("id", scriptId).single()
-  if (!script || script.project_id !== projectId) throw new Error("Invalid script")
+    // Verify invariant: script belongs to project
+    const { data: script } = await supabase.from("scripts").select("id, project_id").eq("id", scriptId).single()
+    if (!script || script.project_id !== projectId) return { error: "Invalid script" }
 
-  const { error } = await supabase.from("projects").update({ active_script_id: scriptId }).eq("id", projectId)
-  if (error) throw new Error(error.message)
+    const { error } = await supabase.from("projects").update({ active_script_id: scriptId }).eq("id", projectId)
+    if (error) return { error: error.message }
 
-  revalidatePath(`/projects/${projectId}`)
-  return { success: true }
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message }
+  }
 }
