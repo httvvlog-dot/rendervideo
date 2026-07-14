@@ -60,7 +60,7 @@ export async function generateMissingProjectVoice(projectId: string) {
     try {
       // a. Generate TTS
       const generateResult = await ttsRuntime.execute(new ElevenLabsAdapter(), {
-        step: "TTS",
+        step: "VOICE",
         projectId: projectId,
         args: { text: section.narration }
       });
