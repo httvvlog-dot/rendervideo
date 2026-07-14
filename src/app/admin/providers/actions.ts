@@ -279,13 +279,22 @@ export async function testCredentialConnection(credential_id: string) {
         
         await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: `Connection Failed: ${errMsg}`, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
         
-        if (res.status === 401 || res.status === 403) {
-           return { success: false, error: "OPENROUTER_AUTH_FAILED", status: res.status, details: errMsg };
-        } else if (res.status === 404 || errMsg.toLowerCase().includes("does not exist") || errMsg.toLowerCase().includes("model")) {
-           return { success: false, error: "MODEL_NOT_AVAILABLE", status: res.status, details: errMsg };
+        let structuredError = "OPENROUTER_CONNECTION_FAILED";
+        const lowerMsg = errMsg.toLowerCase();
+
+        if (res.status === 401) {
+           structuredError = "OPENROUTER_AUTH_FAILED";
+        } else if (res.status === 402 || lowerMsg.includes("credit") || lowerMsg.includes("balance")) {
+           structuredError = "OPENROUTER_INSUFFICIENT_CREDITS";
+        } else if (res.status === 403) {
+           structuredError = "MODEL_ACCESS_DENIED";
+        } else if (res.status === 404 || lowerMsg.includes("does not exist") || lowerMsg.includes("model")) {
+           structuredError = "MODEL_NOT_AVAILABLE";
+        } else if (res.status === 429) {
+           structuredError = "OPENROUTER_RATE_LIMITED";
         }
         
-        return { success: false, error: "OPENROUTER_CONNECTION_FAILED", status: res.status, details: errMsg };
+        return { success: false, error: structuredError, status: res.status, details: errMsg };
       }
 
       await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.HEALTHY, latency, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
