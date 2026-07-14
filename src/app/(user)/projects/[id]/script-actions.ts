@@ -100,7 +100,7 @@ Important:
 
     const wordCount = plainTextContent.split(/\s+/).filter(w => w.length > 0).length;
 
-    const { error: rpcErr } = await supabase.rpc("save_script_with_sections", {
+    const { data, error: rpcErr } = await supabase.rpc("save_script_with_sections", {
       p_project_id: projectId,
       p_content: plainTextContent,
       p_word_count: wordCount,
@@ -116,9 +116,15 @@ Important:
 
     if (rpcErr) throw new Error("Failed to save script: " + rpcErr.message);
 
-    await supabase.from("projects").update({
+    const updateData: any = {
       workflow_state: { ...project.workflow_state, script: "completed" }
-    }).eq("id", projectId)
+    };
+
+    if (data && data.script_id) {
+      updateData.active_script_id = data.script_id;
+    }
+
+    await supabase.from("projects").update(updateData).eq("id", projectId)
 
     revalidatePath(`/projects/${projectId}`)
     return { success: true }
