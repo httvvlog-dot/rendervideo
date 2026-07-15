@@ -28,7 +28,7 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayB
       },
       body: JSON.stringify({
         text: args.text,
-        model_id: config.default_model_id || "eleven_monolingual_v1",
+        model_id: config.default_model_id || "eleven_multilingual_v2",
         voice_settings: {
           stability: 0.5,
           similarity_boost: 0.5
