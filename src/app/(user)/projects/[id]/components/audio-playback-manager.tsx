@@ -19,9 +19,16 @@ export function AudioPlaybackManager({ isPlaying, currentTimeMs, audioTracks }: 
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({})
   const activeAudioId = useRef<string | null>(null)
   
-  // Initialize audio elements for each track
+  // Track previous playing state to detect play/pause edges
+  const prevIsPlaying = useRef(isPlaying)
+  // Track last known time to detect scrub events (jumps)
+  const lastTimeMs = useRef(currentTimeMs)
+
+  // 1. Initialize and cleanup audio elements
   useEffect(() => {
     const currentRefs = audioRefs.current;
+    
+    // Create new audio instances
     audioTracks.forEach(track => {
       if (!currentRefs[track.id]) {
         const audio = new Audio(track.sourceUrl)
@@ -30,59 +37,77 @@ export function AudioPlaybackManager({ isPlaying, currentTimeMs, audioTracks }: 
       }
     })
 
-    // Cleanup logic when tracks change or component unmounts
+    // Remove old audio instances
     const trackIds = audioTracks.map(t => t.id)
     Object.keys(currentRefs).forEach(id => {
       if (!trackIds.includes(id)) {
         currentRefs[id].pause()
         currentRefs[id].src = ""
+        currentRefs[id].load()
         delete currentRefs[id]
       }
     })
 
     return () => {
-      // Don't completely destroy on unmount if it remounts quickly, but we pause everything.
       Object.values(currentRefs).forEach(audio => audio.pause())
     }
   }, [audioTracks])
 
-  // Sync playback logic
+  // 2. Playback Sync Logic
   useEffect(() => {
-    // Find the track that should be playing right now
-    const targetTrack = audioTracks.find(t => currentTimeMs >= t.startMs && currentTimeMs < t.startMs + t.durationMs)
+    const isPlayStart = isPlaying && !prevIsPlaying.current;
+    const isPauseStart = !isPlaying && prevIsPlaying.current;
+    const isScrubbing = Math.abs(currentTimeMs - lastTimeMs.current) > 100 && !isPlaying;
     
-    // Determine the exact current time the audio SHOULD be at
-    // Add 100ms tolerance for sync
+    // Find active track
+    const targetTrack = audioTracks.find(t => currentTimeMs >= t.startMs && currentTimeMs < t.startMs + t.durationMs);
+
+    if (isPauseStart) {
+       // Pause everything
+       Object.values(audioRefs.current).forEach(audio => {
+          if (!audio.paused) audio.pause();
+       });
+    }
+
     if (targetTrack) {
-      const expectedAudioTimeSec = (currentTimeMs - targetTrack.startMs) / 1000;
       const audio = audioRefs.current[targetTrack.id];
       if (audio) {
-        // If we switched to a new track, stop the old one
-        if (activeAudioId.current && activeAudioId.current !== targetTrack.id) {
-           const oldAudio = audioRefs.current[activeAudioId.current];
-           if (oldAudio) oldAudio.pause();
-        }
-        
-        activeAudioId.current = targetTrack.id;
+        const expectedLocalTime = (currentTimeMs - targetTrack.startMs) / 1000;
+        const justSwitched = activeAudioId.current !== targetTrack.id;
 
-        // Sync time if difference is more than 0.2s (avoid micro-stutters)
-        if (Math.abs(audio.currentTime - expectedAudioTimeSec) > 0.2) {
-          audio.currentTime = expectedAudioTimeSec;
-        }
-
-        if (isPlaying) {
-           // only play if it is currently paused
-           if (audio.paused) {
-              audio.play().catch(e => console.warn("Audio play blocked by browser:", e));
-           }
+        if (justSwitched) {
+          // Pause previous track if necessary
+          if (activeAudioId.current) {
+            const oldAudio = audioRefs.current[activeAudioId.current];
+            if (oldAudio) oldAudio.pause();
+          }
+          activeAudioId.current = targetTrack.id;
+          audio.currentTime = expectedLocalTime;
+          if (isPlaying) {
+             audio.play().catch(e => console.warn("Audio play blocked by browser:", e));
+          }
         } else {
-           if (!audio.paused) {
-              audio.pause();
-           }
+          // Same track, monitor synchronization
+          if (isPlayStart || isScrubbing) {
+            audio.currentTime = expectedLocalTime;
+            if (isPlayStart) {
+               audio.play().catch(e => console.warn("Audio play blocked by browser:", e));
+            }
+          } else if (isPlaying) {
+            const drift = Math.abs(audio.currentTime - expectedLocalTime);
+            // Only resync if drift is significant (e.g., > 0.35s)
+            if (drift > 0.35) {
+              audio.currentTime = expectedLocalTime;
+            }
+            // Ensure it is playing
+            if (audio.paused) {
+               audio.play().catch(e => console.warn("Audio play blocked by browser:", e));
+            }
+          }
         }
       }
     } else {
-      // No target track means silence right now. Stop the active audio.
+      // No active track -> silence
       if (activeAudioId.current) {
         const activeAudio = audioRefs.current[activeAudioId.current];
         if (activeAudio) activeAudio.pause();
@@ -90,15 +115,11 @@ export function AudioPlaybackManager({ isPlaying, currentTimeMs, audioTracks }: 
       }
     }
 
-    // Handle pausing EVERYTHING when not playing
-    if (!isPlaying) {
-       Object.values(audioRefs.current).forEach(audio => {
-          if (!audio.paused) audio.pause();
-       });
-    }
+    // Update refs
+    prevIsPlaying.current = isPlaying;
+    lastTimeMs.current = currentTimeMs;
 
   }, [currentTimeMs, isPlaying, audioTracks])
 
-  // This is a hidden logical component
   return null
 }
