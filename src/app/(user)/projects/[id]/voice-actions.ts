@@ -7,6 +7,7 @@ import { CloudflareR2Adapter } from "@/utils/provider-runtime/adapters/cloudflar
 import { ElevenLabsAdapter } from "@/utils/provider-runtime/adapters/elevenlabs-adapter"
 import * as mm from 'music-metadata'
 import { revalidatePath } from "next/cache"
+import type { SupabaseClient } from "@supabase/supabase-js"
 
 export type GenerateVoiceResult =
   | {
@@ -26,25 +27,53 @@ export type GenerateVoiceResult =
       rawError?: any
     }
 
-export async function generateMissingProjectVoice(projectId: string): Promise<GenerateVoiceResult> {
+export async function generateMissingProjectVoice(projectId: string, overrideSupabase?: SupabaseClient): Promise<GenerateVoiceResult> {
   console.log("[VOICE] START projectId=", projectId);
-  const supabase = await createClient()
+  const supabase = overrideSupabase || await createClient()
   
   // 1. Authenticate user & verify project ownership
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  if (authErr || !user) return { success: false, code: "UNAUTHORIZED", message: "User not authenticated" }
+  let userId = "service_role";
+  if (!overrideSupabase) {
+    const { data: { user }, error: authErr } = await supabase.auth.getUser()
+    if (authErr || !user) return { success: false, code: "UNAUTHORIZED", message: "User not authenticated" }
+    userId = user.id;
+  }
 
-  const { data: project, error: projErr } = await supabase
+  const query = supabase
     .from("projects")
-    .select("id, active_script_id")
-    .eq("id", projectId)
-    .eq("user_id", user.id)
-    .single()
+    .select("id, active_script_id, voice_template_id, user_id")
+    .eq("id", projectId);
+
+  if (!overrideSupabase) {
+    query.eq("user_id", userId);
+  }
+
+  const { data: project, error: projErr } = await query.single()
 
   if (projErr || !project) return { success: false, code: "NOT_FOUND", message: "Project not found or unauthorized" }
   console.log("[VOICE] PROJECT_VERIFIED projectId=", projectId);
   if (!project.active_script_id) return { success: false, code: "NO_ACTIVE_SCRIPT", message: "Project has no active script" }
   console.log("[VOICE] ACTIVE_SCRIPT_FOUND scriptId=", project.active_script_id);
+
+  // Resolve Voice ID from project
+  let resolvedVoiceId: string | undefined = undefined;
+  if (project.voice_template_id) {
+    const { data: vTemplate } = await supabase
+      .from("voice_templates")
+      .select("voice_id")
+      .eq("id", project.voice_template_id)
+      .single();
+      
+    if (vTemplate && vTemplate.voice_id) {
+      resolvedVoiceId = vTemplate.voice_id;
+      console.log(`[TTS] Voice source: project`);
+      console.log(`[TTS] Effective voice ID: ${resolvedVoiceId}`);
+    }
+  }
+
+  if (!resolvedVoiceId) {
+    console.log(`[TTS] Voice source: provider_default`);
+  }
 
   // 2. Fetch active script sections
   const { data: sections, error: sectionsErr } = await supabase
@@ -86,7 +115,7 @@ export async function generateMissingProjectVoice(projectId: string): Promise<Ge
       const audioBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {
         step: "VOICE",
         projectId: projectId,
-        args: { text: section.narration }
+        args: { text: section.narration, voiceId: resolvedVoiceId }
       });
       console.log(`[VOICE] TTS_REQUEST_SUCCESS bytes=${audioBuffer.byteLength}`);
 
@@ -146,7 +175,7 @@ export async function generateMissingProjectVoice(projectId: string): Promise<Ge
       // e. Insert project_media
       const { data: mediaInsert, error: mediaErr } = await supabase.from("project_media").insert({
         project_id: projectId,
-        user_id: user.id,
+        user_id: project.user_id,
         file_name: fileName,
         storage_key: uploadResult.objectKey,
         public_url: uploadResult.publicUrl,
@@ -186,6 +215,10 @@ export async function generateMissingProjectVoice(projectId: string): Promise<Ge
   }
 
   console.log(`[VOICE] COMPLETE generated=${generatedCount} skipped=${skippedCount} failed=${failedSections.length}`);
-  revalidatePath(`/projects/${projectId}`);
+  if (!overrideSupabase) {
+    try {
+      revalidatePath(`/projects/${projectId}`)
+    } catch (e) {}
+  }
   return { success: true, generatedCount, skippedCount, failedSections };
 }

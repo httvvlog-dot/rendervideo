@@ -3,6 +3,11 @@ import { ProviderAdapter } from "../types"
 export interface ElevenLabsArgs {
   text: string
   voiceId?: string
+  modelId?: string
+  stability?: number
+  similarityBoost?: number
+  style?: number
+  useSpeakerBoost?: boolean
 }
 
 export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayBuffer> {
@@ -13,13 +18,18 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayB
       throw new Error("ElevenLabsAdapter: API key is missing in credential (neither encrypted_key nor config_json.apiKey found)");
     }
 
-    const voiceId = args.voiceId || config.default_voice_id || config.defaultVoiceId || config.voice_id || config.voiceId;
-
-    if (!voiceId) {
+    const effectiveVoiceId = args.voiceId || config.default_voice_id || config.defaultVoiceId || config.voice_id || config.voiceId;
+    if (!effectiveVoiceId) {
       throw new Error("ElevenLabsAdapter: Voice ID not provided in args or credential config (checked default_voice_id, defaultVoiceId, voice_id, voiceId)");
     }
 
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    const effectiveModelId = args.modelId || config.default_model_id || "eleven_flash_v2_5";
+
+    console.log(`[TTS] Effective Voice ID: ${effectiveVoiceId}`);
+    console.log(`[TTS] Effective Model ID: ${effectiveModelId}`);
+    console.log(`[TTS] Voice source: project`);
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${effectiveVoiceId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -28,10 +38,12 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayB
       },
       body: JSON.stringify({
         text: args.text,
-        model_id: config.default_model_id || "eleven_multilingual_v2",
+        model_id: effectiveModelId,
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5
+          stability: args.stability ?? config.voice_settings?.stability ?? 0.5,
+          similarity_boost: args.similarityBoost ?? config.voice_settings?.similarity_boost ?? 0.75,
+          style: args.style ?? config.voice_settings?.style ?? 0.0,
+          use_speaker_boost: args.useSpeakerBoost ?? config.voice_settings?.use_speaker_boost ?? true
         }
       })
     });

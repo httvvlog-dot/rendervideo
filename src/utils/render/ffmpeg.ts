@@ -48,7 +48,7 @@ export class FFmpegAdapter implements RenderAdapter {
       }
 
       // Safe filename using hash or base64 to avoid collisions
-      const safeFilename = `media_${Buffer.from(scene.sourceUrl).toString('base64').replace(/[^a-zA-Z0-9]/g, '')}.jpg`;
+      const safeFilename = `media_${scene.id.replace(/[^a-zA-Z0-9]/g, '')}.jpg`;
       const localPath = path.join(this.workDir, safeFilename);
       
       const controller = new AbortController();
@@ -94,7 +94,7 @@ export class FFmpegAdapter implements RenderAdapter {
           continue; // Already downloaded
         }
 
-        const safeFilename = `audio_${Buffer.from(audio.sourceUrl).toString('base64').replace(/[^a-zA-Z0-9]/g, '')}.mp3`;
+        const safeFilename = `audio_${audio.id.replace(/[^a-zA-Z0-9]/g, '')}.mp3`;
         const localPath = path.join(this.workDir, safeFilename);
         
         const controller = new AbortController();
@@ -134,7 +134,7 @@ export class FFmpegAdapter implements RenderAdapter {
     
     for (let i = 0; i < scenes.length; i++) {
       const scene = scenes[i];
-      const safeFilename = `media_${Buffer.from(scene.sourceUrl).toString('base64').replace(/[^a-zA-Z0-9]/g, '')}.jpg`;
+      const safeFilename = `media_${scene.id.replace(/[^a-zA-Z0-9]/g, '')}.jpg`;
       const localPath = path.join(this.workDir, safeFilename);
       
       inputs.push("-loop", "1", "-t", (scene.durationMs / 1000).toString(), "-i", localPath);
@@ -152,32 +152,34 @@ export class FFmpegAdapter implements RenderAdapter {
     const audioTracks = this.timeline.audioTracks || [];
     let nextInputIndex = scenes.length;
     
-    // Generate silent base track matching exact timeline duration
+    // Generate silent base track matching exact timeline duration as an input (lavfi)
     const durationSec = (this.timeline.totalDurationMs / 1000).toFixed(3);
-    filterComplex.push(`anullsrc=channel_layout=stereo:sample_rate=44100:d=${durationSec}[baseaudio]`);
+    inputs.push("-f", "lavfi", "-t", durationSec, "-i", "anullsrc=channel_layout=stereo:sample_rate=44100");
+    const baseAudioIndex = nextInputIndex++;
     
-    let amixInputs = `[baseaudio]`;
+    let amixInputs = `[${baseAudioIndex}:a]`;
     let amixCount = 1;
     
     for (let i = 0; i < audioTracks.length; i++) {
       const audio = audioTracks[i];
-      const safeFilename = `audio_${Buffer.from(audio.sourceUrl).toString('base64').replace(/[^a-zA-Z0-9]/g, '')}.mp3`;
+      const safeFilename = `audio_${audio.id.replace(/[^a-zA-Z0-9]/g, '')}.mp3`;
       const localPath = path.join(this.workDir, safeFilename);
       
       inputs.push("-i", localPath);
       const inputIdx = nextInputIndex++;
       
-      // Delay audio to its correct start time
-      filterComplex.push(`[${inputIdx}:a]adelay=${audio.startTimeMs}|${audio.startTimeMs}[a${i}]`);
+      // Convert mono to stereo, ensure sample rate, then delay
+      filterComplex.push(`[${inputIdx}:a]aformat=channel_layouts=stereo:sample_rates=44100,adelay=${audio.startTimeMs}|${audio.startTimeMs}[a${i}]`);
       amixInputs += `[a${i}]`;
       amixCount++;
     }
 
     if (amixCount > 1) {
       // duration=first ensures the mixed output stops when the baseaudio stops (exact timeline duration)
-      filterComplex.push(`${amixInputs}amix=inputs=${amixCount}:duration=first:dropout_transition=0[outa]`);
+      // Add volume filter to undo amix's automatic 1/N volume reduction
+      filterComplex.push(`${amixInputs}amix=inputs=${amixCount}:duration=first:dropout_transition=0,volume=${amixCount}.0[outa]`);
     } else {
-      filterComplex.push(`[baseaudio]anull[outa]`);
+      filterComplex.push(`[${baseAudioIndex}:a]anull[outa]`);
     }
 
     const args = [
@@ -204,6 +206,7 @@ export class FFmpegAdapter implements RenderAdapter {
 
       child.stderr.on("data", (data) => {
         const text = data.toString();
+        console.error("[FFmpeg stderr]:", text); // Temporarily added to debug crash
         // Parse time=00:00:05.12 to get progress
         const timeMatch = text.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);
         if (timeMatch) {

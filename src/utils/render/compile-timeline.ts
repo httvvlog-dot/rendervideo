@@ -1,10 +1,14 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 import { TimelineJSON, RenderScene, RenderAudioTrack } from "./core"
 
-export async function compileTimeline(supabase: SupabaseClient, projectId: string): Promise<TimelineJSON> {
+export async function compileTimeline(supabase: SupabaseClient, projectId: string, bypassAuth: boolean = false): Promise<TimelineJSON> {
   // 1. Authenticate user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) throw new Error("Unauthorized")
+  let userId = "service_role";
+  if (!bypassAuth) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) throw new Error("Unauthorized")
+    userId = user.id;
+  }
 
   // 2. Read project and verify ownership
   const { data: project, error: projectError } = await supabase
@@ -14,7 +18,7 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
     .single()
 
   if (projectError || !project) throw new Error("Project not found")
-  if (project.user_id !== user.id) throw new Error("Forbidden")
+  if (!bypassAuth && project.user_id !== userId) throw new Error("Forbidden")
 
   // 3. Read project_scenes ordered by sort_order
   const { data: scenes, error: scenesError } = await supabase
