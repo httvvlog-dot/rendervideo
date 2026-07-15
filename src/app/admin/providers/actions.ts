@@ -251,7 +251,7 @@ export async function testCredentialConnection(credential_id: string) {
     let res;
 
     if (providerKey === "openrouter") {
-      const apiKey = config.apiKey || config.api_key;
+      const apiKey = cred.encrypted_key || config.apiKey || config.api_key;
       const defaultModel = config.default_model || config.defaultModel;
       
       if (!apiKey) return { success: false, error: "OPENROUTER_AUTH_FAILED: Missing API Key" };
@@ -301,7 +301,10 @@ export async function testCredentialConnection(credential_id: string) {
       return { success: true, latency, status: res.status };
 
     } else if (providerKey === "elevenlabs") {
-      res = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": config.apiKey } });
+      const apiKey = cred.encrypted_key || config.apiKey || config.api_key;
+      if (!apiKey) return { success: false, error: "ELEVENLABS_AUTH_FAILED: Missing API Key" };
+
+      res = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": apiKey } });
       const latency = Date.now() - startTime;
       if (!res.ok) {
         await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: `Status ${res.status}`, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
