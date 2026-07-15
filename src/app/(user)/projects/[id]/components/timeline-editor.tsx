@@ -175,9 +175,14 @@ export function TimelineEditor({ initialScenes, media = [], projectId, sections 
               const data = await res.json();
               if (data.jobId) {
                 setRenderJobId(data.jobId);
+              } else if (data.error) {
+                toast.error(data.error);
+              } else {
+                toast.error("Render failed with unknown error");
               }
-            } catch (err) {
+            } catch (err: any) {
               console.error(err);
+              toast.error(err.message || "Failed to trigger render");
             }
           }}
           disabled={!!renderJobId}
