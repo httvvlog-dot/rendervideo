@@ -7,6 +7,7 @@ import { Play, Pause, Download, Music, Mic, Type, Image as ImageIcon, RotateCcw 
 import { RenderQueueReal } from "./render-queue-real"
 import { normalizePreviewScenes, PreviewScene } from "@/utils/timeline/normalize-preview-scenes"
 import { ClientPreviewPlayer } from "./client-preview-player"
+import { AudioPlaybackManager } from "./audio-playback-manager"
 
 interface Scene {
   id: string
@@ -27,7 +28,7 @@ interface Scene {
   section_id?: string
 }
 
-export function TimelineEditor({ initialScenes, media = [], projectId, sections = [] }: { initialScenes: Scene[], media?: any[], projectId: string, sections?: any[] }) {
+export function TimelineEditor({ initialScenes, media = [], voiceMedia = [], projectId, sections = [] }: { initialScenes: Scene[], media?: any[], voiceMedia?: any[], projectId: string, sections?: any[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [renderJobId, setRenderJobId] = useState<string | undefined>(undefined)
 
@@ -40,23 +41,29 @@ export function TimelineEditor({ initialScenes, media = [], projectId, sections 
 
   // 1b. Map sections to Voice Track Blocks
   const voiceBlocks = useMemo(() => {
-    const blocks: { id: string, startMs: number, durationMs: number }[] = []
+    const blocks: { id: string, sectionIndex: number, startMs: number, durationMs: number, sourceUrl: string }[] = []
     for (const section of sections) {
       if (section.voice_media_id && section.voice_duration_ms) {
+        // Find public URL from voiceMedia
+        const voiceAsset = voiceMedia.find(m => m.id === section.voice_media_id)
+        if (!voiceAsset?.public_url) continue;
+
         // Find start time from scenes
         const sectionScenes = previewScenes.filter(s => s.sectionId === section.id)
         if (sectionScenes.length > 0) {
           const startMs = Math.min(...sectionScenes.map(s => s.startTimeMs))
           blocks.push({
             id: section.id,
+            sectionIndex: section.section_index || 0,
             startMs: startMs,
-            durationMs: section.voice_duration_ms
+            durationMs: section.voice_duration_ms,
+            sourceUrl: voiceAsset.public_url
           })
         }
       }
     }
     return blocks
-  }, [sections, previewScenes])
+  }, [sections, previewScenes, voiceMedia])
 
   // 2. Playback State
   const [isPlaying, setIsPlaying] = useState(false)
@@ -273,7 +280,7 @@ export function TimelineEditor({ initialScenes, media = [], projectId, sections 
                     }}
                     title={`Voice Duration: ${(block.durationMs/1000).toFixed(1)}s`}
                   >
-                    <Mic className="w-3 h-3 mr-1 opacity-50 shrink-0" /> {(block.durationMs/1000).toFixed(1)}s
+                    S{block.sectionIndex} ({(block.durationMs/1000).toFixed(1)}s)
                   </div>
                 )) : (
                   <div className="flex items-center justify-center w-full h-full text-xs text-slate-400">
@@ -298,8 +305,14 @@ export function TimelineEditor({ initialScenes, media = [], projectId, sections 
 
       </div>
     </div>
-    
-    <RenderQueueReal jobId={renderJobId} onRenderAgain={() => setRenderJobId(undefined)} />
+        {/* Audio Playback Sync */}
+      <AudioPlaybackManager 
+        isPlaying={isPlaying} 
+        currentTimeMs={currentTimeMs} 
+        audioTracks={voiceBlocks.map(b => ({ id: b.id, sourceUrl: b.sourceUrl, startMs: b.startMs, durationMs: b.durationMs }))} 
+      />
+
+      <RenderQueueReal jobId={renderJobId} onRenderAgain={() => setRenderJobId(undefined)} />
     </>
   )
 }

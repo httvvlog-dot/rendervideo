@@ -37,12 +37,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     .eq('project_id', id)
     .order('sort_order', { ascending: true })
 
-  const { data: projectMedia } = await supabase
+  const { data: projectMediaRaw } = await supabase
     .from('project_media')
     .select('*')
     .eq('project_id', id)
-    .eq('asset_type', 'image')
+    .in('asset_type', ['image', 'voice'])
     .order('created_at', { ascending: false })
+
+  const projectMedia = projectMediaRaw?.filter(m => m.asset_type === 'image') || [];
+  const voiceMedia = projectMediaRaw?.filter(m => m.asset_type === 'voice') || [];
 
   const hasExistingScenes = scenes !== null && scenes.length > 0;
   const activeScript = scripts?.find(s => s.id === project.active_script_id);
@@ -105,7 +108,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {hasExistingScenes ? (
-              <TimelineEditor initialScenes={scenes || []} media={projectMedia || []} projectId={project.id} sections={activeSections} />
+              <TimelineEditor initialScenes={scenes || []} media={projectMedia || []} voiceMedia={voiceMedia} projectId={project.id} sections={activeSections} />
             ) : (
               <div className="p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-800 text-slate-500">
                 No timeline generated yet. Upload media to your script sections and click "Generate Timeline".

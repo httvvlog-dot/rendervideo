@@ -78,6 +78,48 @@ export class FFmpegAdapter implements RenderAdapter {
         clearTimeout(timeoutId);
       }
     }
+
+    // Deduplicate downloads based on sourceUrl
+    if (timeline.audioTracks) {
+      for (let i = 0; i < timeline.audioTracks.length; i++) {
+        const audio = timeline.audioTracks[i];
+        
+        try {
+          new URL(audio.sourceUrl); // Validate URL
+        } catch (e) {
+          throw new Error(`Invalid sourceUrl for audio ${audio.id}`);
+        }
+
+        if (downloadCache.has(audio.sourceUrl)) {
+          continue; // Already downloaded
+        }
+
+        const safeFilename = `audio_${Buffer.from(audio.sourceUrl).toString('base64').replace(/[^a-zA-Z0-9]/g, '')}.mp3`;
+        const localPath = path.join(this.workDir, safeFilename);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        
+        try {
+          const res = await fetch(audio.sourceUrl, { signal: controller.signal });
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status} ${res.statusText}`);
+          }
+
+          const buffer = Buffer.from(await res.arrayBuffer());
+          if (buffer.length === 0) {
+            throw new Error("Downloaded audio asset is empty");
+          }
+
+          await fs.writeFile(localPath, buffer);
+          downloadCache.set(audio.sourceUrl, localPath);
+        } catch (err: any) {
+          throw new Error(`Failed to download audio for track ${audio.id}: ${err.message}`);
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+    }
   }
 
   async render(onProgress: (progress: number) => Promise<void>): Promise<string> {
@@ -106,14 +148,50 @@ export class FFmpegAdapter implements RenderAdapter {
     const concatInput = scenes.map((_, i) => `[v${i}]`).join('');
     filterComplex.push(`${concatInput}concat=n=${scenes.length}:v=1:a=0[outv]`);
 
+    // Process audio tracks
+    const audioTracks = this.timeline.audioTracks || [];
+    let nextInputIndex = scenes.length;
+    
+    // Generate silent base track matching exact timeline duration
+    const durationSec = (this.timeline.totalDurationMs / 1000).toFixed(3);
+    filterComplex.push(`anullsrc=channel_layout=stereo:sample_rate=44100:d=${durationSec}[baseaudio]`);
+    
+    let amixInputs = `[baseaudio]`;
+    let amixCount = 1;
+    
+    for (let i = 0; i < audioTracks.length; i++) {
+      const audio = audioTracks[i];
+      const safeFilename = `audio_${Buffer.from(audio.sourceUrl).toString('base64').replace(/[^a-zA-Z0-9]/g, '')}.mp3`;
+      const localPath = path.join(this.workDir, safeFilename);
+      
+      inputs.push("-i", localPath);
+      const inputIdx = nextInputIndex++;
+      
+      // Delay audio to its correct start time
+      filterComplex.push(`[${inputIdx}:a]adelay=${audio.startTimeMs}|${audio.startTimeMs}[a${i}]`);
+      amixInputs += `[a${i}]`;
+      amixCount++;
+    }
+
+    if (amixCount > 1) {
+      // duration=first ensures the mixed output stops when the baseaudio stops (exact timeline duration)
+      filterComplex.push(`${amixInputs}amix=inputs=${amixCount}:duration=first:dropout_transition=0[outa]`);
+    } else {
+      filterComplex.push(`[baseaudio]anull[outa]`);
+    }
+
     const args = [
       "-y",
       ...inputs,
       "-filter_complex", filterComplex.join("; "),
       "-map", "[outv]",
+      "-map", "[outa]",
       "-c:v", codec || "libx264",
       "-r", fps.toString(),
       "-pix_fmt", "yuv420p",
+      "-c:a", "aac",
+      "-b:a", "192k",
+      "-shortest",
       this.outputFilePath
     ];
 
