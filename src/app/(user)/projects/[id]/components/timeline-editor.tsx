@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 import { Play, Pause, Download, Music, Mic, Type, Image as ImageIcon, RotateCcw } from "lucide-react"
 import { RenderQueueReal } from "./render-queue-real"
 import { normalizePreviewScenes, PreviewScene } from "@/utils/timeline/normalize-preview-scenes"
