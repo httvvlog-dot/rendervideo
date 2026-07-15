@@ -7,16 +7,16 @@ export interface ElevenLabsArgs {
 
 export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayBuffer> {
   async execute(credential: any, args: ElevenLabsArgs): Promise<ArrayBuffer> {
-    const apiKey = credential.encrypted_key;
+    const config = credential.config_json || {};
+    const apiKey = credential.encrypted_key || config.apiKey || config.api_key;
     if (!apiKey) {
-      throw new Error("ElevenLabsAdapter: API key is missing in credential");
+      throw new Error("ElevenLabsAdapter: API key is missing in credential (neither encrypted_key nor config_json.apiKey found)");
     }
 
-    const config = credential.config_json || {};
-    const voiceId = args.voiceId || config.default_voice_id;
+    const voiceId = args.voiceId || config.default_voice_id || config.defaultVoiceId || config.voice_id || config.voiceId;
 
     if (!voiceId) {
-      throw new Error("ElevenLabsAdapter: Voice ID not provided in args or credential config");
+      throw new Error("ElevenLabsAdapter: Voice ID not provided in args or credential config (checked default_voice_id, defaultVoiceId, voice_id, voiceId)");
     }
 
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
