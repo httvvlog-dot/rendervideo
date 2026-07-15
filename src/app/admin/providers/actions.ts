@@ -304,7 +304,10 @@ export async function testCredentialConnection(credential_id: string) {
       const apiKey = cred.encrypted_key || config.apiKey || config.api_key;
       if (!apiKey) return { success: false, error: "ELEVENLABS_AUTH_FAILED: Missing API Key" };
 
-      res = await fetch("https://api.elevenlabs.io/v1/voices", { headers: { "xi-api-key": apiKey } });
+      res = await fetch("https://api.elevenlabs.io/v1/voices", { 
+        headers: { "xi-api-key": apiKey.trim() },
+        cache: "no-store"
+      });
       const latency = Date.now() - startTime;
       if (!res.ok) {
         await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: `Status ${res.status}`, last_checked_at: new Date().toISOString() }).eq("id", credential_id);

@@ -46,7 +46,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const hasExistingScenes = scenes !== null && scenes.length > 0;
   const activeScript = scripts?.find(s => s.id === project.active_script_id);
-  const activeSections = activeScript?.script_sections || [];
+  
+  let activeSections: any[] = [];
+  if (activeScript) {
+    const { data: fetchedSections } = await supabase
+      .from('script_sections')
+      .select('*')
+      .eq('script_id', activeScript.id)
+      .order('section_index', { ascending: true });
+    activeSections = fetchedSections || [];
+  }
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-20 mt-6 px-4">
