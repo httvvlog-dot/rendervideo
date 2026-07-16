@@ -61,7 +61,9 @@ export function AudioDiagnosticsPanel({ activeUrl }: { activeUrl?: string }) {
 
     // 3. Test MP3 Fetch & Decode
     const TEST_URL = activeUrl || "https://upload.wikimedia.org/wikipedia/commons/c/c8/Example.ogg" // Use a reliable audio file
-    addLog(`Testing AudioCache Fetch on URL: ${TEST_URL.substring(0, 50)}...`)
+    addLog(`Testing AudioCache Fetch on URL:`)
+    addLog(`${TEST_URL}`)
+    addLog(`Current Origin: ${window.location.origin}`)
     
     try {
       const res = await fetch(TEST_URL)
@@ -137,7 +139,8 @@ export function AudioDiagnosticsPanel({ activeUrl }: { activeUrl?: string }) {
       addLog("--- DIAGNOSTIC COMPLETE ---")
 
     } catch (e: any) {
-      addLog(`FAIL during Fetch/Decode pipeline: ${e.message}`)
+      addLog(`FAIL during Fetch/Decode pipeline: ${e.name} - ${e.message}`)
+      addLog(`Stack: ${e.stack ? e.stack.substring(0, 100) : 'none'}`)
     }
   }
 
