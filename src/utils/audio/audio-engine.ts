@@ -105,6 +105,11 @@ export class AudioEngine {
     }
   }
 
+  public getPlaybackTime(): number | null {
+    if (!this.isPlaying) return null;
+    return this.lastTimelineStartMs + ((this.ctx.currentTime - this.lastEngineStartTime) * 1000);
+  }
+
   public getMetrics() {
     return {
       state: this.ctx.state,

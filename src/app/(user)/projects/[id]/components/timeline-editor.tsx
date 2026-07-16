@@ -85,7 +85,12 @@ export function TimelineEditor({ initialScenes, media = [], voiceMedia = [], pro
     }
 
     const elapsed = time - playbackRef.current.startClock
-    let nextTime = playbackRef.current.startTimelineTime + elapsed
+    
+    // Slaving the UI to the AudioEngine's highly precise WebAudio clock
+    const engineTime = globalAudioEngine.getPlaybackTime()
+    let nextTime = engineTime !== null 
+        ? engineTime 
+        : playbackRef.current.startTimelineTime + elapsed
 
     if (nextTime >= totalDurationMs) {
       nextTime = totalDurationMs
@@ -97,7 +102,7 @@ export function TimelineEditor({ initialScenes, media = [], voiceMedia = [], pro
 
     setCurrentTimeMs(nextTime)
     requestRef.current = requestAnimationFrame(animate)
-  }, [totalDurationMs, currentTimeMs])
+  }, [totalDurationMs, isPlaying])
 
   useEffect(() => {
     if (isPlaying) {
