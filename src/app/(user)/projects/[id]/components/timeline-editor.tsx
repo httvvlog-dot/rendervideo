@@ -30,9 +30,23 @@ interface Scene {
   section_id?: string
 }
 
-export function TimelineEditor({ initialScenes, media = [], voiceMedia = [], projectId, sections = [] }: { initialScenes: Scene[], media?: any[], voiceMedia?: any[], projectId: string, sections?: any[] }) {
+export function TimelineEditor({ 
+  initialScenes, 
+  media = [], 
+  voiceMedia = [], 
+  projectId, 
+  sections = [],
+  initialRenderJobId 
+}: { 
+  initialScenes: Scene[], 
+  media?: any[], 
+  voiceMedia?: any[], 
+  projectId: string, 
+  sections?: any[],
+  initialRenderJobId?: string
+}) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [renderJobId, setRenderJobId] = useState<string | undefined>(undefined)
+  const [renderJobId, setRenderJobId] = useState<string | undefined>(initialRenderJobId)
 
   // 1. Normalize Scenes
   const previewScenes = useMemo(() => normalizePreviewScenes(initialScenes, media), [initialScenes, media])

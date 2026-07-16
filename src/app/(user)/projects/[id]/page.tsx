@@ -60,6 +60,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     activeSections = fetchedSections || [];
   }
 
+  // Fetch the latest render job to persist render state across page reloads
+  const { data: latestJob } = await supabase
+    .from('render_jobs')
+    .select('id')
+    .eq('project_id', id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-20 mt-6 px-4">
       {/* 1. Project Settings Panel (Sticky Header) */}
@@ -108,7 +117,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {hasExistingScenes ? (
-              <TimelineEditor initialScenes={scenes || []} media={projectMedia || []} voiceMedia={voiceMedia} projectId={project.id} sections={activeSections} />
+              <TimelineEditor 
+                initialScenes={scenes || []} 
+                media={projectMedia || []} 
+                voiceMedia={voiceMedia} 
+                projectId={project.id} 
+                sections={activeSections} 
+                initialRenderJobId={latestJob?.id}
+              />
             ) : (
               <div className="p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-800 text-slate-500">
                 No timeline generated yet. Upload media to your script sections and click "Generate Timeline".
