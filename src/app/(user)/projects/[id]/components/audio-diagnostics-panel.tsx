@@ -66,7 +66,7 @@ export function AudioDiagnosticsPanel({ activeUrl }: { activeUrl?: string }) {
     addLog(`Current Origin: ${window.location.origin}`)
     
     try {
-      const res = await fetch(TEST_URL)
+      const res = await fetch(TEST_URL, { cache: 'no-cache', mode: 'cors' })
       
       // Log headers
       const status = res.status

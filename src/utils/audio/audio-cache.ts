@@ -122,7 +122,7 @@ export class AudioCacheManager {
     let lastError = null;
     for (let i = 0; i < retries; i++) {
       try {
-        const response = await fetch(url, { signal });
+        const response = await fetch(url, { signal, cache: 'no-cache', mode: 'cors' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const arrayBuffer = await response.arrayBuffer();
