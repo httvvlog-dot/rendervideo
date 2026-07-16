@@ -124,7 +124,7 @@ async function processJob(job: any) {
     const nextVersion = latestOutput ? latestOutput.version + 1 : 1;
 
     // 4.3 Insert into project_outputs
-    await supabase.from("project_outputs").insert({
+    const { error: insertError } = await supabase.from("project_outputs").insert({
       project_id: job.project_id,
       render_job_id: job.id,
       version: nextVersion,
@@ -141,6 +141,10 @@ async function processJob(job: any) {
       audio_codec: "aac",
       status: "completed"
     });
+
+    if (insertError) {
+      throw new Error(`Failed to insert into project_outputs: ${insertError.message}`);
+    }
 
     // 4.4 Update render_jobs
     await supabase.from("render_jobs").update({
