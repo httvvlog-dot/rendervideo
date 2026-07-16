@@ -124,6 +124,7 @@ async function processJob(job: any) {
     const nextVersion = latestOutput ? latestOutput.version + 1 : 1;
 
     // 4.3 Update render_jobs (Must be updated to completed before outputs)
+    console.log(`[Worker] Updating render_jobs...`);
     await supabase.from("render_jobs").update({
       status: RENDER_JOB_STATUS.COMPLETED,
       progress: 100,
@@ -132,10 +133,12 @@ async function processJob(job: any) {
       finished_at: new Date().toISOString(),
       error_message: null
     }).eq("id", job.id).eq("worker_id", WORKER_ID);
+    console.log(`[Worker] render_jobs OK`);
 
     // 4.4 Insert into project_outputs
+    console.log(`[Worker] Inserting project_outputs...`);
     try {
-      const { error: insertError } = await supabase.from("project_outputs").insert({
+      const { data: outputData, error: insertError } = await supabase.from("project_outputs").insert({
         project_id: job.project_id,
         render_job_id: job.id,
         version: nextVersion,
@@ -151,10 +154,12 @@ async function processJob(job: any) {
         video_codec: "h264",
         audio_codec: "aac",
         status: "completed"
-      });
+      }).select();
 
       if (insertError) {
         console.error(`[Worker] Failed to insert into project_outputs: ${insertError.message}`);
+      } else if (outputData && outputData.length > 0) {
+        console.log(`[Worker] Insert success. Output ID: ${outputData[0].id}`);
       }
     } catch (dbErr) {
       console.error(`[Worker] Exception inserting into project_outputs:`, dbErr);
@@ -197,8 +202,21 @@ async function processJob(job: any) {
   }
 }
 
-async function runWorkerDaemon() {
-  console.log(`Starting Render Worker [${WORKER_ID}]`);
+async function bootstrap() {
+  console.log(`\n======================================`);
+  console.log(`[Worker] Starting Render Node...`);
+  console.log(`[Worker] Build: 20260716-001 (Soft Deletes & Signed URLs)`);
+  
+  try {
+    const { execSync } = await import('child_process');
+    const commit = execSync('git rev-parse HEAD').toString().trim();
+    console.log(`[Worker] Git Commit: ${commit}`);
+  } catch (e) {
+    console.log(`[Worker] Git Commit: Unknown`);
+  }
+  
+  console.log(`[Worker] ID: ${WORKER_ID}`);
+  console.log(`======================================\n`);
   console.log(`Poll interval: ${POLL_INTERVAL_MS}ms, Heartbeat: ${HEARTBEAT_INTERVAL_MS}ms`);
   
   while (true) {
@@ -224,4 +242,4 @@ async function runWorkerDaemon() {
 }
 
 // Start polling
-runWorkerDaemon();
+bootstrap();
