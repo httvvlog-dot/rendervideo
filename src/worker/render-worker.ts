@@ -9,7 +9,7 @@ dotenv.config({ path: ".env.local" });
 // D6 — Worker Configuration
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const WORKER_ID = process.env.RENDER_WORKER_ID || `worker-${Math.random().toString(36).substring(7)}`;
+const WORKER_ID = `${process.env.RENDER_WORKER_ID || "worker-local-01"}-${process.pid}`;
 const POLL_INTERVAL_MS = parseInt(process.env.RENDER_POLL_INTERVAL_MS || "5000", 10);
 const HEARTBEAT_INTERVAL_MS = parseInt(process.env.RENDER_HEARTBEAT_INTERVAL_MS || "15000", 10);
 
@@ -46,7 +46,7 @@ async function sendHeartbeat(jobId: string) {
 }
 
 async function processJob(job: any) {
-  console.log(`[${WORKER_ID}] Processing job ${job.id}`);
+  console.log(`[Worker ${WORKER_ID}] Claimed Job: ${job.id}`);
   const adapter = new FFmpegAdapter();
   
   // Start Heartbeat interval
@@ -124,7 +124,7 @@ async function processJob(job: any) {
     const nextVersion = latestOutput ? latestOutput.version + 1 : 1;
 
     // 4.3 Update render_jobs (Must be updated to completed before outputs)
-    console.log(`[Worker] Updating render_jobs...`);
+    console.log(`[Worker ${WORKER_ID}] Updating render_jobs -> completed...`);
     await supabase.from("render_jobs").update({
       status: RENDER_JOB_STATUS.COMPLETED,
       progress: 100,
@@ -133,10 +133,10 @@ async function processJob(job: any) {
       finished_at: new Date().toISOString(),
       error_message: null
     }).eq("id", job.id).eq("worker_id", WORKER_ID);
-    console.log(`[Worker] render_jobs OK`);
+    console.log(`[Worker ${WORKER_ID}] render_jobs OK`);
 
     // 4.4 Insert into project_outputs
-    console.log(`[Worker] Inserting project_outputs...`);
+    console.log(`[Worker ${WORKER_ID}] Inserting project_outputs...`);
     try {
       const { data: outputData, error: insertError } = await supabase.from("project_outputs").insert({
         project_id: job.project_id,
@@ -157,13 +157,14 @@ async function processJob(job: any) {
       }).select();
 
       if (insertError) {
-        console.error(`[Worker] Failed to insert into project_outputs: ${insertError.message}`);
+        console.error(`[Worker ${WORKER_ID}] Failed to insert into project_outputs: ${insertError.message}`);
       } else if (outputData && outputData.length > 0) {
-        console.log(`[Worker] Insert success. Output ID: ${outputData[0].id}`);
+        console.log(`[Worker ${WORKER_ID}] Insert success. Output ID: ${outputData[0].id}`);
       }
     } catch (dbErr) {
-      console.error(`[Worker] Exception inserting into project_outputs:`, dbErr);
+      console.error(`[Worker ${WORKER_ID}] Exception inserting into project_outputs:`, dbErr);
     }
+    console.log(`[Worker ${WORKER_ID}] Render complete`);
 
     const totalTime = (performance.now() - startTime) / 1000;
     const memUsage = process.memoryUsage();
