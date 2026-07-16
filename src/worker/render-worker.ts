@@ -123,30 +123,7 @@ async function processJob(job: any) {
     
     const nextVersion = latestOutput ? latestOutput.version + 1 : 1;
 
-    // 4.3 Insert into project_outputs
-    const { error: insertError } = await supabase.from("project_outputs").insert({
-      project_id: job.project_id,
-      render_job_id: job.id,
-      version: nextVersion,
-      is_current: true,
-      title: `Version ${nextVersion}`,
-      output_key: outputKey,
-      output_url: outputUrl,
-      duration_ms: Math.round(job.timeline_snapshot.totalDurationMs),
-      width: job.timeline_snapshot.preset.width,
-      height: job.timeline_snapshot.preset.height,
-      fps: job.timeline_snapshot.preset.fps,
-      file_size: fileSize,
-      video_codec: "h264",
-      audio_codec: "aac",
-      status: "completed"
-    });
-
-    if (insertError) {
-      throw new Error(`Failed to insert into project_outputs: ${insertError.message}`);
-    }
-
-    // 4.4 Update render_jobs
+    // 4.3 Update render_jobs (Must be updated to completed before outputs)
     await supabase.from("render_jobs").update({
       status: RENDER_JOB_STATUS.COMPLETED,
       progress: 100,
@@ -155,6 +132,33 @@ async function processJob(job: any) {
       finished_at: new Date().toISOString(),
       error_message: null
     }).eq("id", job.id).eq("worker_id", WORKER_ID);
+
+    // 4.4 Insert into project_outputs
+    try {
+      const { error: insertError } = await supabase.from("project_outputs").insert({
+        project_id: job.project_id,
+        render_job_id: job.id,
+        version: nextVersion,
+        is_current: true,
+        title: `Version ${nextVersion}`,
+        output_key: outputKey,
+        output_url: outputUrl,
+        duration_ms: Math.round(job.timeline_snapshot.totalDurationMs),
+        width: job.timeline_snapshot.preset.width,
+        height: job.timeline_snapshot.preset.height,
+        fps: job.timeline_snapshot.preset.fps,
+        file_size: fileSize,
+        video_codec: "h264",
+        audio_codec: "aac",
+        status: "completed"
+      });
+
+      if (insertError) {
+        console.error(`[Worker] Failed to insert into project_outputs: ${insertError.message}`);
+      }
+    } catch (dbErr) {
+      console.error(`[Worker] Exception inserting into project_outputs:`, dbErr);
+    }
 
     const totalTime = (performance.now() - startTime) / 1000;
     const memUsage = process.memoryUsage();

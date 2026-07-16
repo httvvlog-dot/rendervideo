@@ -74,4 +74,26 @@ export class CloudflareR2Adapter implements ProviderAdapter<R2Args, R2Result> {
       success: true
     };
   }
+
+  async generateSignedUrl(credential: any, objectKey: string, forceDownload: boolean = false): Promise<string> {
+    const config = credential.config_json || {};
+    if (!config.accountId || !config.accessKeyId || !config.secretAccessKey || !config.bucket) {
+      throw new Error("Incomplete R2 configuration in credential");
+    }
+
+    const { generateSignedUrl } = await import("@/utils/s3-signer");
+    const endpoint = `https://${config.accountId}.r2.cloudflarestorage.com`;
+    
+    return await generateSignedUrl(
+      {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+        endpoint
+      },
+      config.bucket,
+      objectKey,
+      3600, // 1 hour expiration
+      forceDownload
+    );
+  }
 }

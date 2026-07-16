@@ -10,6 +10,7 @@ export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: 
   const [progressMessage, setProgressMessage] = useState("")
   const [outputUrl, setOutputUrl] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
+  const [fade, setFade] = useState(false)
   
   useEffect(() => {
     if (!jobId) return
@@ -28,6 +29,7 @@ export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: 
           
           if (data.job.status === "completed") {
             setOutputUrl(data.job.output_url || "")
+            setTimeout(() => setFade(true), 2000)
             if (onComplete) {
               setTimeout(onComplete, 3000)
             }
@@ -48,7 +50,7 @@ export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: 
     poll()
 
     return () => clearTimeout(timeoutId)
-  }, [jobId])
+  }, [jobId, onComplete])
 
   if (!jobId) return null
 
@@ -136,7 +138,7 @@ export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: 
   }
 
   return (
-    <div className="bg-slate-900 border border-indigo-900/50 rounded-xl p-8 mt-6 shadow-2xl">
+    <div className={`bg-slate-900 border border-slate-800 rounded-xl p-8 mt-6 shadow-2xl transition-opacity duration-1000 ${fade ? 'opacity-0' : 'opacity-100'}`}>
       <h2 className="text-xl font-bold text-white mb-8 flex items-center">
         <Loader2 className="w-6 h-6 mr-3 animate-spin text-indigo-400" />
         Render Job Active

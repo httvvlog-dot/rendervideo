@@ -17,6 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       .select('*')
       .eq('project_id', projectId)
       .eq('is_current', true)
+      .is('deleted_at', null)
       .single()
 
     // Fetch history (all outputs)
@@ -24,6 +25,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       .from('project_outputs')
       .select('*')
       .eq('project_id', projectId)
+      .is('deleted_at', null)
       .order('version', { ascending: false })
 
     if (historyError && historyError.code !== 'PGRST116') {

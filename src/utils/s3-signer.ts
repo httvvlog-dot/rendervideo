@@ -164,3 +164,66 @@ export async function deleteFromS3(
     return { success: false, error: err.message };
   }
 }
+
+export async function generateSignedUrl(
+  config: S3Config,
+  bucket: string,
+  key: string,
+  expiresInSeconds: number = 3600,
+  forceDownload: boolean = false,
+  downloadFilename: string = "video.mp4"
+): Promise<string> {
+  const method = "GET";
+  const service = "s3";
+  const region = config.region || "auto";
+  const host = new URL(config.endpoint).host;
+  
+  const canonicalUri = `/${bucket}/${key.split('/').map(encodeURIComponent).join('/')}`;
+  
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.substring(0, 8);
+  
+  const algorithm = "AWS4-HMAC-SHA256";
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  
+  const searchParams = new URLSearchParams();
+  searchParams.set("X-Amz-Algorithm", algorithm);
+  searchParams.set("X-Amz-Credential", `${config.accessKeyId}/${credentialScope}`);
+  searchParams.set("X-Amz-Date", amzDate);
+  searchParams.set("X-Amz-Expires", expiresInSeconds.toString());
+  searchParams.set("X-Amz-SignedHeaders", "host");
+  
+  if (forceDownload) {
+    searchParams.set("response-content-disposition", `attachment; filename="${downloadFilename}"`);
+  }
+  
+  // URL parameters must be sorted for signing
+  const sortedParams = Array.from(searchParams.entries()).sort(([a], [b]) => a.localeCompare(b));
+  const canonicalQueryString = sortedParams.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v).replace(/%20/g, "+")}`).join("&");
+  
+  const canonicalHeaders = `host:${host}\n`;
+  const signedHeaders = "host";
+  const payloadHash = "UNSIGNED-PAYLOAD";
+  
+  const canonicalRequest = [
+    method,
+    canonicalUri,
+    canonicalQueryString,
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash
+  ].join("\n");
+  
+  const stringToSign = [
+    algorithm,
+    amzDate,
+    credentialScope,
+    sha256(canonicalRequest)
+  ].join("\n");
+  
+  const signingKey = getSignatureKey(config.secretAccessKey, dateStamp, region, service);
+  const signature = hmac(signingKey, stringToSign).toString("hex");
+  
+  return `${config.endpoint}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
+}
