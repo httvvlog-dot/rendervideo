@@ -9,6 +9,7 @@ import { normalizePreviewScenes, PreviewScene } from "@/utils/timeline/normalize
 import { ClientPreviewPlayer } from "./client-preview-player"
 import { AudioPlaybackManager } from "./audio-playback-manager"
 import { globalAudioEngine } from "@/utils/audio/audio-engine"
+import { AudioDiagnosticsPanel } from "./audio-diagnostics-panel"
 
 interface Scene {
   id: string
@@ -308,12 +309,13 @@ export function TimelineEditor({ initialScenes, media = [], voiceMedia = [], pro
 
       </div>
     </div>
-        {/* Audio Playback Sync */}
+        {/* AUDIO ENGINE */}
       <AudioPlaybackManager 
-        isPlaying={isPlaying} 
-        currentTimeMs={currentTimeMs} 
+        isPlaying={isPlaying}
+        currentTimeMs={currentTimeMs}
         audioTracks={voiceBlocks.map(b => ({ id: b.id, sourceUrl: b.sourceUrl, startMs: b.startMs, durationMs: b.durationMs }))} 
       />
+      <AudioDiagnosticsPanel />
 
       <RenderQueueReal jobId={renderJobId} onRenderAgain={() => setRenderJobId(undefined)} />
     </>
