@@ -93,9 +93,8 @@ export function TimelineEditor({ initialScenes, media = [], voiceMedia = [], pro
         : playbackRef.current.startTimelineTime + elapsed
 
     if (nextTime >= totalDurationMs) {
-      nextTime = totalDurationMs
       setIsPlaying(false)
-      setCurrentTimeMs(nextTime)
+      setCurrentTimeMs(0) // Return to start automatically when finished
       playbackRef.current.startClock = 0 // Reset for next play
       return // Stop animation
     }
@@ -235,12 +234,14 @@ export function TimelineEditor({ initialScenes, media = [], voiceMedia = [], pro
 
           <div className="space-y-4 relative flex-1">
             
-            {/* Playhead Overlay */}
-            <div 
-              className="absolute top-0 bottom-0 w-px bg-red-500 z-20 pointer-events-none shadow-[0_0_4px_rgba(239,68,68,0.8)] transition-all duration-75"
-              style={{ left: `${totalDurationMs > 0 ? (currentTimeMs / totalDurationMs) * 100 : 0}%`, marginLeft: '6rem' }}
-            >
-              <div className="absolute -top-2 -left-1.5 w-3 h-3 bg-red-500 rotate-45 rounded-sm"></div>
+            {/* Playhead Overlay wrapper (matches track width) */}
+            <div className="absolute top-0 bottom-0 left-24 right-0 z-20 pointer-events-none">
+              <div 
+                className="absolute top-0 bottom-0 w-px bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]"
+                style={{ left: `${totalDurationMs > 0 ? (currentTimeMs / totalDurationMs) * 100 : 0}%` }}
+              >
+                <div className="absolute -top-2 -left-1.5 w-3 h-3 bg-red-500 rotate-45 rounded-sm"></div>
+              </div>
             </div>
 
             {/* VIDEO TRACK (Active) */}
