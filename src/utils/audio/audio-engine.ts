@@ -54,7 +54,24 @@ export class AudioEngine {
   public syncTracks(newTracks: AudioTrackInput[]) {
     this.tracks = newTracks;
     // Trigger progressive loading
-    newTracks.forEach(t => globalAudioCache.load(t.sourceUrl));
+    newTracks.forEach(t => {
+      globalAudioCache.load(t.sourceUrl).then(() => {
+        // If it finishes loading and we are currently playing, we need to schedule it!
+        if (this.isPlaying) {
+          // Instead of scheduling everything and causing pops, we should just re-evaluate drift or simply call scheduleNodes
+          // But calling scheduleNodes might schedule already playing nodes?
+          // No, because we don't track which nodes are already scheduled vs not?
+          // Wait, activeNodes tracks what is currently playing!
+          // We can just stop all and reschedule from current time, OR we can selectively schedule.
+          // The simplest way to "re-evaluate" safely is to trigger a seek to the current time!
+          const currentTimelineMs = this.lastTimelineStartMs + ((this.ctx.currentTime - this.lastEngineStartTime) * 1000);
+          this.stopAllNodes();
+          this.lastEngineStartTime = this.ctx.currentTime;
+          this.lastTimelineStartMs = currentTimelineMs;
+          this.scheduleNodes(currentTimelineMs);
+        }
+      });
+    });
   }
 
   public async play(timelineMs: number) {

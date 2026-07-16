@@ -8,6 +8,7 @@ import { RenderQueueReal } from "./render-queue-real"
 import { normalizePreviewScenes, PreviewScene } from "@/utils/timeline/normalize-preview-scenes"
 import { ClientPreviewPlayer } from "./client-preview-player"
 import { AudioPlaybackManager } from "./audio-playback-manager"
+import { globalAudioEngine } from "@/utils/audio/audio-engine"
 
 interface Scene {
   id: string
@@ -115,6 +116,8 @@ export function TimelineEditor({ initialScenes, media = [], voiceMedia = [], pro
     if (currentTimeMs >= totalDurationMs && !isPlaying) {
       setCurrentTimeMs(0) // Restart if at the end
     }
+    // Safari/Chrome autoplay policy: Wake up context synchronously on user gesture
+    globalAudioEngine.getContext().resume()
     setIsPlaying(!isPlaying)
   }
 
