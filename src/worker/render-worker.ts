@@ -54,8 +54,14 @@ async function processJob(job: any) {
     sendHeartbeat(job.id).catch(console.error);
   }, HEARTBEAT_INTERVAL_MS);
 
+  const startTime = performance.now();
+  let prepareTime = 0;
+  let renderTime = 0;
+  let uploadTime = 0;
+
   try {
     // 1. Prepare
+    const t0 = performance.now();
     await supabase.from("render_jobs").update({
       status: RENDER_JOB_STATUS.PREPARING,
       progress_message: "Downloading assets...",
@@ -63,8 +69,10 @@ async function processJob(job: any) {
     }).eq("id", job.id).eq("worker_id", WORKER_ID);
     
     await adapter.prepare(job.id, job.timeline_snapshot);
+    prepareTime = (performance.now() - t0) / 1000;
 
     // 2. Render
+    const t1 = performance.now();
     await supabase.from("render_jobs").update({
       status: RENDER_JOB_STATUS.RENDERING,
       progress_message: "Rendering video...",
@@ -80,8 +88,10 @@ async function processJob(job: any) {
         heartbeat_at: new Date().toISOString()
       }).eq("id", job.id).eq("worker_id", WORKER_ID);
     });
+    renderTime = (performance.now() - t1) / 1000;
 
     // 3. Upload
+    const t2 = performance.now();
     await supabase.from("render_jobs").update({
       status: RENDER_JOB_STATUS.UPLOADING,
       progress_message: "Uploading output...",
@@ -90,6 +100,7 @@ async function processJob(job: any) {
 
     // D1 — Real Cloudflare R2 Upload
     const outputUrl = await adapter.upload(outputPath, job.project_id, job.id);
+    uploadTime = (performance.now() - t2) / 1000;
 
     // 4. Complete (D2 — Final Output Database State)
     await supabase.from("render_jobs").update({
@@ -101,7 +112,25 @@ async function processJob(job: any) {
       error_message: null
     }).eq("id", job.id).eq("worker_id", WORKER_ID);
 
-    console.log(`[${WORKER_ID}] Job ${job.id} completed successfully. Output: ${outputUrl}`);
+    const totalTime = (performance.now() - startTime) / 1000;
+    const memUsage = process.memoryUsage();
+    
+    console.log(`\n======================================`);
+    console.log(`✅ [RENDER COMPLETE]`);
+    console.log(`Job ID:      ${job.id}`);
+    console.log(`Project ID:  ${job.project_id}`);
+    console.log(`Video FPS:   ${job.timeline_snapshot.preset.fps}`);
+    console.log(`Duration:    ${(job.timeline_snapshot.totalDurationMs / 1000).toFixed(2)}s`);
+    console.log(`--- Performance Metrics ---`);
+    console.log(`Prepare:     ${prepareTime.toFixed(2)}s`);
+    console.log(`FFmpeg:      ${renderTime.toFixed(2)}s`);
+    console.log(`Upload:      ${uploadTime.toFixed(2)}s`);
+    console.log(`Total Time:  ${totalTime.toFixed(2)}s`);
+    console.log(`--- System Metrics ---`);
+    console.log(`Mem (RSS):   ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`Mem (Heap):  ${(memUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`Output:      ${outputUrl}`);
+    console.log(`======================================\n`);
 
   } catch (err: any) {
     console.error(`[${WORKER_ID}] Job ${job.id} failed:`, err);

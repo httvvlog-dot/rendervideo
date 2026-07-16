@@ -223,6 +223,7 @@ export class FFmpegAdapter implements RenderAdapter {
       });
 
       child.on("close", (code) => {
+        console.log(`[FFmpeg] Process exited with code ${code}`);
         if (code === 0) {
           resolve(this.outputFilePath);
         } else {
@@ -247,24 +248,39 @@ export class FFmpegAdapter implements RenderAdapter {
     
     const objectKey = `renders/${projectId}/${jobId}/output.mp4`;
 
-    const res = await runtime.execute(new CloudflareR2Adapter(), {
-      step: "UPLOAD",
-      projectId: projectId,
-      args: {
-        action: "UPLOAD",
-        fileBuffer: buffer,
-        fileName: "output.mp4",
-        mimeType: "video/mp4",
-        projectId: projectId,
-        objectKey: objectKey
-      }
-    });
+    let lastError = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`[Upload] Attempt ${attempt}/3 to upload ${objectKey}`);
+        const res = await runtime.execute(new CloudflareR2Adapter(), {
+          step: "UPLOAD",
+          projectId: projectId,
+          args: {
+            action: "UPLOAD",
+            fileBuffer: buffer,
+            fileName: "output.mp4",
+            mimeType: "video/mp4",
+            projectId: projectId,
+            objectKey: objectKey
+          }
+        });
 
-    if (!res.publicUrl) {
-      throw new Error("R2 upload succeeded but returned no public URL");
+        if (!res.publicUrl) {
+          throw new Error("R2 upload succeeded but returned no public URL");
+        }
+
+        console.log(`[Upload] Success! URL: ${res.publicUrl}`);
+        return res.publicUrl;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[Upload] Attempt ${attempt} failed: ${err.message}`);
+        if (attempt < 3) {
+          await new Promise(r => setTimeout(r, 2000 * attempt)); // Exponential backoff
+        }
+      }
     }
 
-    return res.publicUrl;
+    throw new Error(`Failed to upload to R2 after 3 attempts: ${lastError?.message}`);
   }
 
   async cleanup(): Promise<void> {
