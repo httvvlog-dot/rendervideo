@@ -107,6 +107,17 @@ export function RenderQueueReal({ jobId, onRenderAgain }: { jobId?: string, onRe
                 <Button className="bg-white text-slate-900 hover:bg-slate-200 shadow-lg" onClick={() => window.open(outputUrl, '_blank')}>
                   <Play className="w-4 h-4 mr-2" /> Play
                 </Button>
+                <Button className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg" onClick={() => {
+                  const a = document.createElement('a')
+                  a.href = outputUrl
+                  a.download = `taovideo-${jobId}.mp4`
+                  a.target = '_blank'
+                  document.body.appendChild(a)
+                  a.click()
+                  document.body.removeChild(a)
+                }}>
+                  <Download className="w-4 h-4 mr-2" /> Download
+                </Button>
                 <Button variant="outline" className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700" onClick={() => navigator.clipboard.writeText(outputUrl)}>
                   <Copy className="w-4 h-4 mr-2" /> Copy Link
                 </Button>
