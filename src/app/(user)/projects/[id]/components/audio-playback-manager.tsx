@@ -1,125 +1,71 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-
-export interface AudioTrack {
-  id: string
-  sourceUrl: string
-  startMs: number
-  durationMs: number
-}
+import { useEffect, useRef, useState } from "react"
+import { globalAudioEngine, AudioTrackInput } from "@/utils/audio/audio-engine"
 
 interface AudioPlaybackManagerProps {
   isPlaying: boolean
   currentTimeMs: number
-  audioTracks: AudioTrack[]
+  audioTracks: AudioTrackInput[]
 }
 
 export function AudioPlaybackManager({ isPlaying, currentTimeMs, audioTracks }: AudioPlaybackManagerProps) {
-  const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({})
-  const activeAudioId = useRef<string | null>(null)
-  
-  // Track previous playing state to detect play/pause edges
   const prevIsPlaying = useRef(isPlaying)
-  // Track last known time to detect scrub events (jumps)
   const lastTimeMs = useRef(currentTimeMs)
+  const [metrics, setMetrics] = useState(globalAudioEngine.getMetrics())
 
-  // 1. Initialize and cleanup audio elements
+  // 1. Sync tracks with engine
   useEffect(() => {
-    const currentRefs = audioRefs.current;
-    
-    // Create new audio instances
-    audioTracks.forEach(track => {
-      if (!currentRefs[track.id]) {
-        const audio = new Audio(track.sourceUrl)
-        audio.preload = "auto"
-        currentRefs[track.id] = audio
-      }
-    })
-
-    // Remove old audio instances
-    const trackIds = audioTracks.map(t => t.id)
-    Object.keys(currentRefs).forEach(id => {
-      if (!trackIds.includes(id)) {
-        currentRefs[id].pause()
-        currentRefs[id].src = ""
-        currentRefs[id].load()
-        delete currentRefs[id]
-      }
-    })
-
-    return () => {
-      Object.values(currentRefs).forEach(audio => audio.pause())
-    }
+    globalAudioEngine.syncTracks(audioTracks)
   }, [audioTracks])
 
   // 2. Playback Sync Logic
   useEffect(() => {
     const isPlayStart = isPlaying && !prevIsPlaying.current;
     const isPauseStart = !isPlaying && prevIsPlaying.current;
-    const isScrubbing = Math.abs(currentTimeMs - lastTimeMs.current) > 100 && !isPlaying;
     
-    // Find active track
-    const targetTrack = audioTracks.find(t => currentTimeMs >= t.startMs && currentTimeMs < t.startMs + t.durationMs);
+    // A scrub is when time jumps significantly while paused.
+    // If we are playing, the Timeline component naturally increments currentTimeMs,
+    // which shouldn't trigger a seek unless drift is huge (handled inside engine).
+    const timeDelta = Math.abs(currentTimeMs - lastTimeMs.current);
+    const isScrubbing = timeDelta > 100 && !isPlaying;
+    const isJumpWhilePlaying = timeDelta > 500 && isPlaying; // User clicked elsewhere on timeline while playing
 
-    if (isPauseStart) {
-       // Pause everything
-       Object.values(audioRefs.current).forEach(audio => {
-          if (!audio.paused) audio.pause();
-       });
+    if (isPlayStart) {
+      globalAudioEngine.play(currentTimeMs);
+    } else if (isPauseStart) {
+      globalAudioEngine.pause();
+    } else if (isScrubbing || isJumpWhilePlaying) {
+      globalAudioEngine.seek(currentTimeMs);
     }
 
-    if (targetTrack) {
-      const audio = audioRefs.current[targetTrack.id];
-      if (audio) {
-        const expectedLocalTime = (currentTimeMs - targetTrack.startMs) / 1000;
-        const justSwitched = activeAudioId.current !== targetTrack.id;
-
-        if (justSwitched) {
-          // Pause previous track if necessary
-          if (activeAudioId.current) {
-            const oldAudio = audioRefs.current[activeAudioId.current];
-            if (oldAudio) oldAudio.pause();
-          }
-          activeAudioId.current = targetTrack.id;
-          audio.currentTime = expectedLocalTime;
-          if (isPlaying) {
-             audio.play().catch(e => console.warn("Audio play blocked by browser:", e));
-          }
-        } else {
-          // Same track, monitor synchronization
-          if (isPlayStart || isScrubbing) {
-            audio.currentTime = expectedLocalTime;
-            if (isPlayStart) {
-               audio.play().catch(e => console.warn("Audio play blocked by browser:", e));
-            }
-          } else if (isPlaying) {
-            const drift = Math.abs(audio.currentTime - expectedLocalTime);
-            // Only resync if drift is significant (e.g., > 0.35s)
-            if (drift > 0.35) {
-              audio.currentTime = expectedLocalTime;
-            }
-            // Ensure it is playing
-            if (audio.paused) {
-               audio.play().catch(e => console.warn("Audio play blocked by browser:", e));
-            }
-          }
-        }
-      }
-    } else {
-      // No active track -> silence
-      if (activeAudioId.current) {
-        const activeAudio = audioRefs.current[activeAudioId.current];
-        if (activeAudio) activeAudio.pause();
-        activeAudioId.current = null;
-      }
-    }
-
-    // Update refs
     prevIsPlaying.current = isPlaying;
     lastTimeMs.current = currentTimeMs;
 
-  }, [currentTimeMs, isPlaying, audioTracks])
+  }, [currentTimeMs, isPlaying])
 
-  return null
+  // 3. Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      globalAudioEngine.cleanup();
+    }
+  }, [])
+
+  // 4. Debug Metrics (Optional, hit Ctrl+Shift+D to toggle in future)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMetrics(globalAudioEngine.getMetrics());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Hidden debug overlay for development
+  return (
+    <div id="audio-metrics-debugger" className="hidden fixed bottom-4 right-4 bg-black/80 text-green-400 p-4 rounded-lg font-mono text-xs z-50 pointer-events-none">
+      <div>AudioCtx: {metrics.state}</div>
+      <div>Active Nodes: {metrics.activeNodes}</div>
+      <div>Ctx Time: {metrics.currentTime.toFixed(2)}s</div>
+      <div>Sample Rate: {metrics.sampleRate}Hz</div>
+    </div>
+  )
 }
