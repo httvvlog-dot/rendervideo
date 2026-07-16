@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/utils/auth-service"
 import { createClient } from "@/utils/supabase/server"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { notFound, redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Settings, Save } from "lucide-react"
@@ -61,7 +62,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   }
 
   // Fetch the latest render job to persist render state across page reloads
-  const { data: latestJob } = await supabase
+  // We use supabaseAdmin because render_jobs is protected by RLS
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
+  const { data: latestJob } = await supabaseAdmin
     .from('render_jobs')
     .select('id')
     .eq('project_id', id)
