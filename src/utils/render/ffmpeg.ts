@@ -10,7 +10,7 @@ import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 export interface RenderAdapter {
   prepare(jobId: string, timeline: TimelineJSON): Promise<void>;
   render(onProgress: (progress: number) => Promise<void>): Promise<string>;
-  upload(localOutputPath: string, projectId: string, jobId: string): Promise<string>;
+  upload(localOutputPath: string, projectId: string, jobId: string): Promise<{ url: string, key: string }>;
   cleanup(): Promise<void>;
 }
 
