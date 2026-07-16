@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Check, Loader2, AlertCircle, Play, Download, Copy, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export function RenderQueueReal({ jobId, onRenderAgain }: { jobId?: string, onRenderAgain?: () => void }) {
+export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: string, onRenderAgain?: () => void, onComplete?: () => void }) {
   const [status, setStatus] = useState("queued") // queued, preparing, rendering, uploading, completed, failed
   const [progress, setProgress] = useState(0)
   const [progressMessage, setProgressMessage] = useState("")
@@ -28,6 +28,9 @@ export function RenderQueueReal({ jobId, onRenderAgain }: { jobId?: string, onRe
           
           if (data.job.status === "completed") {
             setOutputUrl(data.job.output_url || "")
+            if (onComplete) {
+              setTimeout(onComplete, 3000)
+            }
             return // stop polling
           }
           if (data.job.status === "failed") {

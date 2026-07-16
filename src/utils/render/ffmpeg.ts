@@ -237,7 +237,7 @@ export class FFmpegAdapter implements RenderAdapter {
     });
   }
 
-  async upload(localOutputPath: string, projectId: string, jobId: string): Promise<string> {
+  async upload(localOutputPath: string, projectId: string, jobId: string): Promise<{ url: string, key: string }> {
     const { ProviderRuntime } = await import("../provider-runtime");
     const { CloudflareR2Adapter } = await import("../provider-runtime/adapters/cloudflare-r2-adapter");
 
@@ -270,7 +270,7 @@ export class FFmpegAdapter implements RenderAdapter {
         }
 
         console.log(`[Upload] Success! URL: ${res.publicUrl}`);
-        return res.publicUrl;
+        return { url: res.publicUrl, key: objectKey };
       } catch (err: any) {
         lastError = err;
         console.warn(`[Upload] Attempt ${attempt} failed: ${err.message}`);

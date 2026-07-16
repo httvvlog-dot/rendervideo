@@ -99,10 +99,50 @@ async function processJob(job: any) {
     }).eq("id", job.id).eq("worker_id", WORKER_ID);
 
     // D1 — Real Cloudflare R2 Upload
-    const outputUrl = await adapter.upload(outputPath, job.project_id, job.id);
+    const { url: outputUrl, key: outputKey } = await adapter.upload(outputPath, job.project_id, job.id);
     uploadTime = (performance.now() - t2) / 1000;
 
-    // 4. Complete (D2 — Final Output Database State)
+    // Get file size
+    const stat = await import("fs/promises").then(fs => fs.stat(outputPath));
+    const fileSize = stat.size;
+
+    // 4. Update Database (D2)
+    // 4.1 Update previous outputs to not current
+    await supabase.from("project_outputs")
+      .update({ is_current: false })
+      .eq("project_id", job.project_id)
+      .eq("is_current", true);
+
+    // 4.2 Calculate next version
+    const { data: latestOutput } = await supabase.from("project_outputs")
+      .select("version")
+      .eq("project_id", job.project_id)
+      .order("version", { ascending: false })
+      .limit(1)
+      .single();
+    
+    const nextVersion = latestOutput ? latestOutput.version + 1 : 1;
+
+    // 4.3 Insert into project_outputs
+    await supabase.from("project_outputs").insert({
+      project_id: job.project_id,
+      render_job_id: job.id,
+      version: nextVersion,
+      is_current: true,
+      title: `Version ${nextVersion}`,
+      output_key: outputKey,
+      output_url: outputUrl,
+      duration_ms: Math.round(job.timeline_snapshot.totalDurationMs),
+      width: job.timeline_snapshot.preset.width,
+      height: job.timeline_snapshot.preset.height,
+      fps: job.timeline_snapshot.preset.fps,
+      file_size: fileSize,
+      video_codec: "h264",
+      audio_codec: "aac",
+      status: "completed"
+    });
+
+    // 4.4 Update render_jobs
     await supabase.from("render_jobs").update({
       status: RENDER_JOB_STATUS.COMPLETED,
       progress: 100,
@@ -119,8 +159,10 @@ async function processJob(job: any) {
     console.log(`✅ [RENDER COMPLETE]`);
     console.log(`Job ID:      ${job.id}`);
     console.log(`Project ID:  ${job.project_id}`);
+    console.log(`Version:     ${nextVersion}`);
     console.log(`Video FPS:   ${job.timeline_snapshot.preset.fps}`);
     console.log(`Duration:    ${(job.timeline_snapshot.totalDurationMs / 1000).toFixed(2)}s`);
+    console.log(`File Size:   ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
     console.log(`--- Performance Metrics ---`);
     console.log(`Prepare:     ${prepareTime.toFixed(2)}s`);
     console.log(`FFmpeg:      ${renderTime.toFixed(2)}s`);

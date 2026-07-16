@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Play, Pause, Download, Music, Mic, Type, Image as ImageIcon, RotateCcw } from "lucide-react"
 import { RenderQueueReal } from "./render-queue-real"
+import { RenderHistory } from "./render-history"
 import { normalizePreviewScenes, PreviewScene } from "@/utils/timeline/normalize-preview-scenes"
 import { ClientPreviewPlayer } from "./client-preview-player"
 import { AudioPlaybackManager } from "./audio-playback-manager"
@@ -35,18 +36,16 @@ export function TimelineEditor({
   media = [], 
   voiceMedia = [], 
   projectId, 
-  sections = [],
-  initialRenderJobId 
+  sections = []
 }: { 
   initialScenes: Scene[], 
   media?: any[], 
   voiceMedia?: any[], 
   projectId: string, 
-  sections?: any[],
-  initialRenderJobId?: string
+  sections?: any[]
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [renderJobId, setRenderJobId] = useState<string | undefined>(initialRenderJobId)
+  const [renderJobId, setRenderJobId] = useState<string | undefined>(undefined)
 
   // 1. Normalize Scenes
   const previewScenes = useMemo(() => normalizePreviewScenes(initialScenes, media), [initialScenes, media])
@@ -337,7 +336,12 @@ export function TimelineEditor({
       />
       <AudioDiagnosticsPanel activeUrl={voiceBlocks.length > 0 ? voiceBlocks[0].sourceUrl : undefined} />
 
-      <RenderQueueReal jobId={renderJobId} onRenderAgain={() => setRenderJobId(undefined)} />
+      <RenderQueueReal 
+        jobId={renderJobId} 
+        onRenderAgain={() => setRenderJobId(undefined)} 
+        onComplete={() => setRenderJobId(undefined)}
+      />
+      <RenderHistory projectId={projectId} />
     </>
   )
 }
