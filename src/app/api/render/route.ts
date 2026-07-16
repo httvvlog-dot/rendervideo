@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { compileTimeline } from "@/utils/render/compile-timeline"
 import { RENDER_JOB_STATUS } from "@/utils/render/core"
 import { z } from "zod"
@@ -81,8 +82,16 @@ export async function POST(req: Request) {
       RENDER_JOB_STATUS.ENCODING,
       RENDER_JOB_STATUS.UPLOADING
     ]
+
+    // Create an admin client to bypass RLS for inserting the job. 
+    // This is safe because compileTimeline already verified project ownership.
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
     
-    const { data: existingActiveJobs } = await supabase
+    const { data: existingActiveJobs } = await supabaseAdmin
       .from('render_jobs')
       .select('id, status')
       .eq('project_id', projectId)
@@ -97,8 +106,8 @@ export async function POST(req: Request) {
       })
     }
 
-    // Insert into render_jobs
-    const { data: job, error: insertError } = await supabase
+    // Insert into render_jobs using admin client
+    const { data: job, error: insertError } = await supabaseAdmin
       .from('render_jobs')
       .insert({
         project_id: projectId,

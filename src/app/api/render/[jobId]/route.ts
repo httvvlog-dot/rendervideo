@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/utils/supabase/server"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 
 export async function GET(req: Request, { params }: { params: Promise<{ jobId: string }> }) {
   try {
@@ -15,7 +16,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ jobId: s
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { data: job, error: jobError } = await supabase
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+
+    const { data: job, error: jobError } = await supabaseAdmin
       .from('render_jobs')
       .select('*, projects(user_id)')
       .eq('id', jobId)
