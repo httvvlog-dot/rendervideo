@@ -198,9 +198,16 @@ export async function generateSignedUrl(
     searchParams.set("response-content-disposition", `attachment; filename="${downloadFilename}"`);
   }
   
+  // AWS requires strict RFC 3986 encoding: spaces must be %20, and !'()* must be encoded.
+  const awsURIEncode = (str: string) => {
+    return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
+      return '%' + c.charCodeAt(0).toString(16).toUpperCase();
+    });
+  };
+  
   // URL parameters must be sorted for signing
   const sortedParams = Array.from(searchParams.entries()).sort(([a], [b]) => a.localeCompare(b));
-  const canonicalQueryString = sortedParams.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v).replace(/%20/g, "+")}`).join("&");
+  const canonicalQueryString = sortedParams.map(([k, v]) => `${awsURIEncode(k)}=${awsURIEncode(v)}`).join("&");
   
   const canonicalHeaders = `host:${host}\n`;
   const signedHeaders = "host";
