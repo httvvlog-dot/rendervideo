@@ -39,17 +39,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ jobId: s
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Return only safe fields
+    // Return only safe fields wrapped in 'job' so the frontend polls correctly
     return NextResponse.json({
-      id: job.id,
-      status: job.status,
-      progress: job.progress,
-      progressMessage: job.progress_message || null,
-      outputUrl: job.output_url || null,
-      previewUrl: job.preview_url || null,
-      errorMessage: job.error_message || null,
-      startedAt: job.started_at || null,
-      finishedAt: job.finished_at || null
+      job: {
+        id: job.id,
+        status: job.status,
+        progress: job.progress,
+        progress_message: job.progress_message || null,
+        output_url: job.output_url || null,
+        preview_url: job.preview_url || null,
+        error_message: job.error_message || null,
+        started_at: job.started_at || null,
+        finished_at: job.finished_at || null
+      }
     })
 
   } catch (error: any) {
