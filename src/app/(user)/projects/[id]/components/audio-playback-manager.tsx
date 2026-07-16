@@ -13,11 +13,15 @@ export function AudioPlaybackManager({ isPlaying, currentTimeMs, audioTracks }: 
   const prevIsPlaying = useRef(isPlaying)
   const lastTimeMs = useRef(currentTimeMs)
   const [metrics, setMetrics] = useState(globalAudioEngine.getMetrics())
+  
+  // Prevent infinite sync loops by hashing the tracks
+  const tracksHash = JSON.stringify(audioTracks)
 
   // 1. Sync tracks with engine
   useEffect(() => {
     globalAudioEngine.syncTracks(audioTracks)
-  }, [audioTracks])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracksHash])
 
   // 2. Playback Sync Logic
   useEffect(() => {
