@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { globalAudioEngine } from "@/utils/audio/audio-engine"
 import { globalAudioCache } from "@/utils/audio/audio-cache"
 
-export function AudioDiagnosticsPanel() {
+export function AudioDiagnosticsPanel({ activeUrl }: { activeUrl?: string }) {
   const [isOpen, setIsOpen] = useState(false)
   
   const [logs, setLogs] = useState<string[]>([])
@@ -60,20 +60,46 @@ export function AudioDiagnosticsPanel() {
     }
 
     // 3. Test MP3 Fetch & Decode
-    const TEST_URL = "https://raw.githubusercontent.com/mathiasbynens/small/master/mp3.mp3" // Fallback small MP3 or use a known one
-    addLog("Testing AudioCache Fetch & Decode...")
+    const TEST_URL = activeUrl || "https://upload.wikimedia.org/wikipedia/commons/c/c8/Example.ogg" // Use a reliable audio file
+    addLog(`Testing AudioCache Fetch on URL: ${TEST_URL.substring(0, 50)}...`)
     
     try {
-      // Create a dummy URL if we don't have one, or just try to get the first one from cache queue
-      // Since we don't know the URL here, let's just observe the Cache's state if we can.
-      // Alternatively, we use a tiny public mp3.
-      
       const res = await fetch(TEST_URL)
+      
+      // Log headers
+      const status = res.status
+      const contentType = res.headers.get("content-type") || "unknown"
+      const contentLength = res.headers.get("content-length") || "unknown"
+      
+      addLog(`HTTP Status: ${status} ${res.statusText}`)
+      addLog(`Final URL: ${res.url.substring(0, 60)}...`)
+      addLog(`Content-Type: ${contentType}`)
+      addLog(`Content-Length Header: ${contentLength}`)
+
+      // Peek at first 200 bytes as text to check for XML/JSON errors from R2
+      const clonedRes = res.clone()
+      const textPreview = (await clonedRes.text()).substring(0, 200)
+      addLog(`Body Preview: ${textPreview.replace(/\n/g, ' ')}`)
+
+      if (!res.ok) {
+        addLog(`FAIL: Fetch returned HTTP ${status}`)
+        return
+      }
+
+      if (!contentType.includes("audio/") && !contentType.includes("video/") && contentType !== "application/octet-stream") {
+        addLog(`WARNING: Content-Type is ${contentType}, expected audio/*`)
+      }
+
       setDiagState(prev => ({ ...prev, mp3Fetched: true }))
       addLog("MP3 Fetched successfully.")
 
       const arrayBuffer = await res.arrayBuffer()
       addLog(`ArrayBuffer size: ${arrayBuffer.byteLength} bytes`)
+      
+      if (arrayBuffer.byteLength < 1024) {
+        addLog(`FAIL: ArrayBuffer is too small (${arrayBuffer.byteLength} bytes) to be a valid MP3!`)
+        return
+      }
 
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
       setDiagState(prev => ({ ...prev, decodeSuccess: true }))

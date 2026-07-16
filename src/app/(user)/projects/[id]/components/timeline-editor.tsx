@@ -315,7 +315,7 @@ export function TimelineEditor({ initialScenes, media = [], voiceMedia = [], pro
         currentTimeMs={currentTimeMs}
         audioTracks={voiceBlocks.map(b => ({ id: b.id, sourceUrl: b.sourceUrl, startMs: b.startMs, durationMs: b.durationMs }))} 
       />
-      <AudioDiagnosticsPanel />
+      <AudioDiagnosticsPanel activeUrl={voiceBlocks.length > 0 ? voiceBlocks[0].sourceUrl : undefined} />
 
       <RenderQueueReal jobId={renderJobId} onRenderAgain={() => setRenderJobId(undefined)} />
     </>
