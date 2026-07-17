@@ -150,15 +150,16 @@ export class AudioEngine {
 
   private stopAllNodes() {
     this.currentGeneration++; // Invalidate any pending async setups for this node batch
+    console.log(`[AudioEngine] stopAllNodes() called. New generation=${this.currentGeneration}. Stopping ${this.activeNodes.size} active nodes.`);
     
-    this.activeNodes.forEach(node => {
+    this.activeNodes.forEach((node, trackId) => {
       try {
+        console.log(`[AudioEngine] Stopping node for trackId=${trackId}`);
         node.source.onended = null; // Decouple event listener to prevent race conditions completely
         node.source.stop();
         node.source.disconnect();
-        node.gain.disconnect(); // Fully dispose of graph endpoints
       } catch (e) {
-        // Ignore if already stopped
+        console.log(`[AudioEngine] Node for trackId=${trackId} was already stopped.`);
       }
     });
     this.activeNodes.clear();
@@ -167,16 +168,21 @@ export class AudioEngine {
   private scheduleNodes(timelineMs: number) {
     if (!this.isPlaying) return;
     const generation = this.currentGeneration;
+    
+    console.log(`[AudioEngine] scheduleNodes() called. timelineMs=${timelineMs}, generation=${generation}, total tracks=${this.tracks.length}`);
 
     this.tracks.forEach(track => {
       const trackEndMs = track.startMs + track.durationMs;
       
       // If clip is already past, skip
-      if (timelineMs >= trackEndMs) return;
+      if (timelineMs >= trackEndMs) {
+        // console.log(`[AudioEngine] Skipping trackId=${track.id} (already past)`);
+        return;
+      }
 
       const cached = globalAudioCache.get(track.sourceUrl);
       if (!cached) {
-        // Progressive loading: if not ready, we skip scheduling for now.
+        console.log(`[AudioEngine] TrackId=${track.id} not in cache. Waiting for progressive load.`);
         return;
       }
 
@@ -205,6 +211,8 @@ export class AudioEngine {
       // Start
       const when = this.ctx.currentTime + startDelaySeconds;
       source.start(when, offsetSeconds);
+      
+      console.log(`[AudioEngine] Scheduled trackId=${track.id} (type=${trackType}) at ctx.currentTime=${this.ctx.currentTime.toFixed(2)}. Will play at when=${when.toFixed(2)} with offset=${offsetSeconds.toFixed(2)}s`);
 
       this.activeNodes.set(track.id, {
         source,
@@ -214,13 +222,19 @@ export class AudioEngine {
 
       // Cleanup when done naturally
       source.onended = () => {
-        if (generation !== this.currentGeneration) return; // Strict generation verification
+        console.log(`[AudioEngine] onended triggered for trackId=${track.id} (generation=${generation})`);
+        if (generation !== this.currentGeneration) {
+           console.log(`[AudioEngine] Ignoring onended for trackId=${track.id} because generation mismatch (${generation} != ${this.currentGeneration})`);
+           return; 
+        }
 
         const activeNode = this.activeNodes.get(track.id);
         if (activeNode && activeNode.source === source) {
+          console.log(`[AudioEngine] Disconnecting and removing trackId=${track.id} from activeNodes`);
           source.disconnect();
-          activeNode.gain.disconnect();
           this.activeNodes.delete(track.id);
+        } else {
+          console.log(`[AudioEngine] onended for trackId=${track.id} ignored because source reference did not match active node.`);
         }
       };
     });
