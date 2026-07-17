@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { getSectionMedia, uploadProjectMedia, unassignMediaFromSection, deleteProjectMedia, assignMediaToSection } from "../media-actions"
+import { getSectionImages, uploadProjectMedia, unassignMediaFromSection, deleteProjectMedia, assignMediaToSection } from "../media-actions"
 import { toast } from "sonner"
 import { UploadCloud, X, Loader2, Image as ImageIcon, Trash2 } from "lucide-react"
 
@@ -18,7 +18,7 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
   async function loadMedia() {
     try {
       setIsLoading(true)
-      const data = await getSectionMedia(sectionId)
+      const data = await getSectionImages(sectionId)
       setMedia(data || [])
     } catch (err: any) {
       toast.error("Failed to load section media")

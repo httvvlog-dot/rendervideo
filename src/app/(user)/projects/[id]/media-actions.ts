@@ -235,7 +235,7 @@ export async function deleteProjectMedia(fileId: string, projectId: string) {
   }
 }
 
-export async function getSectionMedia(sectionId: string) {
+export async function getSectionImages(sectionId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
@@ -244,9 +244,26 @@ export async function getSectionMedia(sectionId: string) {
     .from("project_media")
     .select("*")
     .eq("section_id", sectionId)
+    .eq("asset_type", "image")
     .order("section_sort_order", { ascending: true })
 
-  if (error) throw new Error("Failed to fetch section media")
+  if (error) throw new Error("Failed to fetch section images")
+  return data
+}
+
+export async function getSectionVoices(sectionId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  const { data, error } = await supabase
+    .from("project_media")
+    .select("*")
+    .eq("section_id", sectionId)
+    .eq("asset_type", "voice")
+    .order("section_sort_order", { ascending: true })
+
+  if (error) throw new Error("Failed to fetch section voices")
   return data
 }
 
@@ -264,14 +281,15 @@ export async function assignMediaToSection(mediaId: string, sectionId: string, p
   if (!section || section.project_id !== projectId) return { error: "Invalid section" }
 
   // Verify media ownership
-  const { data: media } = await supabase.from("project_media").select("project_id").eq("id", mediaId).single()
+  const { data: media } = await supabase.from("project_media").select("project_id, asset_type").eq("id", mediaId).single()
   if (!media || media.project_id !== projectId) return { error: "Invalid media" }
 
-  // Get max sort order
+  // Get max sort order for this specific asset type
   const { data: existingMedia } = await supabase
     .from("project_media")
     .select("section_sort_order")
     .eq("section_id", sectionId)
+    .eq("asset_type", media.asset_type)
     .order("section_sort_order", { ascending: false })
     .limit(1)
     
