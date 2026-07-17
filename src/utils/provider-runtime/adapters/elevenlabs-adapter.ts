@@ -23,7 +23,7 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayB
       throw new Error("ElevenLabsAdapter: Voice ID not provided in args or credential config (checked default_voice_id, defaultVoiceId, voice_id, voiceId)");
     }
 
-    const effectiveModelId = args.modelId || config.default_model_id || "eleven_flash_v2_5";
+    const effectiveModelId = args.modelId || config.default_model_id || "eleven_multilingual_v2";
 
     console.log(`[TTS] Effective Voice ID: ${effectiveVoiceId}`);
     console.log(`[TTS] Effective Model ID: ${effectiveModelId}`);

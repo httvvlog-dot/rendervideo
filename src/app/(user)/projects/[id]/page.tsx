@@ -141,7 +141,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <span>→</span>
                 <span className={allVoicesGenerated && !hasExistingScenes ? "text-blue-600 dark:text-blue-400 font-bold" : ""}>Step 2: Sync Timeline</span>
                 <span>→</span>
-                <span className={allVoicesGenerated && hasExistingScenes ? "text-blue-600 dark:text-blue-400 font-bold" : ""}>Step 3: Generate Timeline</span>
+                <span className={allVoicesGenerated && hasExistingScenes ? "text-blue-600 dark:text-blue-400 font-bold" : ""}>
+                  Step 3: {hasExistingScenes ? "Rebuild Timeline" : "Generate Timeline"}
+                </span>
               </div>
             </div>
 

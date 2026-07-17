@@ -24,7 +24,8 @@ export function ElevenLabsForm({ providerId, credential, onSuccess }: { provider
       is_active: formData.get("is_active") === "true",
       config: {
         apiKey: formData.get("apiKey"),
-        default_voice_id: formData.get("default_voice_id")
+        default_voice_id: formData.get("default_voice_id"),
+        default_model_id: formData.get("default_model_id") || "eleven_multilingual_v2"
       }
     }
 
@@ -93,6 +94,19 @@ export function ElevenLabsForm({ providerId, credential, onSuccess }: { provider
             placeholder="e.g. 21m00Tcm4TlvDq8ikWAM (Rachel)"
             className="w-full border rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Default Model <span className="text-red-500">*</span></label>
+          <select 
+            name="default_model_id" 
+            defaultValue={config.default_model_id || "eleven_multilingual_v2"}
+            className="w-full border rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="eleven_multilingual_v2">Eleven Multilingual v2 (Best for VN)</option>
+            <option value="eleven_flash_v2_5">Eleven Flash v2.5 (Fastest)</option>
+            <option value="eleven_monolingual_v1">Eleven Monolingual v1 (English)</option>
+            <option value="eleven_turbo_v2_5">Eleven Turbo v2.5 (Low latency)</option>
+          </select>
         </div>
       </div>
 
