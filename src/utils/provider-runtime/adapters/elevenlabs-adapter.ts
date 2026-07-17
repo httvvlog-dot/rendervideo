@@ -61,4 +61,51 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayB
     
     return arrayBuffer;
   }
+
+  async listVoices(credential: any): Promise<any[]> {
+    const config = credential.config_json || {};
+    const apiKey = credential.encrypted_key || config.apiKey || config.api_key;
+    if (!apiKey) {
+      throw new Error("ElevenLabsAdapter: API key is missing");
+    }
+
+    const response = await fetch("https://api.elevenlabs.io/v1/voices", {
+      method: "GET",
+      headers: {
+        "xi-api-key": apiKey,
+        "Accept": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs API Error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.voices || [];
+  }
+
+  async getVoice(credential: any, voiceId: string): Promise<any> {
+    const config = credential.config_json || {};
+    const apiKey = credential.encrypted_key || config.apiKey || config.api_key;
+    if (!apiKey) {
+      throw new Error("ElevenLabsAdapter: API key is missing");
+    }
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/voices/${voiceId}?with_settings=true`, {
+      method: "GET",
+      headers: {
+        "xi-api-key": apiKey,
+        "Accept": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs API Error: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
 }

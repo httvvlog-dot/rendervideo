@@ -27,7 +27,7 @@ export type GenerateVoiceResult =
       rawError?: any
     }
 
-export async function generateMissingProjectVoice(projectId: string, overrideSupabase?: SupabaseClient): Promise<GenerateVoiceResult> {
+export async function generateMissingProjectVoice(projectId: string, voicePresetId?: string, overrideSupabase?: SupabaseClient): Promise<GenerateVoiceResult> {
   console.log("[VOICE] START projectId=", projectId);
   const supabase = overrideSupabase || await createClient()
   
@@ -55,18 +55,31 @@ export async function generateMissingProjectVoice(projectId: string, overrideSup
   if (!project.active_script_id) return { success: false, code: "NO_ACTIVE_SCRIPT", message: "Project has no active script" }
   console.log("[VOICE] ACTIVE_SCRIPT_FOUND scriptId=", project.active_script_id);
 
-  // Resolve Voice ID from project
+  // Resolve Voice ID
   let resolvedVoiceId: string | undefined = undefined;
-  if (project.voice_template_id) {
-    const { data: vTemplate } = await supabase
-      .from("voice_templates")
-      .select("voice_id")
-      .eq("id", project.voice_template_id)
+  let resolvedSettings: any = {};
+  
+  let targetPresetId = voicePresetId;
+  
+  // If not provided, fallback to user's default
+  if (!targetPresetId && userId !== 'service_role') {
+    const { data: profile } = await supabase.from('profiles').select('default_voice_preset_id').eq('id', userId).single();
+    if (profile?.default_voice_preset_id) {
+      targetPresetId = profile.default_voice_preset_id;
+    }
+  }
+
+  if (targetPresetId) {
+    const { data: vPreset } = await supabase
+      .from("voice_presets")
+      .select("voice_id, settings_json")
+      .eq("id", targetPresetId)
       .single();
       
-    if (vTemplate && vTemplate.voice_id) {
-      resolvedVoiceId = vTemplate.voice_id;
-      console.log(`[TTS] Voice source: project`);
+    if (vPreset && vPreset.voice_id) {
+      resolvedVoiceId = vPreset.voice_id;
+      resolvedSettings = vPreset.settings_json || {};
+      console.log(`[TTS] Voice source: voice_preset (${targetPresetId})`);
       console.log(`[TTS] Effective voice ID: ${resolvedVoiceId}`);
     }
   }
@@ -115,7 +128,14 @@ export async function generateMissingProjectVoice(projectId: string, overrideSup
       const audioBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {
         step: "VOICE",
         projectId: projectId,
-        args: { text: section.narration, voiceId: resolvedVoiceId }
+        args: { 
+          text: section.narration, 
+          voiceId: resolvedVoiceId,
+          stability: resolvedSettings.stability,
+          similarityBoost: resolvedSettings.similarity_boost,
+          style: resolvedSettings.style,
+          useSpeakerBoost: resolvedSettings.use_speaker_boost
+        }
       });
       console.log(`[VOICE] TTS_REQUEST_SUCCESS bytes=${audioBuffer.byteLength}`);
 

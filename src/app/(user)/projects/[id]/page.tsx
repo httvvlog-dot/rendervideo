@@ -11,10 +11,25 @@ import { ScriptManager } from "./components/script-manager"
 import { TimelineGeneratorButton } from "./components/timeline-generator-button"
 import { VoiceGeneratorButtons } from "./components/voice-generator-buttons"
 
+import { VoiceSelector } from "./components/voice-selector"
+
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser()
   const supabase = await createClient()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('default_voice_preset_id')
+    .eq('id', user?.id)
+    .single()
+
+  const { data: activeVoices } = await supabase
+    .from('voice_presets')
+    .select('id, display_name, description, category, preview_url, voice_id')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
 
   const { data: project } = await supabase
     .from('projects')
@@ -103,6 +118,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">Timeline Editor</h2>
               <div className="flex items-center space-x-2">
+                <VoiceSelector voices={activeVoices || []} defaultVoiceId={profile?.default_voice_preset_id} />
                 <VoiceGeneratorButtons projectId={project.id} />
                 <TimelineGeneratorButton projectId={project.id} hasExistingScenes={hasExistingScenes} />
               </div>
