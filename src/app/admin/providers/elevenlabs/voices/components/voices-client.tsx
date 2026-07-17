@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Download, Play, Search, Filter } from "lucide-react";
+import { RefreshCw, Download, Play, Search, Filter, PowerOff } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
 export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
@@ -29,6 +29,21 @@ export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
       alert(`Sync failed: ${err.message}`);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleDeactivateAll = async () => {
+    if (!confirm("Are you sure you want to deactivate ALL voices? You can re-enable them one by one.")) return;
+    const { error } = await supabase
+      .from('voice_presets')
+      .update({ is_active: false })
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Dummy condition to update all
+    
+    if (!error) {
+      setVoices(voices.map(v => ({ ...v, is_active: false })));
+      alert("All voices have been deactivated.");
+    } else {
+      alert(`Failed to deactivate: ${error.message}`);
     }
   };
 
@@ -120,14 +135,24 @@ export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
           </button>
         </div>
         
-        <button 
-          onClick={handleSync}
-          disabled={isSyncing}
-          className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
-          {isSyncing ? "Syncing Voices..." : "Sync All Voices"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleDeactivateAll}
+            className="flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            <PowerOff className="w-4 h-4" />
+            Disable All
+          </button>
+
+          <button 
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 dark:text-slate-900 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
+            {isSyncing ? "Syncing Voices..." : "Sync All Voices"}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
