@@ -130,6 +130,13 @@ export function TimelineEditor({
     }
   }, [isPlaying, animate])
 
+  // Listen for global pause requests (e.g. from external buttons)
+  useEffect(() => {
+    const handleGlobalPause = () => setIsPlaying(false);
+    window.addEventListener('taovideo:pause', handleGlobalPause);
+    return () => window.removeEventListener('taovideo:pause', handleGlobalPause);
+  }, []);
+
   const togglePlay = () => {
     if (currentTimeMs >= totalDurationMs && !isPlaying) {
       setCurrentTimeMs(0) // Restart if at the end

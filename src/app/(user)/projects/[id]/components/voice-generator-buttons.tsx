@@ -22,6 +22,11 @@ export function VoiceGeneratorButtons({
   const router = useRouter()
 
   const handleGenerateVoice = async (force: boolean = false) => {
+    // Forcefully stop playback before doing heavy operations
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('taovideo:pause'));
+    }
+    
     setIsGenerating(true)
     const toastId = toast.loading(force ? "Regenerating All AI Voices..." : "Generating AI Voice...")
     try {
