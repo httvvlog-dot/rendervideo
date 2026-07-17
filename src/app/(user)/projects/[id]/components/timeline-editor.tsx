@@ -11,6 +11,7 @@ import { ClientPreviewPlayer } from "./client-preview-player"
 import { AudioPlaybackManager } from "./audio-playback-manager"
 import { globalAudioEngine } from "@/utils/audio/audio-engine"
 import { AudioDiagnosticsPanel } from "./audio-diagnostics-panel"
+import { updateTimelineDurations } from "../timeline-actions"
 
 interface Scene {
   id: string
@@ -31,6 +32,25 @@ interface Scene {
   section_id?: string
 }
 
+export type SaveState = "saved" | "dirty" | "saving"
+
+export interface TimelineDocument {
+  scenes: PreviewScene[] 
+  totalDurationMs: number
+  version: number
+  isDirty: boolean
+}
+
+function recalculateTimeline(scenes: PreviewScene[]): { scenes: PreviewScene[], totalDurationMs: number } {
+  let currentTime = 0;
+  const newScenes = scenes.map(scene => {
+    const s = { ...scene, startTimeMs: currentTime, endTimeMs: currentTime + scene.durationMs }
+    currentTime += scene.durationMs;
+    return s;
+  });
+  return { scenes: newScenes, totalDurationMs: currentTime };
+}
+
 export function TimelineEditor({ 
   initialScenes, 
   media = [], 
@@ -47,12 +67,58 @@ export function TimelineEditor({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [renderJobId, setRenderJobId] = useState<string | undefined>(undefined)
 
-  // 1. Normalize Scenes
-  const previewScenes = useMemo(() => normalizePreviewScenes(initialScenes, media), [initialScenes, media])
-  
-  const totalDurationMs = previewScenes.length > 0 
-    ? previewScenes[previewScenes.length - 1].endTimeMs 
-    : 0
+  // --- TIMELINE DOCUMENT STATE ---
+  const [doc, setDoc] = useState<TimelineDocument>(() => {
+    const normalized = normalizePreviewScenes(initialScenes, media);
+    const { scenes, totalDurationMs } = recalculateTimeline(normalized);
+    return {
+      scenes,
+      totalDurationMs,
+      version: 0,
+      isDirty: false
+    }
+  });
+
+  const [saveState, setSaveState] = useState<SaveState>("saved");
+
+  // History stack for Undo/Redo
+  const [history, setHistory] = useState<PreviewScene[][]>([doc.scenes]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+
+  const previewScenes = doc.scenes;
+  const totalDurationMs = doc.totalDurationMs;
+
+  // Auto-Save Effect
+  useEffect(() => {
+    if (!doc.isDirty) return;
+    
+    const handler = setTimeout(async () => {
+      setSaveState("saving");
+      
+      const updates = doc.scenes.map(s => ({
+        id: s.id,
+        durationMs: s.durationMs,
+        startTimeMs: s.startTimeMs,
+        endTimeMs: s.endTimeMs
+      }));
+      
+      try {
+        const res = await updateTimelineDurations(projectId, updates);
+        if (res.success) {
+           setSaveState("saved");
+           setDoc(prev => ({ ...prev, isDirty: false }));
+        } else {
+           setSaveState("dirty");
+           toast.error(res.message);
+        }
+      } catch (e) {
+         setSaveState("dirty");
+         console.error("Auto-save failed", e);
+      }
+    }, 2000); // 2s debounce
+    
+    return () => clearTimeout(handler);
+  }, [doc.version, doc.isDirty, doc.scenes, projectId]);
 
   // 1b. Map sections to Voice Track Blocks
   const voiceBlocks = useMemo(() => {
@@ -79,6 +145,78 @@ export function TimelineEditor({
     }
     return blocks
   }, [sections, previewScenes, voiceMedia])
+
+  // --- UNDO / REDO & MUTATION ---
+  const pushState = useCallback((newScenes: PreviewScene[]) => {
+    const { scenes, totalDurationMs } = recalculateTimeline(newScenes);
+    
+    // Slice history to current index (discarding future redo states if we diverge)
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(scenes);
+    
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+    
+    setDoc(prev => ({
+      ...prev,
+      scenes,
+      totalDurationMs,
+      version: prev.version + 1,
+      isDirty: true
+    }));
+    setSaveState("dirty");
+  }, [history, historyIndex]);
+
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      const restoredScenes = history[newIndex];
+      const { scenes, totalDurationMs } = recalculateTimeline(restoredScenes);
+      setDoc(prev => ({
+        ...prev,
+        scenes,
+        totalDurationMs,
+        version: prev.version + 1,
+        isDirty: true
+      }));
+      setSaveState("dirty");
+    }
+  }, [history, historyIndex]);
+
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      const restoredScenes = history[newIndex];
+      const { scenes, totalDurationMs } = recalculateTimeline(restoredScenes);
+      setDoc(prev => ({
+        ...prev,
+        scenes,
+        totalDurationMs,
+        version: prev.version + 1,
+        isDirty: true
+      }));
+      setSaveState("dirty");
+    }
+  }, [history, historyIndex]);
+
+  // Keyboard shortcuts for Undo/Redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
+
 
   // 2. Playback State
   const [isPlaying, setIsPlaying] = useState(false)
@@ -114,7 +252,7 @@ export function TimelineEditor({
 
     setCurrentTimeMs(nextTime)
     requestRef.current = requestAnimationFrame(animate)
-  }, [totalDurationMs, isPlaying])
+  }, [totalDurationMs, isPlaying, currentTimeMs])
 
   useEffect(() => {
     if (isPlaying) {
@@ -128,7 +266,7 @@ export function TimelineEditor({
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current)
     }
-  }, [isPlaying, animate])
+  }, [isPlaying, animate, currentTimeMs])
 
   // Listen for global pause requests (e.g. from external buttons)
   useEffect(() => {
@@ -137,36 +275,139 @@ export function TimelineEditor({
     return () => window.removeEventListener('taovideo:pause', handleGlobalPause);
   }, []);
 
-  const togglePlay = () => {
-    if (currentTimeMs >= totalDurationMs && !isPlaying) {
-      setCurrentTimeMs(0) // Restart if at the end
-    }
-    // Safari/Chrome autoplay policy: Wake up context synchronously on user gesture
-    globalAudioEngine.getContext().resume()
-    setIsPlaying(!isPlaying)
-  }
+  // 4. Timeline Editing (Drag to Resize)
+  const [dragState, setDragState] = useState<{
+    id: string;
+    edge: 'left' | 'right';
+    startX: number;
+    startDurationMs: number;
+    originalScenes: PreviewScene[];
+  } | null>(null);
 
-  const handleSeek = (timeMs: number) => {
-    let safeTime = timeMs
-    if (safeTime < 0) safeTime = 0
-    if (safeTime > totalDurationMs) safeTime = totalDurationMs
+  const handlePointerDown = useCallback((e: React.PointerEvent, id: string, edge: 'left' | 'right') => {
+    e.stopPropagation();
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const scene = doc.scenes.find(s => s.id === id);
+    if (!scene) return;
+    setDragState({
+      id, edge,
+      startX: e.clientX,
+      startDurationMs: scene.durationMs,
+      originalScenes: [...doc.scenes]
+    });
+  }, [doc.scenes]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragState) return;
+    const deltaX = e.clientX - dragState.startX;
+    const deltaMs = (deltaX / 20) * 1000; // 20px = 1s
     
-    setCurrentTimeMs(safeTime)
-    if (isPlaying) {
-      // Reset clock so it resumes from the new seek position smoothly
-      playbackRef.current.startClock = performance.now()
-      playbackRef.current.startTimelineTime = safeTime
+    let newDuration = dragState.edge === 'right' 
+        ? dragState.startDurationMs + deltaMs
+        : dragState.startDurationMs - deltaMs;
+    
+    if (newDuration < 1000) newDuration = 1000;
+    
+    // Snapping logic
+    const scene = dragState.originalScenes.find(s => s.id === dragState.id);
+    const voiceBlock = voiceBlocks.find(v => v.id === scene?.sectionId);
+    if (voiceBlock && scene) {
+       // Since it's a Ripple edit, scene's start time remains exactly the same as in originalScenes
+       const sceneStartMs = scene.startTimeMs; 
+       const newEndTimeMs = sceneStartMs + newDuration;
+       const voiceEndTimeMs = voiceBlock.startMs + voiceBlock.durationMs;
+       if (Math.abs(newEndTimeMs - voiceEndTimeMs) <= 100) {
+          newDuration = voiceEndTimeMs - sceneStartMs;
+       }
     }
-  }
+
+    const newScenes = dragState.originalScenes.map(s => 
+       s.id === dragState.id ? { ...s, durationMs: Math.round(newDuration) } : s
+    );
+    
+    const recalculated = recalculateTimeline(newScenes);
+    setDoc(prev => ({
+      ...prev,
+      scenes: recalculated.scenes,
+      totalDurationMs: recalculated.totalDurationMs
+    }));
+  }, [dragState, voiceBlocks]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!dragState) return;
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    
+    // Find the scene in current doc to see if it actually changed
+    const currentScene = doc.scenes.find(s => s.id === dragState.id);
+    if (currentScene && currentScene.durationMs !== dragState.startDurationMs) {
+        pushState(doc.scenes);
+    }
+    setDragState(null);
+  }, [dragState, doc.scenes, pushState]);
+
+  // Fit to voice
+  const handleDoubleClick = useCallback((id: string) => {
+    const scene = doc.scenes.find(s => s.id === id);
+    if (!scene) return;
+    const voiceBlock = voiceBlocks.find(v => v.id === scene.sectionId);
+    if (!voiceBlock) return;
+    
+    const targetDuration = voiceBlock.startMs + voiceBlock.durationMs - scene.startTimeMs;
+    if (targetDuration > 0 && targetDuration !== scene.durationMs) {
+      const startDuration = scene.durationMs;
+      const startTime = performance.now();
+      
+      const animateFit = (time: number) => {
+         const elapsed = time - startTime;
+         const progress = Math.min(elapsed / 200, 1);
+         const ease = 1 - (1 - progress) * (1 - progress);
+         const currentDuration = startDuration + (targetDuration - startDuration) * ease;
+         
+         const newScenes = doc.scenes.map(s => 
+           s.id === id ? { ...s, durationMs: Math.round(currentDuration) } : s
+         );
+         
+         if (progress < 1) {
+            const recalculated = recalculateTimeline(newScenes);
+            setDoc(prev => ({ ...prev, scenes: recalculated.scenes, totalDurationMs: recalculated.totalDurationMs }));
+            requestAnimationFrame(animateFit);
+         } else {
+            pushState(newScenes); // Final state pushed to history, also triggers doc update
+         }
+      }
+      requestAnimationFrame(animateFit);
+    }
+  }, [doc.scenes, voiceBlocks, pushState]);
+
+  // Reset to AI (Using initialScenes)
+  const handleReset = useCallback((id: string) => {
+    const initialScene = initialScenes.find(s => s.id === id);
+    if (!initialScene) return;
+    
+    const newScenes = doc.scenes.map(s => 
+      s.id === id ? { ...s, durationMs: Math.round(Number(initialScene.duration) * 1000) } : s
+    );
+    pushState(newScenes);
+  }, [doc.scenes, initialScenes, pushState]);
 
   // Handle click on timeline track
   const trackRef = useRef<HTMLDivElement>(null)
   const handleTrackClick = (e: React.MouseEvent) => {
     if (!trackRef.current) return
     const rect = trackRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const percentage = x / rect.width
-    handleSeek(percentage * totalDurationMs)
+    // x is the click position relative to the left edge of the VISIBLE container
+    const x = e.clientX - rect.left 
+    // We must add the scrollLeft to get the absolute position on the track!
+    const scrollX = trackRef.current.scrollLeft
+    
+    // BUT wait! The left 96px are the labels. We should subtract 96px.
+    const trackX = x + scrollX - 96;
+    if (trackX < 0) return; // Clicked on the label
+    
+    // Now convert trackX to milliseconds
+    const timeMs = (trackX / 20) * 1000;
+    handleSeek(timeMs)
   }
 
   return (
@@ -196,6 +437,18 @@ export function TimelineEditor({
           </Button>
           <div className="flex items-center px-4 font-mono text-xs text-slate-500 bg-slate-200 dark:bg-slate-800 rounded">
             {(currentTimeMs / 1000).toFixed(2)}s / {(totalDurationMs / 1000).toFixed(2)}s
+          </div>
+          
+          <div className="flex items-center pl-4 border-l border-slate-300 dark:border-slate-700 ml-2">
+            <span className={`text-xs font-medium flex items-center ${
+              saveState === "saved" ? "text-slate-500" :
+              saveState === "dirty" ? "text-amber-500" :
+              "text-blue-500"
+            }`}>
+              {saveState === "saved" && "✓ Saved"}
+              {saveState === "dirty" && "● Unsaved"}
+              {saveState === "saving" && "⟳ Saving..."}
+            </span>
           </div>
         </div>
         <Button 
@@ -238,7 +491,6 @@ export function TimelineEditor({
         {/* Right side: Timeline Tracks Area */}
         <div className="flex-1 flex flex-col p-4 bg-slate-50 dark:bg-[#0f111a] overflow-x-hidden">
           
-          {/* Slider for seeking */}
           <div className="mb-6 flex items-center space-x-4">
             <span className="text-xs text-slate-400 font-mono">0s</span>
             <input 
@@ -252,84 +504,133 @@ export function TimelineEditor({
             <span className="text-xs text-slate-400 font-mono">{(totalDurationMs/1000).toFixed(1)}s</span>
           </div>
 
-          <div className="space-y-4 relative flex-1">
-            
-            {/* Playhead Overlay wrapper (matches track width) */}
-            <div className="absolute top-0 bottom-0 left-24 right-0 z-20 pointer-events-none">
+          {/* SCROLLABLE TIMELINE CONTAINER */}
+          <div 
+            ref={trackRef}
+            onClick={handleTrackClick}
+            className="flex-1 overflow-x-auto relative rounded-md border border-slate-300 dark:border-slate-800 bg-slate-200 dark:bg-[#1a1d2d] shadow-inner select-none"
+          >
+            <div 
+              className="relative min-w-full min-h-[12rem] py-4"
+              style={{ width: `max(100%, ${totalDurationMs > 0 ? (totalDurationMs / 1000) * 20 + 96 : 0}px)` }} // 20 = pixelsPerSecond, 96 = w-24
+            >
+              {/* Playhead Overlay */}
               <div 
-                className="absolute top-0 bottom-0 w-px bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)]"
-                style={{ left: `${totalDurationMs > 0 ? (currentTimeMs / totalDurationMs) * 100 : 0}%` }}
+                className="absolute top-0 bottom-0 w-px bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)] z-50 pointer-events-none"
+                style={{ left: `${(currentTimeMs / 1000) * 20 + 96}px` }}
               >
                 <div className="absolute -top-2 -left-1.5 w-3 h-3 bg-red-500 rotate-45 rounded-sm"></div>
               </div>
-            </div>
 
-            {/* VIDEO TRACK (Active) */}
-            <div className="flex relative z-10">
-              <div className="w-24 shrink-0 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 px-2 rounded-l-md">
-                <ImageIcon className="w-3 h-3 mr-1" /> Video
-              </div>
-              <div 
-                ref={trackRef}
-                onClick={handleTrackClick}
-                className="flex-1 bg-slate-200 dark:bg-[#1a1d2d] rounded-r-md border-y border-r border-slate-300 dark:border-slate-800 shadow-inner relative min-h-[5rem] flex cursor-pointer overflow-hidden"
+              {/* VIDEO TRACK (Active) */}
+              <div className="flex relative z-10 mb-2" 
+                onPointerMove={dragState ? handlePointerMove : undefined}
+                onPointerUp={dragState ? handlePointerUp : undefined}
+                onPointerLeave={dragState ? handlePointerUp : undefined}
               >
-                {previewScenes.map((scene) => (
-                  <div
-                    key={scene.id}
-                    onClick={(e) => { e.stopPropagation(); setSelectedId(scene.id); }}
-                    className={`relative h-full bg-indigo-900 border-r border-indigo-950 flex flex-col items-center justify-center text-[10px] text-white select-none transition-colors hover:bg-indigo-800 shrink-0
-                      ${selectedId === scene.id ? "bg-indigo-600 shadow-inner z-10" : ""}
-                    `}
-                    style={{ width: `${totalDurationMs > 0 ? (scene.durationMs / totalDurationMs) * 100 : 0}%` }}
-                    title={`Scene: ${(scene.durationMs/1000).toFixed(1)}s`}
-                  >
-                    {scene.mediaId ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={scene.publicUrl || ""} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay pointer-events-none" />
-                    ) : null}
-                    <span className="relative z-10 drop-shadow-md truncate w-full text-center px-1">{(scene.durationMs/1000).toFixed(1)}s</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+                <div className="w-24 shrink-0 sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-y border-slate-300 dark:border-slate-800 px-2 rounded-r-md shadow-sm h-20">
+                  <ImageIcon className="w-3 h-3 mr-1" /> Video
+                </div>
+                <div className="flex-1 relative h-20">
+                  {previewScenes.map((scene) => {
+                    const isSelected = selectedId === scene.id;
+                    const voiceBlock = voiceBlocks.find(v => v.id === scene.sectionId);
+                    
+                    // Warning border if Video < Voice duration
+                    let warningClass = "";
+                    if (voiceBlock) {
+                      // Note: Because scenes and voiceblocks can be 1:N or M:1, 
+                      // we'll just check if this single scene is shorter than the voice block for now.
+                      // Ideally we'd sum all scenes in the section, but simple is better here.
+                      if (scene.durationMs < voiceBlock.durationMs - 100) {
+                        warningClass = "ring-2 ring-yellow-400 ring-inset";
+                      }
+                    }
 
-            {/* VOICE TRACK */}
-            <div className="flex relative z-0 mt-2">
-              <div className="w-24 shrink-0 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 px-2 rounded-l-md">
-                <Mic className="w-3 h-3 mr-1" /> Voice
+                    return (
+                      <div
+                        key={scene.id}
+                        onClick={(e) => { e.stopPropagation(); setSelectedId(scene.id); }}
+                        onDoubleClick={(e) => { e.stopPropagation(); handleDoubleClick(scene.id); }}
+                        onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); handleReset(scene.id); }}
+                        className={`absolute top-0 bottom-0 bg-indigo-900 border-r border-indigo-950 flex flex-col items-center justify-center text-[10px] text-white transition-colors hover:bg-indigo-800 overflow-hidden cursor-pointer
+                          ${isSelected ? "bg-indigo-600 shadow-inner z-20" : "z-10"}
+                          ${warningClass}
+                        `}
+                        style={{ 
+                          left: `${(scene.startTimeMs / 1000) * 20}px`,
+                          width: `${(scene.durationMs / 1000) * 20}px` 
+                        }}
+                        title={`Scene: ${(scene.durationMs/1000).toFixed(1)}s ${warningClass ? '(Video ends before narration)' : ''}`}
+                      >
+                        {scene.mediaId ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={scene.publicUrl || ""} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay pointer-events-none" />
+                        ) : null}
+                        <span className="relative z-10 drop-shadow-md truncate w-full text-center px-4 font-mono font-bold">
+                          {(scene.durationMs/1000).toFixed(1)}s
+                        </span>
+                        
+                        {/* DRAG HANDLES */}
+                        {isSelected && (
+                          <>
+                            <div 
+                              className="absolute left-0 top-0 bottom-0 w-4 cursor-ew-resize hover:bg-white/30 z-30 flex items-center justify-center"
+                              onPointerDown={(e) => handlePointerDown(e, scene.id, 'left')}
+                            >
+                              <div className="w-1 h-4 bg-white rounded-full pointer-events-none opacity-50" />
+                            </div>
+                            <div 
+                              className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize hover:bg-white/30 z-30 flex items-center justify-center"
+                              onPointerDown={(e) => handlePointerDown(e, scene.id, 'right')}
+                            >
+                              <div className="w-1 h-4 bg-white rounded-full pointer-events-none opacity-50" />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-              <div className="flex-1 bg-slate-200 dark:bg-[#1a1d2d] rounded-r-md border-y border-r border-slate-300 dark:border-slate-800 shadow-inner relative min-h-[3rem] overflow-hidden">
-                {voiceBlocks.length > 0 ? voiceBlocks.map(block => (
-                  <div
-                    key={block.id}
-                    className="absolute top-1 bottom-1 bg-emerald-600/80 hover:bg-emerald-500 border border-emerald-400 rounded flex items-center justify-center text-[10px] text-white shadow-sm overflow-hidden whitespace-nowrap px-2 transition-colors cursor-pointer"
-                    style={{
-                      left: `${totalDurationMs > 0 ? (block.startMs / totalDurationMs) * 100 : 0}%`,
-                      width: `${totalDurationMs > 0 ? (block.durationMs / totalDurationMs) * 100 : 0}%`
-                    }}
-                    title={`Voice Duration: ${(block.durationMs/1000).toFixed(1)}s`}
-                  >
-                    S{block.sectionIndex} ({(block.durationMs/1000).toFixed(1)}s)
-                  </div>
-                )) : (
-                  <div className="flex items-center justify-center w-full h-full text-xs text-slate-400">
-                    No Voice Tracks (Run Generate Voice)
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* SUBTITLE TRACK (Disabled) */}
-            <div className="flex opacity-50 grayscale pointer-events-none">
-              <div className="w-24 shrink-0 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 px-2 rounded-l-md">
-                <Type className="w-3 h-3 mr-1" /> Subs
+              {/* VOICE TRACK (Read-Only) */}
+              <div className="flex relative z-0 mb-2">
+                <div className="w-24 shrink-0 sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-y border-slate-300 dark:border-slate-800 px-2 rounded-r-md shadow-sm h-12">
+                  <Mic className="w-3 h-3 mr-1" /> Voice
+                </div>
+                <div className="flex-1 relative h-12">
+                  {voiceBlocks.length > 0 ? voiceBlocks.map(block => (
+                    <div
+                      key={block.id}
+                      className="absolute top-1 bottom-1 bg-emerald-600/80 hover:bg-emerald-500 border border-emerald-400 rounded flex items-center justify-center text-[10px] text-white shadow-sm overflow-hidden whitespace-nowrap px-2 transition-colors cursor-pointer"
+                      style={{
+                        left: `${(block.startMs / 1000) * 20}px`,
+                        width: `${(block.durationMs / 1000) * 20}px`
+                      }}
+                      title={`Voice Duration: ${(block.durationMs/1000).toFixed(1)}s`}
+                    >
+                      S{block.sectionIndex} ({(block.durationMs/1000).toFixed(1)}s)
+                    </div>
+                  )) : (
+                    <div className="flex items-center justify-center w-full h-full text-xs text-slate-400">
+                      No Voice Tracks (Run Generate Voice)
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex-1 bg-slate-200 dark:bg-[#1a1d2d] rounded-r-md border-y border-r border-slate-300 dark:border-slate-800 p-2 min-h-[3rem] flex items-center justify-center text-xs text-slate-400">
-                [ Coming Soon ]
-              </div>
-            </div>
 
+              {/* SUBTITLE TRACK (Disabled) */}
+              <div className="flex relative z-0 opacity-50 grayscale pointer-events-none">
+                <div className="w-24 shrink-0 sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-y border-slate-300 dark:border-slate-800 px-2 rounded-r-md shadow-sm h-12">
+                  <Type className="w-3 h-3 mr-1" /> Subs
+                </div>
+                <div className="flex-1 relative h-12 flex items-center justify-center text-xs text-slate-400">
+                  [ Coming Soon ]
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
 

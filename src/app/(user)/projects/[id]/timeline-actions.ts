@@ -186,3 +186,30 @@ export async function rebuildTimeline(projectId: string): Promise<TimelineAction
 export async function syncTimelineToVoice(projectId: string): Promise<TimelineActionResult> {
   return await buildTimelineCore(projectId, true, true)
 }
+
+export async function updateTimelineDurations(projectId: string, updates: { id: string, durationMs: number, startTimeMs: number, endTimeMs: number }[]) {
+  const supabase = createClient()
+  
+  // Parallel updates for safety and simplicity, maintaining backward compatibility 
+  // by writing start_time and end_time for the video renderer
+  const promises = updates.map(update => 
+    supabase.from("project_scenes")
+      .update({ 
+        duration: update.durationMs / 1000.0,
+        start_time: update.startTimeMs / 1000.0,
+        end_time: update.endTimeMs / 1000.0
+      })
+      .eq("id", update.id)
+      .eq("project_id", projectId)
+  )
+  
+  const results = await Promise.all(promises)
+  const hasError = results.some(r => r.error)
+  
+  if (hasError) {
+    return { success: false, message: "Failed to save timeline adjustments" }
+  }
+  
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}

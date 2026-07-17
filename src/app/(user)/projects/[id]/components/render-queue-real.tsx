@@ -137,6 +137,28 @@ export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: 
     )
   }
 
+  let overallProgress = 0;
+  switch (status) {
+    case "preparing":
+      overallProgress = progress * 0.1;
+      break;
+    case "generating_audio":
+      overallProgress = 10 + progress * 0.2;
+      break;
+    case "rendering":
+      overallProgress = 30 + progress * 0.6;
+      break;
+    case "uploading":
+      overallProgress = 90 + progress * 0.1;
+      break;
+    case "completed":
+      overallProgress = 100;
+      break;
+  }
+  
+  // Format to 1 decimal place if it's not a whole number to make it look smooth
+  const displayProgress = overallProgress.toFixed(1);
+
   return (
     <div className={`bg-slate-900 border border-slate-800 rounded-xl p-8 mt-6 shadow-2xl transition-opacity duration-1000 ${fade ? 'opacity-0' : 'opacity-100'}`}>
       <h2 className="text-xl font-bold text-white mb-8 flex items-center">
@@ -144,38 +166,24 @@ export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: 
         Render Job Active
       </h2>
 
-      <div className="relative">
-        <div className="absolute left-[15px] top-0 bottom-0 w-0.5 bg-slate-800" />
-        <div className="space-y-6">
-          {renderSteps.map((step, idx) => {
-            const isCompleted = getCurrentStepIndex() > idx
-            const isActive = status === step.id
-
-            return (
-              <div key={step.id} className={`relative flex items-center pl-10 ${isActive ? 'opacity-100' : isCompleted ? 'opacity-50' : 'opacity-30 grayscale'}`}>
-                <div className={`absolute left-0 w-8 h-8 rounded-full flex items-center justify-center border-4 border-slate-900 ${
-                  isActive ? 'bg-indigo-500' : isCompleted ? 'bg-emerald-500' : 'bg-slate-700'
-                }`}>
-                  {isCompleted ? <Check className="w-3 h-3 text-white" /> : isActive ? <div className="w-2 h-2 bg-white rounded-full animate-ping" /> : null}
-                </div>
-
-                <div className="flex-1">
-                  <h3 className={`font-semibold ${isActive ? 'text-indigo-300' : 'text-slate-300'}`}>{step.label}</h3>
-                  {isActive && (
-                    <div className="mt-3">
-                      <div className="flex justify-between text-xs text-slate-400 mb-1 font-mono">
-                        <span>{progressMessage}</span>
-                        <span>{progress}%</span>
-                      </div>
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div className="bg-indigo-500 h-full transition-all duration-300" style={{ width: `${progress}%` }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+      <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700/50">
+        <div className="flex justify-between items-end mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-indigo-300">Rendering Video...</h3>
+            <p className="text-sm text-slate-400 mt-1">{progressMessage || "Processing data..."}</p>
+          </div>
+          <div className="text-2xl font-mono font-bold text-indigo-400">
+            {displayProgress}%
+          </div>
+        </div>
+        
+        <div className="w-full bg-slate-900 h-4 rounded-full overflow-hidden border border-slate-700 shadow-inner">
+          <div 
+            className="bg-gradient-to-r from-indigo-600 to-indigo-400 h-full transition-all duration-300 ease-out relative" 
+            style={{ width: `${displayProgress}%` }}
+          >
+            <div className="absolute top-0 bottom-0 left-0 right-0 bg-white/20 animate-pulse"></div>
+          </div>
         </div>
       </div>
     </div>
