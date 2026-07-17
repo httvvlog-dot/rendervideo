@@ -25,6 +25,7 @@ export function VoiceGeneratorButtons({
     // Forcefully stop playback before doing heavy operations
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('taovideo:pause'));
+      window.dispatchEvent(new CustomEvent('taovideo:workflow-step', { detail: { step: 1 } }));
     }
     
     setIsGenerating(true)

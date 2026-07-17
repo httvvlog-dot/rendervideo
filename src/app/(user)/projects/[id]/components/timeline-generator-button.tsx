@@ -21,6 +21,7 @@ export function TimelineGeneratorButton({
   const router = useRouter()
 
   const handleGenerate = async () => {
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('taovideo:workflow-step', { detail: { step: 2 } }));
     setIsGenerating(true)
     const toastId = toast.loading("Generating timeline...")
     try {
@@ -46,6 +47,7 @@ export function TimelineGeneratorButton({
   }
 
   const handleRebuild = async () => {
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('taovideo:workflow-step', { detail: { step: 3 } }));
     setIsGenerating(true)
     const toastId = toast.loading("Rebuilding timeline...")
     try {
