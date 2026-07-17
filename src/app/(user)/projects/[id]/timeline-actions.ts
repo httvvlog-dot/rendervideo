@@ -188,7 +188,7 @@ export async function syncTimelineToVoice(projectId: string): Promise<TimelineAc
 }
 
 export async function updateTimelineDurations(projectId: string, updates: { id: string, durationMs: number, startTimeMs: number, endTimeMs: number }[]) {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   // Parallel updates for safety and simplicity, maintaining backward compatibility 
   // by writing start_time and end_time for the video renderer

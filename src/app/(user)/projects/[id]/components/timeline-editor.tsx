@@ -391,6 +391,28 @@ export function TimelineEditor({
     pushState(newScenes);
   }, [doc.scenes, initialScenes, pushState]);
 
+  const togglePlay = () => {
+    if (currentTimeMs >= totalDurationMs && !isPlaying) {
+      setCurrentTimeMs(0) // Restart if at the end
+    }
+    // Safari/Chrome autoplay policy: Wake up context synchronously on user gesture
+    globalAudioEngine.getContext().resume()
+    setIsPlaying(!isPlaying)
+  }
+
+  const handleSeek = (timeMs: number) => {
+    let safeTime = timeMs
+    if (safeTime < 0) safeTime = 0
+    if (safeTime > totalDurationMs) safeTime = totalDurationMs
+    
+    setCurrentTimeMs(safeTime)
+    if (isPlaying) {
+      // Reset clock so it resumes from the new seek position smoothly
+      playbackRef.current.startClock = performance.now()
+      playbackRef.current.startTimelineTime = safeTime
+    }
+  }
+
   // Handle click on timeline track
   const trackRef = useRef<HTMLDivElement>(null)
   const handleTrackClick = (e: React.MouseEvent) => {
