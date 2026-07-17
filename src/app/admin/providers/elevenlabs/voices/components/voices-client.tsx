@@ -12,7 +12,7 @@ export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
   const [importId, setImportId] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all"); // all, active, inactive
+  const [activeFilter, setActiveFilter] = useState("active"); // all, active, inactive
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
 
   const supabase = createClient();
