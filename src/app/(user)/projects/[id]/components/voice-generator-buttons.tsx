@@ -8,24 +8,27 @@ import { syncTimelineToVoice } from "../timeline-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
+import { useWorkflowStep } from "./workflow-indicator"
+
 export function VoiceGeneratorButtons({ 
   projectId, 
   allVoicesGenerated, 
   hasAnySections 
 }: { 
   projectId: string;
-  allVoicesGenerated?: boolean;
-  hasAnySections?: boolean;
+  allVoicesGenerated: boolean;
+  hasAnySections: boolean;
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const router = useRouter()
+  const { activeStep, setStep } = useWorkflowStep(allVoicesGenerated, true);
 
   const handleGenerateVoice = async (force: boolean = false) => {
     // Forcefully stop playback before doing heavy operations
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('taovideo:pause'));
-      window.dispatchEvent(new CustomEvent('taovideo:workflow-step', { detail: { step: 1 } }));
+      setStep(1);
     }
     
     setIsGenerating(true)
@@ -35,23 +38,15 @@ export function VoiceGeneratorButtons({
       console.log("[GenerateVoice] result:", res)
       
       if (res.success) {
-        if (res.generatedCount > 0) {
-          toast.success(`Generated ${res.generatedCount} voices`, { id: toastId })
-          if (res.failedSections && res.failedSections.length > 0) {
-            toast.warning(`Failed to generate ${res.failedSections.length} sections: ${res.failedSections[0]?.error}`, { id: toastId })
-          }
-        } else if (res.failedSections && res.failedSections.length > 0) {
-          toast.error(`Voice generation failed for ${res.failedSections.length} sections. Error: ${res.failedSections[0]?.error}`, { id: toastId })
-        } else if (res.skippedCount > 0) {
-          toast.success(`No new voices generated. Existing voices were preserved.`, { id: toastId })
-        } else {
-          toast.success(`No sections to generate.`, { id: toastId })
-        }
+        toast.success(`Generated voices for ${res.generatedCount} section(s)`, { id: toastId })
+        // Requirement 1: "khi regenerate all voice thì Workflow bắt buộc nhảy sang step 2"
+        setStep(2);
         router.refresh()
       } else {
-        toast.error(res.message || "Failed to generate voice", { id: toastId })
+        toast.error("Failed to generate voice", { id: toastId })
       }
     } catch (err: any) {
+      console.error("[GenerateVoice] error:", err)
       toast.error(err.message, { id: toastId })
     } finally {
       setIsGenerating(false)
@@ -59,12 +54,15 @@ export function VoiceGeneratorButtons({
   }
 
   const handleSyncTimeline = async () => {
+    setStep(2);
     setIsSyncing(true)
     const toastId = toast.loading("Syncing timeline to voice...")
     try {
       const res = await syncTimelineToVoice(projectId)
       if (res.success) {
         toast.success(`Timeline synced to voice duration`, { id: toastId })
+        // Requirement 1: "bấm sync timeline hoàn thành xong thì Workflow bắt buộc nhảy lại về step 1"
+        setStep(1);
         router.refresh()
       } else {
         toast.error(('message' in res ? res.message : res.code) || "Failed to sync timeline", { id: toastId })
@@ -82,7 +80,11 @@ export function VoiceGeneratorButtons({
         variant="secondary" 
         onClick={() => handleGenerateVoice(false)} 
         disabled={isGenerating || isSyncing || !hasAnySections || allVoicesGenerated}
-        className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 disabled:opacity-50"
+        className={`transition-all ${
+          activeStep === 1 && !allVoicesGenerated 
+          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 shadow-md ring-2 ring-emerald-400" 
+          : "bg-slate-100 text-slate-500 opacity-60 hover:opacity-100 dark:bg-slate-800 dark:text-slate-400"
+        } disabled:opacity-40`}
       >
         {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mic className="w-4 h-4 mr-2" />}
         {allVoicesGenerated ? "Voices Ready" : "Generate Missing Voice"}
@@ -96,7 +98,11 @@ export function VoiceGeneratorButtons({
           }
         }} 
         disabled={isGenerating || isSyncing || !hasAnySections}
-        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 border-orange-200 dark:border-orange-800 disabled:opacity-50"
+        className={`transition-all ${
+          activeStep === 1 
+          ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 border-orange-300 dark:border-orange-700 shadow-md ring-1 ring-orange-400" 
+          : "text-slate-500 border-slate-200 opacity-60 hover:opacity-100 dark:border-slate-800 dark:text-slate-400"
+        } disabled:opacity-40`}
       >
         Regenerate All Voices
       </Button>
@@ -105,7 +111,11 @@ export function VoiceGeneratorButtons({
         variant="outline" 
         onClick={handleSyncTimeline} 
         disabled={isGenerating || isSyncing || !allVoicesGenerated}
-        className={allVoicesGenerated ? "border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20" : ""}
+        className={`transition-all ${
+          activeStep === 2 
+          ? "border-blue-400 text-blue-700 dark:border-blue-500 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 shadow-md ring-2 ring-blue-400" 
+          : "text-slate-500 border-slate-200 opacity-60 hover:opacity-100 dark:border-slate-800 dark:text-slate-400"
+        } disabled:opacity-40`}
       >
         {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
         Sync Timeline

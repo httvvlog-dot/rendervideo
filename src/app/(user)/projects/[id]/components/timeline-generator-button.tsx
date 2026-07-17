@@ -7,6 +7,8 @@ import { generateTimeline, rebuildTimeline } from "../timeline-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
+import { useWorkflowStep } from "./workflow-indicator"
+
 export function TimelineGeneratorButton({ 
   projectId, 
   hasExistingScenes,
@@ -19,9 +21,10 @@ export function TimelineGeneratorButton({
   const [isGenerating, setIsGenerating] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const router = useRouter()
+  const { activeStep, setStep } = useWorkflowStep(allVoicesGenerated ?? false, hasExistingScenes);
 
   const handleGenerate = async () => {
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('taovideo:workflow-step', { detail: { step: 2 } }));
+    setStep(3);
     setIsGenerating(true)
     const toastId = toast.loading("Generating timeline...")
     try {
@@ -37,6 +40,7 @@ export function TimelineGeneratorButton({
         }
       } else {
         toast.success(`Timeline generated (${res.sceneCount} scenes)`, { id: toastId })
+        setStep(1); // Return to default rest state
         router.refresh()
       }
     } catch (err: any) {
@@ -47,7 +51,7 @@ export function TimelineGeneratorButton({
   }
 
   const handleRebuild = async () => {
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('taovideo:workflow-step', { detail: { step: 3 } }));
+    setStep(3);
     setIsGenerating(true)
     const toastId = toast.loading("Rebuilding timeline...")
     try {
@@ -61,6 +65,7 @@ export function TimelineGeneratorButton({
       } else {
         toast.success(`Timeline rebuilt (${res.sceneCount} scenes)`, { id: toastId })
         setShowConfirm(false)
+        setStep(1); // Return to default rest state
         router.refresh()
       }
     } catch (err: any) {
@@ -97,11 +102,13 @@ export function TimelineGeneratorButton({
     <Button 
       onClick={() => hasExistingScenes ? setShowConfirm(true) : handleGenerate()} 
       disabled={isGenerating || (allVoicesGenerated === false)}
-      className={
-        (allVoicesGenerated !== false) 
-        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm" 
-        : "bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed"
-      }
+      className={`transition-all ${
+        (allVoicesGenerated !== false && activeStep === 3) 
+        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md ring-2 ring-blue-400" 
+        : (allVoicesGenerated !== false)
+          ? "bg-slate-100 text-slate-500 opacity-60 hover:opacity-100 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+          : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed opacity-40"
+      }`}
     >
       {isGenerating ? 
         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {hasExistingScenes ? "Rebuilding..." : "Generating..."}</> : 
