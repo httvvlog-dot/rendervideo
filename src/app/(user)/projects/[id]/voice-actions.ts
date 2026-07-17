@@ -59,33 +59,37 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
   let resolvedVoiceId: string | undefined = undefined;
   let resolvedSettings: any = {};
   
-  let targetPresetId = voicePresetId;
+  // Rule: ONLY use project.voice_template_id (or explicitly passed voicePresetId)
+  let targetPresetId = voicePresetId || project.voice_template_id;
   
-  // If not provided, fallback to user's default
-  if (!targetPresetId && userId !== 'service_role') {
-    const { data: profile } = await supabase.from('profiles').select('default_voice_preset_id').eq('id', userId).single();
-    if (profile?.default_voice_preset_id) {
-      targetPresetId = profile.default_voice_preset_id;
-    }
+  if (!targetPresetId) {
+    return { success: false, code: "NO_VOICE_SELECTED", message: "No voice template assigned to this project." }
   }
 
   if (targetPresetId) {
+    if (project.voice_template_id !== targetPresetId) {
+      throw new Error(`Target preset ID (${targetPresetId}) does not match project voice template ID (${project.voice_template_id})`);
+    }
+
     const { data: vPreset } = await supabase
       .from("voice_presets")
-      .select("voice_id, settings_json")
+      .select("display_name, voice_id, settings_json")
       .eq("id", targetPresetId)
       .single();
       
     if (vPreset && vPreset.voice_id) {
       resolvedVoiceId = vPreset.voice_id;
       resolvedSettings = vPreset.settings_json || {};
+      (global as any).__DEBUG_PRESET_NAME = vPreset.display_name; // Temporary store for logs
       console.log(`[TTS] Voice source: voice_preset (${targetPresetId})`);
       console.log(`[TTS] Effective voice ID: ${resolvedVoiceId}`);
+    } else {
+      throw new Error("Selected voice preset is invalid or missing Voice ID.");
     }
   }
 
   if (!resolvedVoiceId) {
-    console.log(`[TTS] Voice source: provider_default`);
+    throw new Error("Failed to resolve ElevenLabs Voice ID before generation.");
   }
 
   // 2. Fetch active script sections
@@ -123,6 +127,16 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
 
     console.log(`[VOICE] SECTION_START index=${section.section_index}`);
     try {
+      // --- DEBUG LOGS (Requested by User) ---
+      console.log("================================================")
+      console.log(`[DEBUG] Project ID                : ${projectId}`)
+      console.log(`[DEBUG] Project Voice Template ID : ${project.voice_template_id}`)
+      console.log(`[DEBUG] Voice Preset Name         : ${(global as any).__DEBUG_PRESET_NAME || "Unknown"}`)
+      console.log(`[DEBUG] Resolved Voice ID         : ${resolvedVoiceId}`)
+      console.log(`[DEBUG] ElevenLabs Model          : eleven_multilingual_v2`)
+      console.log(`[DEBUG] Generating Section ID     : ${section.id}`)
+      console.log("================================================")
+
       // a. Generate TTS
       console.log(`[VOICE] TTS_REQUEST_START section_index=${section.section_index}`);
       const audioBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {

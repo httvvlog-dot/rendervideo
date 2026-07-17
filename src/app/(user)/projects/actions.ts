@@ -58,3 +58,28 @@ export async function duplicateProject(projectId: string) {
   revalidatePath("/dashboard")
   return data.id
 }
+
+export async function updateProjectVoice(projectId: string, voicePresetId: string) {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, error: "Unauthorized" }
+
+  const supabase = await createClient()
+  
+  // 1. Update project's voice template
+  const { error: projErr } = await supabase
+    .from("projects")
+    .update({ voice_template_id: voicePresetId })
+    .eq("id", projectId)
+    .eq("user_id", user.id)
+
+  if (projErr) return { success: false, error: projErr.message }
+
+  // 2. Also update user's default preference so new projects use it
+  await supabase
+    .from("profiles")
+    .update({ default_voice_preset_id: voicePresetId })
+    .eq("id", user.id)
+
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
+}

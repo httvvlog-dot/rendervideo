@@ -123,7 +123,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">Timeline Editor</h2>
                 <div className="flex items-center space-x-2">
-                  <VoiceSelector voices={activeVoices || []} defaultVoiceId={profile?.default_voice_preset_id} />
+                  <VoiceSelector 
+                    projectId={project.id}
+                    voices={activeVoices || []} 
+                    defaultVoiceId={project.voice_template_id || profile?.default_voice_preset_id} 
+                  />
                   <VoiceGeneratorButtons 
                     projectId={project.id} 
                     allVoicesGenerated={allVoicesGenerated} 

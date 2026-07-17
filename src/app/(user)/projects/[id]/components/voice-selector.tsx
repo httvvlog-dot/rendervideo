@@ -1,33 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { Play, Check, ChevronDown } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Play, Check, ChevronDown, Loader2 } from "lucide-react";
+import { updateProjectVoice } from "../../actions";
 
 export function VoiceSelector({ 
+  projectId,
   voices, 
   defaultVoiceId 
 }: { 
+  projectId: string;
   voices: any[]; 
   defaultVoiceId?: string;
 }) {
   const [selected, setSelected] = useState(defaultVoiceId || "");
   const [isOpen, setIsOpen] = useState(false);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  const handleSelect = async (id: string) => {
+  const handleSelect = (id: string) => {
     setSelected(id);
     setIsOpen(false);
     
-    // Update user preferences
-    try {
-      await fetch("/api/user/preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ default_voice_preset_id: id })
-      });
-    } catch (err) {
-      console.error("Failed to update default voice", err);
-    }
+    startTransition(async () => {
+      try {
+        await updateProjectVoice(projectId, id);
+      } catch (err) {
+        console.error("Failed to update project voice", err);
+      }
+    });
   };
 
   const playPreview = (e: React.MouseEvent, url: string, voiceId: string) => {
@@ -53,6 +54,20 @@ export function VoiceSelector({
 
   return (
     <div className="relative">
+      <div className="flex flex-col mb-1">
+        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center">
+          Project Voice
+          {isPending ? (
+            <span className="ml-2 text-yellow-500 normal-case tracking-normal text-[10px] flex items-center">
+              Saving...
+            </span>
+          ) : (
+            <span className="ml-2 text-green-500 normal-case tracking-normal text-[10px] flex items-center">
+              <Check className="w-3 h-3 mr-1" /> Saved
+            </span>
+          )}
+        </span>
+      </div>
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between w-64 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
@@ -61,7 +76,11 @@ export function VoiceSelector({
           <span className="font-semibold">{selectedVoice?.display_name || "Select Voice"}</span>
           <span className="text-xs text-slate-500 truncate w-48 text-left">{selectedVoice?.description || "No description"}</span>
         </div>
-        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+        {isPending ? (
+          <Loader2 className="w-4 h-4 text-slate-400 shrink-0 ml-2 animate-spin" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+        )}
       </button>
 
       {isOpen && (
