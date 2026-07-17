@@ -85,12 +85,11 @@ export function ElevenLabsForm({ providerId, credential, onSuccess }: { provider
           <SecretInput name="apiKey" defaultValue={config.apiKey} placeholder="xi-..." />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Default Voice ID <span className="text-red-500">*</span></label>
+          <label className="block text-sm font-medium mb-1">Fallback Voice ID (Optional)</label>
           <input 
             type="text" 
             name="default_voice_id" 
             defaultValue={config.default_voice_id}
-            required
             placeholder="e.g. 21m00Tcm4TlvDq8ikWAM (Rachel)"
             className="w-full border rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
           />

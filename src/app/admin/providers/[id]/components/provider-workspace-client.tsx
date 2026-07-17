@@ -75,6 +75,22 @@ export function ProviderWorkspaceClient({ provider }: { provider: any }) {
       {/* Main Content Area */}
       <div className="flex-1 overflow-auto pb-12">
         <div className="max-w-4xl space-y-4">
+          
+          {provider?.provider_key === 'elevenlabs' && (
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-xl flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100">Voice Management (Sprint 5.1)</h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300">Sync all voices from ElevenLabs, import by Voice ID, and manage display names.</p>
+              </div>
+              <Link 
+                href="/admin/providers/elevenlabs/voices"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Manage Voices
+              </Link>
+            </div>
+          )}
+
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold">API Credentials & Configurations</h2>
             <button 
