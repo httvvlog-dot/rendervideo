@@ -31,6 +31,9 @@ export class AudioEngine {
   private lastEngineStartTime: number = 0; // AudioContext time when play started
   private lastTimelineStartMs: number = 0; // Timeline ms when play started
   
+  // Lifecycle Management
+  private currentGeneration: number = 0;
+  
   // Current tracks given by React
   private tracks: AudioTrackInput[] = [];
 
@@ -52,11 +55,23 @@ export class AudioEngine {
   }
 
   public syncTracks(newTracks: AudioTrackInput[]) {
+    this.currentGeneration++;
+    const generation = this.currentGeneration;
+    
     this.tracks = newTracks;
+    
+    // Force a clean slate if we are actively playing and tracks suddenly swap out
+    if (this.isPlaying) {
+      this.stopAllNodes();
+    }
+    
     // Trigger progressive loading
     newTracks.forEach(t => {
       const stateBefore = globalAudioCache.getState(t.sourceUrl);
       globalAudioCache.load(t.sourceUrl).then(() => {
+        // Abandon callback if a newer generation has started
+        if (generation !== this.currentGeneration) return;
+        
         // If it just finished loading (wasn't ready before) and we are currently playing, we need to schedule it!
         if (stateBefore !== 'Ready' && this.isPlaying) {
           const currentTimelineMs = this.lastTimelineStartMs + ((this.ctx.currentTime - this.lastEngineStartTime) * 1000);
@@ -67,6 +82,14 @@ export class AudioEngine {
         }
       });
     });
+    
+    // Re-schedule immediately for tracks that are already cached and ready
+    if (this.isPlaying) {
+      const currentTimelineMs = this.lastTimelineStartMs + ((this.ctx.currentTime - this.lastEngineStartTime) * 1000);
+      this.lastEngineStartTime = this.ctx.currentTime;
+      this.lastTimelineStartMs = currentTimelineMs;
+      this.scheduleNodes(currentTimelineMs);
+    }
   }
 
   public async play(timelineMs: number) {
@@ -126,10 +149,14 @@ export class AudioEngine {
   }
 
   private stopAllNodes() {
+    this.currentGeneration++; // Invalidate any pending async setups for this node batch
+    
     this.activeNodes.forEach(node => {
       try {
+        node.source.onended = null; // Decouple event listener to prevent race conditions completely
         node.source.stop();
         node.source.disconnect();
+        node.gain.disconnect(); // Fully dispose of graph endpoints
       } catch (e) {
         // Ignore if already stopped
       }
@@ -139,6 +166,7 @@ export class AudioEngine {
 
   private scheduleNodes(timelineMs: number) {
     if (!this.isPlaying) return;
+    const generation = this.currentGeneration;
 
     this.tracks.forEach(track => {
       const trackEndMs = track.startMs + track.durationMs;
@@ -149,9 +177,6 @@ export class AudioEngine {
       const cached = globalAudioCache.get(track.sourceUrl);
       if (!cached) {
         // Progressive loading: if not ready, we skip scheduling for now.
-        // It could be scheduled dynamically when it resolves, but for now we rely on React to re-sync or just skip.
-        // In a perfect scheduler, we listen to load events. 
-        // For this sprint, we'll poll it or let React trigger a sync when loaded.
         return;
       }
 
@@ -189,8 +214,12 @@ export class AudioEngine {
 
       // Cleanup when done naturally
       source.onended = () => {
-        if (this.activeNodes.has(track.id)) {
+        if (generation !== this.currentGeneration) return; // Strict generation verification
+
+        const activeNode = this.activeNodes.get(track.id);
+        if (activeNode && activeNode.source === source) {
           source.disconnect();
+          activeNode.gain.disconnect();
           this.activeNodes.delete(track.id);
         }
       };
