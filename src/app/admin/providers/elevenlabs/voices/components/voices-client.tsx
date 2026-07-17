@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, Download, Play, Search, Filter, PowerOff } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -8,6 +8,11 @@ import { createClient } from "@/utils/supabase/client";
 export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
   const router = useRouter();
   const [voices, setVoices] = useState(initialVoices);
+
+  // Keep local state in sync with server component data when router.refresh() is called
+  useEffect(() => {
+    setVoices(initialVoices);
+  }, [initialVoices]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [importId, setImportId] = useState("");
   const [isImporting, setIsImporting] = useState(false);
