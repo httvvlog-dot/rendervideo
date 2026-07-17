@@ -75,6 +75,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     activeSections = fetchedSections || [];
   }
 
+  const hasAnySections = activeSections.length > 0;
+  const allVoicesGenerated = hasAnySections && activeSections.every(s => s.voice_media_id != null);
+  const hasVoicePending = hasAnySections && !allVoicesGenerated;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-20 mt-6 px-4">
@@ -115,12 +118,30 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           
           {/* Timeline Generation & Editor */}
           <div className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Timeline Editor</h2>
-              <div className="flex items-center space-x-2">
-                <VoiceSelector voices={activeVoices || []} defaultVoiceId={profile?.default_voice_preset_id} />
-                <VoiceGeneratorButtons projectId={project.id} />
-                <TimelineGeneratorButton projectId={project.id} hasExistingScenes={hasExistingScenes} />
+            <div className="flex flex-col mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Timeline Editor</h2>
+                <div className="flex items-center space-x-2">
+                  <VoiceSelector voices={activeVoices || []} defaultVoiceId={profile?.default_voice_preset_id} />
+                  <VoiceGeneratorButtons 
+                    projectId={project.id} 
+                    allVoicesGenerated={allVoicesGenerated} 
+                    hasAnySections={hasAnySections}
+                  />
+                  <TimelineGeneratorButton 
+                    projectId={project.id} 
+                    hasExistingScenes={hasExistingScenes} 
+                    allVoicesGenerated={allVoicesGenerated}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-900 px-3 py-2 rounded-md border">
+                <span className="font-bold text-slate-700 dark:text-slate-300">Workflow:</span>
+                <span className={!allVoicesGenerated ? "text-blue-600 dark:text-blue-400 font-bold" : ""}>Step 1: Generate Voice</span>
+                <span>→</span>
+                <span className={allVoicesGenerated && !hasExistingScenes ? "text-blue-600 dark:text-blue-400 font-bold" : ""}>Step 2: Sync Timeline</span>
+                <span>→</span>
+                <span className={allVoicesGenerated && hasExistingScenes ? "text-blue-600 dark:text-blue-400 font-bold" : ""}>Step 3: Generate Timeline</span>
               </div>
             </div>
 

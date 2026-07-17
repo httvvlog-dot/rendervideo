@@ -27,8 +27,8 @@ export type GenerateVoiceResult =
       rawError?: any
     }
 
-export async function generateMissingProjectVoice(projectId: string, voicePresetId?: string, overrideSupabase?: SupabaseClient): Promise<GenerateVoiceResult> {
-  console.log("[VOICE] START projectId=", projectId);
+export async function generateMissingProjectVoice(projectId: string, voicePresetId?: string, forceRegenerate: boolean = false, overrideSupabase?: SupabaseClient): Promise<GenerateVoiceResult> {
+  console.log("[VOICE] START projectId=", projectId, "force=", forceRegenerate);
   const supabase = overrideSupabase || await createClient()
   
   // 1. Authenticate user & verify project ownership
@@ -116,7 +116,7 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
 
   // 3. Process sections sequentially
   for (const section of sections) {
-    if (section.voice_media_id) {
+    if (section.voice_media_id && !forceRegenerate) {
       skippedCount++;
       continue;
     }

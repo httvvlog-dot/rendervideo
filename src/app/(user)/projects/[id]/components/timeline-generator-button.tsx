@@ -7,7 +7,15 @@ import { generateTimeline, rebuildTimeline } from "../timeline-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
-export function TimelineGeneratorButton({ projectId, hasExistingScenes }: { projectId: string, hasExistingScenes: boolean }) {
+export function TimelineGeneratorButton({ 
+  projectId, 
+  hasExistingScenes,
+  allVoicesGenerated 
+}: { 
+  projectId: string;
+  hasExistingScenes: boolean;
+  allVoicesGenerated?: boolean;
+}) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const router = useRouter()
@@ -85,15 +93,18 @@ export function TimelineGeneratorButton({ projectId, hasExistingScenes }: { proj
 
   return (
     <Button 
-      onClick={handleGenerate} 
-      disabled={isGenerating}
-      className={`${hasExistingScenes ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} w-full sm:w-auto mb-6`}
+      onClick={() => hasExistingScenes ? setShowConfirm(true) : handleGenerate()} 
+      disabled={isGenerating || (allVoicesGenerated === false)}
+      className={
+        (allVoicesGenerated !== false) 
+        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm" 
+        : "bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed"
+      }
     >
-      {isGenerating ? (
-        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
-      ) : (
+      {isGenerating ? 
+        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {hasExistingScenes ? "Rebuilding..." : "Generating..."}</> : 
         <><Film className="mr-2 h-4 w-4" /> {hasExistingScenes ? "Rebuild Timeline" : "Generate Timeline"}</>
-      )}
+      }
     </Button>
   )
 }

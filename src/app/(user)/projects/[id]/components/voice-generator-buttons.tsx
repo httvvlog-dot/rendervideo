@@ -8,16 +8,24 @@ import { syncTimelineToVoice } from "../timeline-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
-export function VoiceGeneratorButtons({ projectId }: { projectId: string }) {
+export function VoiceGeneratorButtons({ 
+  projectId, 
+  allVoicesGenerated, 
+  hasAnySections 
+}: { 
+  projectId: string;
+  allVoicesGenerated?: boolean;
+  hasAnySections?: boolean;
+}) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const router = useRouter()
 
-  const handleGenerateVoice = async () => {
+  const handleGenerateVoice = async (force: boolean = false) => {
     setIsGenerating(true)
-    const toastId = toast.loading("Generating AI Voice...")
+    const toastId = toast.loading(force ? "Regenerating All AI Voices..." : "Generating AI Voice...")
     try {
-      const res = await generateMissingProjectVoice(projectId)
+      const res = await generateMissingProjectVoice(projectId, undefined, force)
       console.log("[GenerateVoice] result:", res)
       
       if (res.success) {
@@ -66,18 +74,32 @@ export function VoiceGeneratorButtons({ projectId }: { projectId: string }) {
     <div className="flex space-x-2">
       <Button 
         variant="secondary" 
-        onClick={handleGenerateVoice} 
-        disabled={isGenerating || isSyncing}
-        className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
+        onClick={() => handleGenerateVoice(false)} 
+        disabled={isGenerating || isSyncing || !hasAnySections || allVoicesGenerated}
+        className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 disabled:opacity-50"
       >
         {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mic className="w-4 h-4 mr-2" />}
-        Generate Voice
+        {allVoicesGenerated ? "Voices Ready" : "Generate Missing Voice"}
+      </Button>
+      
+      <Button 
+        variant="outline" 
+        onClick={() => {
+          if(confirm("This will overwrite ALL existing voices in the script with the newly selected voice. Continue?")) {
+            handleGenerateVoice(true);
+          }
+        }} 
+        disabled={isGenerating || isSyncing || !hasAnySections}
+        className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 border-orange-200 dark:border-orange-800 disabled:opacity-50"
+      >
+        Regenerate All Voices
       </Button>
 
       <Button 
         variant="outline" 
         onClick={handleSyncTimeline} 
-        disabled={isGenerating || isSyncing}
+        disabled={isGenerating || isSyncing || !allVoicesGenerated}
+        className={allVoicesGenerated ? "border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20" : ""}
       >
         {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
         Sync Timeline
