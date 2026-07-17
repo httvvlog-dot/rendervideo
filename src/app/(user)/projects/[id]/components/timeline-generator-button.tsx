@@ -40,7 +40,7 @@ export function TimelineGeneratorButton({
         }
       } else {
         toast.success(`Timeline generated (${res.sceneCount} scenes)`, { id: toastId })
-        setStep(1); // Return to default rest state
+        setStep(4); // Jump to Complete state
         router.refresh()
       }
     } catch (err: any) {
@@ -65,7 +65,7 @@ export function TimelineGeneratorButton({
       } else {
         toast.success(`Timeline rebuilt (${res.sceneCount} scenes)`, { id: toastId })
         setShowConfirm(false)
-        setStep(1); // Return to default rest state
+        setStep(4); // Jump to Complete state
         router.refresh()
       }
     } catch (err: any) {

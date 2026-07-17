@@ -8,7 +8,7 @@ export function useWorkflowStep(allVoicesGenerated: boolean, hasExistingScenes: 
   // If voices not generated -> Step 1
   // If voices generated but no scenes -> Step 3 (Generate Timeline)
   // If voices generated and scenes exist -> Step 1 (Rest state, waiting for user to regenerate if needed)
-  const defaultStep = !allVoicesGenerated ? 1 : (!hasExistingScenes ? 3 : 1);
+  const defaultStep = !allVoicesGenerated ? 1 : (!hasExistingScenes ? 3 : 4);
   const [activeStep, setActiveStep] = useState(defaultStep);
 
   // Sync with default if it fundamentally changes (e.g., initial load)
@@ -45,15 +45,23 @@ export function WorkflowIndicator({
   const { activeStep } = useWorkflowStep(allVoicesGenerated, hasExistingScenes);
 
   return (
-    <div className="flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-900 px-3 py-2 rounded-md border">
-      <span className="font-bold text-slate-700 dark:text-slate-300">Workflow:</span>
-      <span className={activeStep === 1 ? "text-blue-600 dark:text-blue-400 font-bold" : "opacity-50"}>Step 1: Generate Voice</span>
-      <span className="opacity-50">→</span>
-      <span className={activeStep === 2 ? "text-blue-600 dark:text-blue-400 font-bold" : "opacity-50"}>Step 2: Sync Timeline</span>
-      <span className="opacity-50">→</span>
-      <span className={activeStep === 3 ? "text-blue-600 dark:text-blue-400 font-bold" : "opacity-50"}>
-        Step 3: {hasExistingScenes ? "Rebuild Timeline" : "Generate Timeline"}
-      </span>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 text-xs font-medium text-slate-500 bg-slate-50 dark:bg-slate-900 px-3 py-2 rounded-md border inline-flex w-fit">
+        <span className="font-bold text-slate-700 dark:text-slate-300">Workflow:</span>
+        <span className={activeStep === 1 ? "text-blue-600 dark:text-blue-400 font-bold" : "opacity-50"}>Step 1: Generate Voice</span>
+        <span className="opacity-50">→</span>
+        <span className={activeStep === 2 ? "text-blue-600 dark:text-blue-400 font-bold" : "opacity-50"}>Step 2: Sync Timeline</span>
+        <span className="opacity-50">→</span>
+        <span className={activeStep === 3 ? "text-blue-600 dark:text-blue-400 font-bold" : "opacity-50"}>
+          Step 3: {hasExistingScenes ? "Rebuild Timeline" : "Generate Timeline"}
+        </span>
+      </div>
+      
+      {activeStep === 4 && (
+        <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 animate-pulse flex items-center">
+          <span className="mr-2">✅</span> Đã hoàn thành, bạn hãy bấm Render Video MP4 ở góc trên bên phải!
+        </div>
+      )}
     </div>
   )
 }

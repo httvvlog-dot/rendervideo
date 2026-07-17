@@ -61,8 +61,8 @@ export function VoiceGeneratorButtons({
       const res = await syncTimelineToVoice(projectId)
       if (res.success) {
         toast.success(`Timeline synced to voice duration`, { id: toastId })
-        // Requirement 1: "bấm sync timeline hoàn thành xong thì Workflow bắt buộc nhảy lại về step 1"
-        setStep(1);
+        // Jump to Step 3 (Rebuild Timeline)
+        setStep(3);
         router.refresh()
       } else {
         toast.error(('message' in res ? res.message : res.code) || "Failed to sync timeline", { id: toastId })
