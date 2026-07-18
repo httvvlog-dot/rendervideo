@@ -285,8 +285,8 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
         if (oldMedia) {
           Promise.all([
              storageRuntime.execute(new CloudflareR2Adapter(), { step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: oldMedia.storage_key } }).catch(e => console.error("R2 cleanup fail:", e)),
-             adminClient.from("storage_files").delete().eq("path", oldMedia.storage_key).catch(e => console.error("storage cleanup fail:", e)),
-             supabase.from("project_media").delete().eq("id", section.voice_media_id).catch(e => console.error("media cleanup fail:", e))
+             adminClient.from("storage_files").delete().eq("path", oldMedia.storage_key).then(({ error }) => error && console.error("storage cleanup fail:", error)),
+             supabase.from("project_media").delete().eq("id", section.voice_media_id).then(({ error }) => error && console.error("media cleanup fail:", error))
           ]);
         }
       }
