@@ -184,7 +184,7 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
         // request_text is explicitly omitted for privacy unless in debug mode
       };
 
-      console.log(`[VOICE] GENERATE_START project=${projectId} section=${section.id} voice=${resolvedVoiceId} model=${resolvedSettings.model_id} textHash=${generationSnapshot.textHash}`);
+      console.log(`[VOICE] GENERATE_START project=${projectId} section=${section.id} voice=${resolvedVoiceId} model=${resolvedSettings.model_id} textHash=${generationSnapshot.text_sha256}`);
       const startTimeMs = Date.now();
       
       const audioBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {
