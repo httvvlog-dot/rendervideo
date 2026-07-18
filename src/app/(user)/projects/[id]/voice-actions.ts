@@ -6,8 +6,11 @@ import { ProviderRuntime } from "@/utils/provider-runtime"
 import { CloudflareR2Adapter } from "@/utils/provider-runtime/adapters/cloudflare-r2-adapter"
 import { ElevenLabsAdapter } from "@/utils/provider-runtime/adapters/elevenlabs-adapter"
 import * as mm from 'music-metadata'
+import crypto from 'crypto'
 import { revalidatePath } from "next/cache"
 import type { SupabaseClient } from "@supabase/supabase-js"
+
+
 
 export type GenerateVoiceResult =
   | {
@@ -29,6 +32,7 @@ export type GenerateVoiceResult =
 
 export async function generateMissingProjectVoice(projectId: string, voicePresetId?: string, forceRegenerate: boolean = false, overrideSupabase?: SupabaseClient): Promise<GenerateVoiceResult> {
   console.log("[VOICE] START projectId=", projectId, "force=", forceRegenerate);
+  
   const supabase = overrideSupabase || await createClient()
   
   // 1. Authenticate user & verify project ownership
@@ -125,6 +129,21 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
       continue;
     }
 
+    // Acquire DB Lock
+    const { data: lockData, error: lockErr } = await supabase
+      .from('script_sections')
+      .update({ voice_generation_status: 'generating' })
+      .eq('id', section.id)
+      .neq('voice_generation_status', 'generating')
+      .select('id')
+      .single();
+
+    if (lockErr || !lockData) {
+      console.log(`[VOICE] GENERATION_LOCKED index=${section.section_index} id=${section.id}`);
+      failedSections.push({ sectionId: section.id, sectionIndex: section.section_index, error: "Generation already running for this section" });
+      continue;
+    }
+
     console.log(`[VOICE] SECTION_START index=${section.section_index}`);
     try {
       // --- DEBUG LOGS (Requested by User) ---
@@ -139,12 +158,32 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
 
       // a. Generate TTS
       console.log(`[VOICE] TTS_REQUEST_START section_index=${section.section_index}`);
+      
+      const generationSnapshot = {
+        voiceId: resolvedVoiceId,
+        modelId: resolvedSettings.model_id || null,
+        provider: "elevenlabs",
+        stability: resolvedSettings.stability ?? null,
+        similarity: resolvedSettings.similarity_boost ?? null,
+        style: resolvedSettings.style ?? null,
+        speed: 1,
+        language: "vi",
+        textHash: crypto.createHash('sha256').update(section.narration).digest('hex'),
+        providerVersion: "v1",
+        adapterVersion: "20260716-001",
+        schemaVersion: 1,
+        generatedAt: new Date().toISOString()
+      };
+
+      console.log(`[VOICE] GENERATE_START project=${projectId} section=${section.id} voice=${resolvedVoiceId} model=${resolvedSettings.model_id} textHash=${generationSnapshot.textHash}`);
+      
       const audioBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {
         step: "VOICE",
         projectId: projectId,
         args: { 
           text: section.narration, 
           voiceId: resolvedVoiceId,
+          modelId: resolvedSettings.model_id,
           stability: resolvedSettings.stability,
           similarityBoost: resolvedSettings.similarity_boost,
           style: resolvedSettings.style,
@@ -168,7 +207,7 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
 
       // c. Upload to R2
       console.log(`[VOICE] R2_UPLOAD_START section_index=${section.section_index}`);
-      const fileName = `voice_${projectId}_section_${section.section_index}_${Date.now()}.mp3`;
+      const fileName = `voice/${projectId}/section_${section.section_index}/${resolvedVoiceId}/${resolvedSettings.model_id || 'default'}/${Date.now()}.mp3`;
       const uploadResult = await storageRuntime.execute(new CloudflareR2Adapter(), {
         step: "UPLOAD",
         projectId: projectId,
@@ -193,17 +232,10 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
       }).select("id").single();
 
       if (storageErr) {
-        // Rollback R2
-        let orphanedStorageRisk = false;
-        try {
-          await storageRuntime.execute(new CloudflareR2Adapter(), {
+        await storageRuntime.execute(new CloudflareR2Adapter(), {
             step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.objectKey }
-          });
-        } catch (e) {
-          orphanedStorageRisk = true;
-        }
-        failedSections.push({ sectionId: section.id, sectionIndex: section.section_index, error: "storage_files insert failed" });
-        continue;
+        });
+        throw new Error("Failed to save storage_files record");
       }
 
       // e. Insert project_media
@@ -218,33 +250,54 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
         asset_type: "voice",
         duration_ms: durationMs > 0 ? durationMs : null,
         section_id: section.id,
+        generation_metadata: generationSnapshot
       }).select("id").single();
 
       if (mediaErr) {
-        // This is a complex rollback since we have a storage_files record.
-        // We will attempt rollback, but the system prioritizes not losing data.
-        failedSections.push({ sectionId: section.id, sectionIndex: section.section_index, error: "project_media insert failed" });
-        continue;
+        await storageRuntime.execute(new CloudflareR2Adapter(), {
+            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.objectKey }
+        });
+        await adminClient.from("storage_files").delete().eq("id", storageFile.id);
+        throw new Error("Failed to insert project_media record");
       }
       console.log("[VOICE] PROJECT_MEDIA_INSERT_SUCCESS media_id=", mediaInsert.id);
 
       // f. Update script_sections
       const { error: sectionUpdateErr } = await supabase.from("script_sections").update({
         voice_media_id: mediaInsert.id,
-        voice_duration_ms: durationMs > 0 ? durationMs : null
+        voice_duration_ms: durationMs > 0 ? durationMs : null,
+        voice_generation_status: 'completed'
       }).eq("id", section.id);
 
       if (sectionUpdateErr) {
-        failedSections.push({ sectionId: section.id, sectionIndex: section.section_index, error: "script_sections update failed" });
-        continue;
+        await storageRuntime.execute(new CloudflareR2Adapter(), {
+            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.objectKey }
+        });
+        await adminClient.from("storage_files").delete().eq("id", storageFile.id);
+        await supabase.from("project_media").delete().eq("id", mediaInsert.id);
+        throw new Error("Failed to update script_sections");
       }
-      console.log("[VOICE] SECTION_UPDATE_SUCCESS section_id=", section.id);
+      console.log(`[VOICE] GENERATE_END durationMs=${durationMs} audioBytes=${audioBuffer.byteLength} r2Key=${uploadResult.objectKey} mediaId=${mediaInsert.id} storageId=${storageFile.id}`);
+      
+      // g. Cleanup old media asynchronously if overwriting
+      if (forceRegenerate && section.voice_media_id) {
+        const { data: oldMedia } = await supabase.from("project_media").select("storage_key").eq("id", section.voice_media_id).single();
+        if (oldMedia) {
+          Promise.all([
+             storageRuntime.execute(new CloudflareR2Adapter(), { step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: oldMedia.storage_key } }).catch(e => console.error("R2 cleanup fail:", e)),
+             adminClient.from("storage_files").delete().eq("path", oldMedia.storage_key).catch(e => console.error("storage cleanup fail:", e)),
+             supabase.from("project_media").delete().eq("id", section.voice_media_id).catch(e => console.error("media cleanup fail:", e))
+          ]);
+        }
+      }
 
       generatedCount++;
 
     } catch (error: any) {
       console.log(`[VOICE] SECTION_FAILED index=${section.section_index} code=${error.code || 'UNKNOWN'} message=${error.message}`);
       failedSections.push({ sectionId: section.id, sectionIndex: section.section_index, error: error.message });
+      // Reset lock on failure
+      await supabase.from("script_sections").update({ voice_generation_status: 'failed' }).eq("id", section.id);
     }
   }
 

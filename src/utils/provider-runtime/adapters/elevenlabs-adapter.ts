@@ -23,7 +23,10 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayB
       throw new Error("ElevenLabsAdapter: Voice ID not provided in args or credential config (checked default_voice_id, defaultVoiceId, voice_id, voiceId)");
     }
 
-    const effectiveModelId = args.modelId || config.default_model_id || "eleven_multilingual_v2";
+    const effectiveModelId = args.modelId || config.default_model_id;
+    if (!effectiveModelId) {
+      throw new Error("MODEL_NOT_CONFIGURED: ElevenLabs model is not configured in voice settings or provider default.");
+    }
 
     console.log(`[TTS] Effective Voice ID: ${effectiveVoiceId}`);
     console.log(`[TTS] Effective Model ID: ${effectiveModelId}`);
@@ -49,7 +52,19 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayB
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText = await response.text();
+      try {
+        const json = JSON.parse(errorText);
+        if (json.detail && json.detail.message) {
+          errorText = json.detail.message;
+        } else if (json.detail && typeof json.detail === 'string') {
+          errorText = json.detail;
+        } else if (json.message) {
+          errorText = json.message;
+        }
+      } catch (e) {
+        // Not JSON, keep original text
+      }
       throw new Error(`ElevenLabs API Error: ${response.status} - ${errorText}`);
     }
 

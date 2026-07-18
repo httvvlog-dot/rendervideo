@@ -23,10 +23,13 @@ export function VoiceSelector({
     setIsOpen(false);
     
     startTransition(async () => {
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('voice-change-start'));
       try {
         await updateProjectVoice(projectId, id);
       } catch (err) {
         console.error("Failed to update project voice", err);
+      } finally {
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('voice-change-end'));
       }
     });
   };

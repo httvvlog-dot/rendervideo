@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Mic, RefreshCw, Loader2 } from "lucide-react"
 import { generateMissingProjectVoice } from "../voice-actions"
@@ -21,8 +21,20 @@ export function VoiceGeneratorButtons({
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [isVoiceChanging, setIsVoiceChanging] = useState(false)
   const router = useRouter()
   const { activeStep, setStep } = useWorkflowStep(allVoicesGenerated, true);
+
+  useEffect(() => {
+    const handleStart = () => setIsVoiceChanging(true);
+    const handleEnd = () => setIsVoiceChanging(false);
+    window.addEventListener('voice-change-start', handleStart as EventListener);
+    window.addEventListener('voice-change-end', handleEnd as EventListener);
+    return () => {
+      window.removeEventListener('voice-change-start', handleStart as EventListener);
+      window.removeEventListener('voice-change-end', handleEnd as EventListener);
+    };
+  }, []);
 
   const handleGenerateVoice = async (force: boolean = false) => {
     // Forcefully stop playback before doing heavy operations
@@ -38,12 +50,16 @@ export function VoiceGeneratorButtons({
       console.log("[GenerateVoice] result:", res)
       
       if (res.success) {
-        toast.success(`Generated voices for ${res.generatedCount} section(s)`, { id: toastId })
+        if (res.failedSections && res.failedSections.length > 0) {
+          toast.warning(`Generated ${res.generatedCount}, failed ${res.failedSections.length}. Check logs.`, { id: toastId })
+        } else {
+          toast.success(`Generated voices for ${res.generatedCount} section(s)`, { id: toastId })
+        }
         // Requirement 1: "khi regenerate all voice thì Workflow bắt buộc nhảy sang step 2"
         setStep(2);
         router.refresh()
       } else {
-        toast.error("Failed to generate voice", { id: toastId })
+        toast.error(res.message || "Failed to generate voice", { id: toastId })
       }
     } catch (err: any) {
       console.error("[GenerateVoice] error:", err)
@@ -79,7 +95,7 @@ export function VoiceGeneratorButtons({
       <Button 
         variant="secondary" 
         onClick={() => handleGenerateVoice(false)} 
-        disabled={isGenerating || isSyncing || !hasAnySections || allVoicesGenerated}
+        disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections || allVoicesGenerated}
         className={`transition-all ${
           activeStep === 1 && !allVoicesGenerated 
           ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 shadow-md ring-2 ring-emerald-400" 
@@ -97,7 +113,7 @@ export function VoiceGeneratorButtons({
             handleGenerateVoice(true);
           }
         }} 
-        disabled={isGenerating || isSyncing || !hasAnySections}
+        disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections}
         className={`transition-all ${
           activeStep === 1 
           ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 border-orange-300 dark:border-orange-700 shadow-md ring-1 ring-orange-400" 
