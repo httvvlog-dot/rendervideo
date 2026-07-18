@@ -181,6 +181,7 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
         text_length: textLength,
         text_sha256: textHash,
         preview: textPreview,
+        generation_time_ms: 0
         // request_text is explicitly omitted for privacy unless in debug mode
       };
 
