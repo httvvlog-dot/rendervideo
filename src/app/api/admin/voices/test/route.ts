@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { ProviderRuntime } from "@/utils/provider-runtime";
+import { ElevenLabsAdapter } from "@/utils/provider-runtime/adapters/elevenlabs-adapter";
 
 export async function POST(request: Request) {
   try {
@@ -43,14 +44,17 @@ export async function POST(request: Request) {
 
     console.log(`[TEST TTS] Voice ID: ${voice.voice_id} | Model ID: ${targetModelId || 'Not Configured'}`);
 
-    const runtime = new ProviderRuntime();
-    const audioBuffer = await runtime.execute({
+    const providerKey = voice.provider || "elevenlabs";
+    const runtime = new ProviderRuntime(providerKey);
+    const audioBuffer = await runtime.execute(new ElevenLabsAdapter(), {
       step: "VOICE",
+      // projectId isn't strictly needed for test generation but we pass a dummy if needed
+      projectId: "test", 
       args: {
         text: testText,
         voiceId: voice.voice_id,
         modelId: targetModelId,
-        provider: voice.provider || "elevenlabs"
+        provider: providerKey
       }
     });
 
