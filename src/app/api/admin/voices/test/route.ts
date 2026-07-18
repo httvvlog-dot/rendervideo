@@ -53,8 +53,7 @@ export async function POST(request: Request) {
       args: {
         text: testText,
         voiceId: voice.voice_id,
-        modelId: targetModelId,
-        provider: providerKey
+        modelId: targetModelId
       }
     });
 
