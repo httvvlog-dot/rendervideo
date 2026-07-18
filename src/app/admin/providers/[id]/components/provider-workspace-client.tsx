@@ -7,7 +7,6 @@ import { CredentialCard } from "./credential-card"
 import { OpenRouterForm } from "./forms/openrouter-form"
 import { ElevenLabsForm } from "./forms/elevenlabs-form"
 import { CloudflareR2Form } from "./forms/cloudflare-r2-form"
-import { AnthropicForm } from "./forms/anthropic-form"
 import { GenericForm } from "./forms/generic-form"
 
 export function ProviderWorkspaceClient({ provider, providerModels }: { provider: any, providerModels: any[] }) {
@@ -48,7 +47,6 @@ export function ProviderWorkspaceClient({ provider, providerModels }: { provider
     if (key === "openrouter") return <OpenRouterForm {...formProps} />
     if (key === "elevenlabs") return <ElevenLabsForm {...formProps} />
     if (key === "cloudflare_r2") return <CloudflareR2Form {...formProps} />
-    if (key === "anthropic") return <AnthropicForm {...formProps} />
     return <GenericForm {...formProps} />
   }
 
