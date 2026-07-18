@@ -84,7 +84,7 @@ export function VoicesClient({ initialVoices, availableModels = [] }: { initialV
     }
   };
 
-  const handleUpdate = async (id: string, field: string, value: string) => {
+  const handleUpdate = async (id: string, field: string, value: string | null) => {
     const { error } = await supabase
       .from('voice_presets')
       .update({ [field]: value })
