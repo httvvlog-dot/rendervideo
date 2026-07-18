@@ -45,7 +45,7 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
 
   const query = supabase
     .from("projects")
-    .select("id, active_script_id, voice_template_id, user_id")
+    .select("id, active_script_id, voice_preset_id, user_id")
     .eq("id", projectId);
 
   if (!overrideSupabase) {
@@ -63,16 +63,16 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
   let resolvedVoiceId: string | undefined = undefined;
   let resolvedSettings: any = {};
   
-  // Rule: ONLY use project.voice_template_id (or explicitly passed voicePresetId)
-  let targetPresetId = voicePresetId || project.voice_template_id;
+  // Rule: ONLY use project.voice_preset_id (or explicitly passed voicePresetId)
+  let targetPresetId = voicePresetId || project.voice_preset_id;
   
   if (!targetPresetId) {
     return { success: false, code: "NO_VOICE_SELECTED", message: "No voice template assigned to this project." }
   }
 
   if (targetPresetId) {
-    if (project.voice_template_id !== targetPresetId) {
-      throw new Error(`Target preset ID (${targetPresetId}) does not match project voice template ID (${project.voice_template_id})`);
+    if (project.voice_preset_id !== targetPresetId) {
+      throw new Error(`Target preset ID (${targetPresetId}) does not match project voice preset ID (${project.voice_preset_id})`);
     }
 
     const { data: vPreset } = await supabase
@@ -149,7 +149,7 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
       // --- DEBUG LOGS (Requested by User) ---
       console.log("================================================")
       console.log(`[DEBUG] Project ID                : ${projectId}`)
-      console.log(`[DEBUG] Project Voice Template ID : ${project.voice_template_id}`)
+      console.log(`[DEBUG] Project Voice Preset ID   : ${project.voice_preset_id}`)
       console.log(`[DEBUG] Voice Preset Name         : ${(global as any).__DEBUG_PRESET_NAME || "Unknown"}`)
       console.log(`[DEBUG] Resolved Voice ID         : ${resolvedVoiceId}`)
       console.log(`[DEBUG] ElevenLabs Model          : eleven_multilingual_v2`)

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Play, Check, ChevronDown, Loader2 } from "lucide-react";
 import { updateProjectVoice } from "../../actions";
+import { toast } from "sonner";
 
 export function VoiceSelector({ 
   projectId,
@@ -25,9 +26,16 @@ export function VoiceSelector({
     startTransition(async () => {
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('voice-change-start'));
       try {
-        await updateProjectVoice(projectId, id);
+        const res = await updateProjectVoice(projectId, id);
+        if (res && !res.success) {
+          toast.error(res.error || "Failed to update project voice");
+          // Revert selection on failure
+          setSelected(defaultVoiceId || "");
+        }
       } catch (err) {
         console.error("Failed to update project voice", err);
+        toast.error("An unexpected error occurred");
+        setSelected(defaultVoiceId || "");
       } finally {
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('voice-change-end'));
       }
@@ -47,7 +55,7 @@ export function VoiceSelector({
     audio.onended = () => setCurrentlyPlaying(null);
   };
 
-  const selectedVoice = voices.find(v => v.id === selected) || voices[0];
+  const selectedVoice = voices.find(v => v.id === selected);
 
   if (!voices || voices.length === 0) {
     return (

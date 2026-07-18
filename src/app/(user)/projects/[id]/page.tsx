@@ -126,12 +126,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <VoiceSelector 
                     projectId={project.id}
                     voices={activeVoices || []} 
-                    defaultVoiceId={project.voice_template_id || profile?.default_voice_preset_id} 
+                    defaultVoiceId={project.voice_preset_id} 
                   />
                   <VoiceGeneratorButtons 
                     projectId={project.id} 
                     allVoicesGenerated={allVoicesGenerated} 
                     hasAnySections={hasAnySections}
+                    hasVoiceAssigned={!!project.voice_preset_id}
                   />
                   <TimelineGeneratorButton 
                     projectId={project.id} 

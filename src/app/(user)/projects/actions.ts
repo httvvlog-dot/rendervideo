@@ -68,7 +68,7 @@ export async function updateProjectVoice(projectId: string, voicePresetId: strin
   // 1. Update project's voice template
   const { error: projErr } = await supabase
     .from("projects")
-    .update({ voice_template_id: voicePresetId })
+    .update({ voice_preset_id: voicePresetId })
     .eq("id", projectId)
     .eq("user_id", user.id)
 

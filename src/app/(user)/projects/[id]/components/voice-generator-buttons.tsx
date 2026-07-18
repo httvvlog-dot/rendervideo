@@ -13,11 +13,13 @@ import { useWorkflowStep } from "./workflow-indicator"
 export function VoiceGeneratorButtons({ 
   projectId, 
   allVoicesGenerated, 
-  hasAnySections 
+  hasAnySections,
+  hasVoiceAssigned
 }: { 
   projectId: string;
   allVoicesGenerated: boolean;
   hasAnySections: boolean;
+  hasVoiceAssigned: boolean;
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -95,7 +97,7 @@ export function VoiceGeneratorButtons({
       <Button 
         variant="secondary" 
         onClick={() => handleGenerateVoice(false)} 
-        disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections || allVoicesGenerated}
+        disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections || allVoicesGenerated || !hasVoiceAssigned}
         className={`transition-all ${
           activeStep === 1 && !allVoicesGenerated 
           ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 shadow-md ring-2 ring-emerald-400" 
@@ -113,7 +115,7 @@ export function VoiceGeneratorButtons({
             handleGenerateVoice(true);
           }
         }} 
-        disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections}
+        disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections || !hasVoiceAssigned}
         className={`transition-all ${
           activeStep === 1 
           ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 border-orange-300 dark:border-orange-700 shadow-md ring-1 ring-orange-400" 
