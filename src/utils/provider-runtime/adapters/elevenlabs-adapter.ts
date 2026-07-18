@@ -31,6 +31,7 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayB
     console.log(`[TTS] Effective Voice ID: ${effectiveVoiceId}`);
     console.log(`[TTS] Effective Model ID: ${effectiveModelId}`);
     console.log(`[TTS] Voice source: project`);
+    console.log(`[TTS] Exact Text (JSON.stringify):`, JSON.stringify(args.text));
 
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${effectiveVoiceId}`, {
       method: "POST",
@@ -109,6 +110,29 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayB
     }
 
     const response = await fetch(`https://api.elevenlabs.io/v1/voices/${voiceId}?with_settings=true`, {
+      method: "GET",
+      headers: {
+        "xi-api-key": apiKey,
+        "Accept": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs API Error: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  async getModels(credential: any): Promise<any[]> {
+    const config = credential.config_json || {};
+    const apiKey = credential.encrypted_key || config.apiKey || config.api_key;
+    if (!apiKey) {
+      throw new Error("ElevenLabsAdapter: API key is missing");
+    }
+
+    const response = await fetch("https://api.elevenlabs.io/v1/models", {
       method: "GET",
       headers: {
         "xi-api-key": apiKey,

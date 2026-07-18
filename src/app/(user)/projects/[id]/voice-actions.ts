@@ -77,18 +77,36 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
 
     const { data: vPreset } = await supabase
       .from("voice_presets")
-      .select("display_name, voice_id, settings_json")
+      .select("display_name, voice_id, model_id, settings_json, provider")
       .eq("id", targetPresetId)
       .single();
       
-    if (vPreset && vPreset.voice_id) {
-      resolvedVoiceId = vPreset.voice_id;
-      resolvedSettings = vPreset.settings_json || {};
-      (global as any).__DEBUG_PRESET_NAME = vPreset.display_name; // Temporary store for logs
-      console.log(`[TTS] Voice source: voice_preset (${targetPresetId})`);
-      console.log(`[TTS] Effective voice ID: ${resolvedVoiceId}`);
-    } else {
-      throw new Error("Selected voice preset is invalid or missing Voice ID.");
+    if (!vPreset) {
+      throw new Error(`Voice preset not found for id: ${targetPresetId}`);
+    }
+    
+    (global as any).__DEBUG_PRESET_NAME = vPreset.display_name;
+    resolvedVoiceId = vPreset.voice_id;
+    resolvedSettings = vPreset.settings_json || {};
+    
+    // Resolve model_id with fallback to provider defaults
+    let resolvedModelId = vPreset.model_id;
+    if (!resolvedModelId) {
+      const { data: creds } = await supabase
+        .from("provider_credentials")
+        .select("config_json")
+        .eq("provider_id", vPreset.provider || "elevenlabs")
+        .eq("is_active", true)
+        .order("priority", { ascending: false })
+        .limit(1);
+      
+      if (creds && creds.length > 0) {
+        resolvedModelId = creds[0].config_json?.default_model_id;
+      }
+    }
+    
+    if (resolvedModelId) {
+      resolvedSettings.model_id = resolvedModelId;
     }
   }
 
@@ -146,36 +164,28 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
 
     console.log(`[VOICE] SECTION_START index=${section.section_index}`);
     try {
-      // --- DEBUG LOGS (Requested by User) ---
-      console.log("================================================")
-      console.log(`[DEBUG] Project ID                : ${projectId}`)
-      console.log(`[DEBUG] Project Voice Preset ID   : ${project.voice_preset_id}`)
-      console.log(`[DEBUG] Voice Preset Name         : ${(global as any).__DEBUG_PRESET_NAME || "Unknown"}`)
-      console.log(`[DEBUG] Resolved Voice ID         : ${resolvedVoiceId}`)
-      console.log(`[DEBUG] ElevenLabs Model          : eleven_multilingual_v2`)
-      console.log(`[DEBUG] Generating Section ID     : ${section.id}`)
-      console.log("================================================")
+      // Create privacy-safe text logs
+      const textHash = crypto.createHash('sha256').update(section.narration || "").digest('hex');
+      const textLength = section.narration?.length || 0;
+      const textPreview = section.narration ? section.narration.substring(0, 100) + (textLength > 100 ? "..." : "") : "";
 
-      // a. Generate TTS
-      console.log(`[VOICE] TTS_REQUEST_START section_index=${section.section_index}`);
-      
       const generationSnapshot = {
-        voiceId: resolvedVoiceId,
-        modelId: resolvedSettings.model_id || null,
+        snapshot_time: new Date().toISOString(),
+        engine: "ElevenLabsAdapter",
         provider: "elevenlabs",
-        stability: resolvedSettings.stability ?? null,
-        similarity: resolvedSettings.similarity_boost ?? null,
-        style: resolvedSettings.style ?? null,
-        speed: 1,
-        language: "vi",
-        textHash: crypto.createHash('sha256').update(section.narration).digest('hex'),
-        providerVersion: "v1",
-        adapterVersion: "20260716-001",
-        schemaVersion: 1,
-        generatedAt: new Date().toISOString()
+        endpoint: `POST /v1/text-to-speech/${resolvedVoiceId}`,
+        voice_id: resolvedVoiceId,
+        model_id: resolvedSettings.model_id || "fallback",
+        language_code: "vi",
+        voice_settings: resolvedSettings,
+        text_length: textLength,
+        text_sha256: textHash,
+        preview: textPreview,
+        // request_text is explicitly omitted for privacy unless in debug mode
       };
 
       console.log(`[VOICE] GENERATE_START project=${projectId} section=${section.id} voice=${resolvedVoiceId} model=${resolvedSettings.model_id} textHash=${generationSnapshot.textHash}`);
+      const startTimeMs = Date.now();
       
       const audioBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {
         step: "VOICE",
@@ -190,6 +200,14 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
           useSpeakerBoost: resolvedSettings.use_speaker_boost
         }
       });
+      
+      const generationTimeMs = Date.now() - startTimeMs;
+      generationSnapshot.generation_time_ms = generationTimeMs;
+
+      // Standardized debug logging requested by user
+      console.log(`[TTS] Provider: ElevenLabs | Endpoint: /v1/text-to-speech/${resolvedVoiceId} | Voice: ${resolvedVoiceId} | Model: ${resolvedSettings.model_id || 'Fallback'} | Language: vi | Text Length: ${textLength} | Generation Time: ${generationTimeMs}ms`);
+
+      if (!audioBuffer) throw new Error("Empty audio buffer returned");
       console.log(`[VOICE] TTS_REQUEST_SUCCESS bytes=${audioBuffer.byteLength}`);
 
       // b. Parse duration

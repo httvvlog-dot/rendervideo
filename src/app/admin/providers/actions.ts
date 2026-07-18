@@ -6,6 +6,8 @@ import { PROVIDER_HEALTH_STATUS } from "@/utils/provider-runtime/types"
 import { requireAdmin } from "@/utils/roles"
 import { logAudit } from "@/utils/audit"
 import { revalidatePath } from "next/cache"
+import { ProviderRuntime } from "@/utils/provider-runtime"
+import { ElevenLabsAdapter } from "@/utils/provider-runtime/adapters/elevenlabs-adapter"
 
 export async function getProviders() {
   await requireAdmin()
@@ -185,6 +187,72 @@ export async function setDefaultCredential(id: string, provider_id: string) {
 
   revalidatePath("/admin/providers")
   return { success: true }
+}
+
+export async function saveProviderConfig(providerId: string, overrides: any) {
+  const supabase = createAdminClient()
+  const { error } = await supabase
+    .from("providers")
+    .update({ overrides })
+    .eq("provider_key", providerId)
+
+  if (error) return { error: error.message }
+  revalidatePath(`/admin/providers/${providerId}`)
+  return { success: true }
+}
+
+export async function syncProviderModels(providerKey: string) {
+  const supabase = createAdminClient()
+  
+  // 1. Get the primary active credential for this provider
+  const { data: creds, error: credsErr } = await supabase
+    .from("provider_credentials")
+    .select("*")
+    .eq("provider_id", providerKey)
+    .eq("is_active", true)
+    .order("priority", { ascending: false })
+    .limit(1)
+
+  if (credsErr || !creds || creds.length === 0) {
+    return { error: "No active credentials found for this provider." }
+  }
+
+  const credential = creds[0]
+
+  try {
+    let models: any[] = []
+    
+    if (providerKey === "elevenlabs") {
+      const adapter = new ElevenLabsAdapter()
+      models = await adapter.getModels(credential)
+      
+      // Transform into provider_models schema
+      const mappedModels = models.map((m: any) => ({
+        provider: providerKey,
+        model_id: m.model_id,
+        name: m.name,
+        description: m.description,
+        supports_tts: m.can_do_text_to_speech ?? true,
+        supports_sts: m.can_do_voice_conversion ?? false,
+        max_characters: m.token_cost_factor ? Math.floor(100000 / m.token_cost_factor) : null,
+        is_active: true
+      }))
+
+      // Upsert
+      for (const m of mappedModels) {
+        await supabase
+          .from("provider_models")
+          .upsert(m, { onConflict: "provider, model_id" })
+      }
+    } else {
+      return { error: "Model syncing not yet implemented for this provider." }
+    }
+
+    revalidatePath(`/admin/providers/${providerKey}`)
+    return { success: true }
+  } catch (err: any) {
+    return { error: `Failed to sync models: ${err.message}` }
+  }
 }
 
 export async function getOpenRouterModels(credentialId?: string, clientApiKey?: string) {

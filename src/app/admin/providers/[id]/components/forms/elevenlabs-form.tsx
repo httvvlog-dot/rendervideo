@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { saveCredential } from "../../../actions"
+import { saveCredential, syncProviderModels } from "../../../actions"
 import { toast } from "sonner"
-import { Activity } from "lucide-react"
+import { Activity, RefreshCw } from "lucide-react"
 import { SecretInput } from "../../../components/secret-input"
 
-export function ElevenLabsForm({ providerId, credential, onSuccess }: { providerId: string, credential?: any, onSuccess: () => void }) {
+export function ElevenLabsForm({ providerId, credential, onSuccess, providerModels = [] }: { providerId: string, credential?: any, onSuccess: () => void, providerModels?: any[] }) {
   const [isSaving, setIsSaving] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
   
   const config = credential?.config_json || {}
 
@@ -40,6 +41,19 @@ export function ElevenLabsForm({ providerId, credential, onSuccess }: { provider
       toast.error(err.message)
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSyncModels = async () => {
+    setIsSyncing(true)
+    try {
+      const res = await syncProviderModels("elevenlabs")
+      if (res.error) toast.error(res.error)
+      else toast.success("Models synced successfully")
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setIsSyncing(false)
     }
   }
 
@@ -96,17 +110,35 @@ export function ElevenLabsForm({ providerId, credential, onSuccess }: { provider
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Default Model <span className="text-red-500">*</span></label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium">Default Model <span className="text-red-500">*</span></label>
+            {credential && (
+              <button type="button" onClick={handleSyncModels} disabled={isSyncing} className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 disabled:opacity-50">
+                <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`} />
+                {isSyncing ? "Syncing..." : "Sync Models"}
+              </button>
+            )}
+          </div>
           <select 
             name="default_model_id" 
             defaultValue={config.default_model_id || "eleven_multilingual_v2"}
             className="w-full border rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="eleven_multilingual_v2">Eleven Multilingual v2 (Best for VN)</option>
-            <option value="eleven_flash_v2_5">Eleven Flash v2.5 (Fastest)</option>
-            <option value="eleven_monolingual_v1">Eleven Monolingual v1 (English)</option>
-            <option value="eleven_turbo_v2_5">Eleven Turbo v2.5 (Low latency)</option>
+            {providerModels.length > 0 ? (
+              providerModels.map(m => (
+                <option key={m.model_id} value={m.model_id}>{m.name || m.model_id}</option>
+              ))
+            ) : (
+              <>
+                <option value="eleven_multilingual_v2">Eleven Multilingual v2</option>
+                <option value="eleven_turbo_v2_5">Eleven Turbo v2.5</option>
+                <option value="eleven_v3">Eleven v3</option>
+              </>
+            )}
           </select>
+          {providerModels.length === 0 && credential && (
+            <p className="text-xs text-slate-500 mt-1">Click "Sync Models" above to fetch the latest available models.</p>
+          )}
         </div>
       </div>
 

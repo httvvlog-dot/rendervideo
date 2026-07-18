@@ -17,6 +17,13 @@ export default async function ProviderWorkspacePage({ params }: { params: Promis
     notFound()
   }
 
+  // Fetch cached models for this provider
+  const { data: models } = await supabase
+    .from("provider_models")
+    .select("*")
+    .eq("provider", provider_key)
+    .order("name", { ascending: true })
+
   // Sort credentials by priority
   if (provider.credentials) {
     provider.credentials.sort((a: any, b: any) => (b.priority || 0) - (a.priority || 0))
@@ -54,7 +61,7 @@ export default async function ProviderWorkspacePage({ params }: { params: Promis
 
   return (
     <div className="h-[calc(100vh-8rem)]">
-      <ProviderWorkspaceClient provider={safeProvider} />
+      <ProviderWorkspaceClient provider={safeProvider} providerModels={models || []} />
     </div>
   )
 }

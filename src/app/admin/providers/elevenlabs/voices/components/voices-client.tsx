@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { RefreshCw, Download, Play, Search, Filter, PowerOff } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 
-export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
+export function VoicesClient({ initialVoices, availableModels = [] }: { initialVoices: any[], availableModels?: any[] }) {
   const router = useRouter();
   const [voices, setVoices] = useState(initialVoices);
 
@@ -19,6 +19,7 @@ export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("active"); // all, active, inactive
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [testingVoiceId, setTestingVoiceId] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -103,6 +104,33 @@ export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
     audio.play();
     setCurrentlyPlaying(voiceId);
     audio.onended = () => setCurrentlyPlaying(null);
+  };
+
+  const handleTestVoice = async (voice: any) => {
+    if (testingVoiceId) return;
+    setTestingVoiceId(voice.id);
+    try {
+      const res = await fetch("/api/admin/voices/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voice_id: voice.id })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to generate test audio");
+      }
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
+      audio.onended = () => URL.revokeObjectURL(url);
+      
+    } catch (err: any) {
+      alert(`Test failed: ${err.message}`);
+    } finally {
+      setTestingVoiceId(null);
+    }
   };
 
   const filteredVoices = voices.filter(v => {
@@ -194,9 +222,10 @@ export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
                 <th className="px-6 py-4">Preview</th>
                 <th className="px-6 py-4">Display Name</th>
                 <th className="px-6 py-4">Original Name</th>
-                <th className="px-6 py-4">Description</th>
+                <th className="px-6 py-4">Model Override</th>
                 <th className="px-6 py-4">Category</th>
                 <th className="px-6 py-4 text-center">Active</th>
+                <th className="px-6 py-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -231,17 +260,16 @@ export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
                     <div className="text-xs text-slate-500">{voice.voice_id}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <input 
-                      type="text" 
-                      defaultValue={voice.description || ''}
-                      placeholder="e.g. Nữ trẻ • Truyền cảm"
-                      onBlur={(e) => {
-                        if (e.target.value !== voice.description) {
-                          handleUpdate(voice.id, 'description', e.target.value);
-                        }
-                      }}
-                      className="bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:border-blue-500 focus:outline-none py-1 w-full min-w-[200px]"
-                    />
+                    <select
+                      className="bg-transparent border border-slate-200 dark:border-slate-700 rounded-md py-1 px-2 text-sm max-w-[150px] outline-none focus:ring-1 focus:ring-blue-500"
+                      value={voice.model_id || ""}
+                      onChange={(e) => handleUpdate(voice.id, 'model_id', e.target.value === "" ? null : e.target.value)}
+                    >
+                      <option value="">(Provider Default)</option>
+                      {availableModels.map(m => (
+                        <option key={m.model_id} value={m.model_id}>{m.name || m.model_id}</option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
@@ -255,6 +283,15 @@ export function VoicesClient({ initialVoices }: { initialVoices: any[] }) {
                     >
                       <span className="sr-only">Toggle active</span>
                       <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${voice.is_active ? 'translate-x-2' : '-translate-x-2'}`} />
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={() => handleTestVoice(voice)}
+                      disabled={testingVoiceId === voice.id || !voice.is_active}
+                      className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-1 rounded-md transition-colors disabled:opacity-50"
+                    >
+                      {testingVoiceId === voice.id ? "Testing..." : "Test"}
                     </button>
                   </td>
                 </tr>

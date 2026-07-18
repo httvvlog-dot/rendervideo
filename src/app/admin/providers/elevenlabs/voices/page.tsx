@@ -34,6 +34,13 @@ export default async function ElevenLabsVoicesPage() {
     console.error("Failed to fetch voice presets", error);
   }
 
+  const { data: models } = await supabase
+    .from("provider_models")
+    .select("model_id, name")
+    .eq("provider", "elevenlabs")
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 relative">
@@ -48,7 +55,7 @@ export default async function ElevenLabsVoicesPage() {
         </p>
       </div>
 
-      <VoicesClient initialVoices={voices || []} />
+      <VoicesClient initialVoices={voices || []} availableModels={models || []} />
     </div>
   );
 }
