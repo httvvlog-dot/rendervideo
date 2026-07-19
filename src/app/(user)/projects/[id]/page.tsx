@@ -63,6 +63,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const projectMedia = projectMediaRaw?.filter(m => m.asset_type === 'image') || [];
   const voiceMedia = projectMediaRaw?.filter(m => m.asset_type === 'voice') || [];
 
+  const { data: exportPresets } = await supabase
+    .from('export_presets')
+    .select('*')
+    .order('display_order', { ascending: true });
+
   const hasExistingScenes = scenes !== null && scenes.length > 0;
   const activeScript = scripts?.find(s => s.id === project.active_script_id);
   
@@ -153,7 +158,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   media={projectMedia || []} 
                   voiceMedia={voiceMedia} 
                   projectId={project.id} 
-                  sections={activeSections} 
+                  sections={activeSections}
+                  exportPresets={exportPresets || []}
+                  activePresetId={project.export_preset_id || null}
                 />
             ) : (
               <div className="p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-800 text-slate-500">

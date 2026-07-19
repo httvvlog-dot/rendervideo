@@ -19,7 +19,7 @@ export type TimelineJSON = {
   timelineVersion: number;
   totalDurationMs: number;
   preset: {
-    aspectRatio: "9:16" | "16:9" | "1:1";
+    aspectRatio: "9:16" | "16:9" | "1:1" | "4:5" | string;
     width: number;
     height: number;
     fps: number;

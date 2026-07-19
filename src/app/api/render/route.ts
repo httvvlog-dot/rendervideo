@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { compileTimeline } from "@/utils/render/compile-timeline"
 import { RENDER_JOB_STATUS } from "@/utils/render/core"
 import { z } from "zod"
+import { calculateRenderCost } from "@/utils/billing/render-cost"
 
 const TransformSchema = z.object({
   startScale: z.number(),
@@ -106,6 +107,36 @@ export async function POST(req: Request) {
       })
     }
 
+    let presetSnapshot = {
+      width: validatedTimeline.preset.width,
+      height: validatedTimeline.preset.height,
+      fps: validatedTimeline.preset.fps,
+      codec: validatedTimeline.preset.codec,
+      quality: "Standard" // fallback
+    };
+
+    const { data: project } = await supabase
+      .from('projects')
+      .select('export_preset_id')
+      .eq('id', projectId)
+      .single();
+
+    if (project && project.export_preset_id) {
+      const { data: presetData } = await supabase
+        .from('export_presets')
+        .select('*')
+        .eq('id', project.export_preset_id)
+        .single();
+        
+      if (presetData) {
+        presetSnapshot = {
+          ...presetSnapshot,
+          quality: presetData.quality || "Standard",
+          ...presetData
+        };
+      }
+    }
+
     // Insert into render_jobs using admin client
     const { data: job, error: insertError } = await supabaseAdmin
       .from('render_jobs')
@@ -114,6 +145,7 @@ export async function POST(req: Request) {
         status: RENDER_JOB_STATUS.QUEUED,
         progress: 0,
         timeline_snapshot: validatedTimeline,
+        preset_snapshot: presetSnapshot,
         output_url: null,
         error_message: null,
         retry_count: 0
@@ -146,6 +178,9 @@ export async function POST(req: Request) {
     if (!job) {
       return NextResponse.json({ error: "Failed to create render job, no data returned" }, { status: 500 })
     }
+
+    const estimatedCost = await calculateRenderCost(supabaseAdmin, validatedTimeline.preset.width, validatedTimeline.preset.height, presetSnapshot.quality);
+    console.log(`[BILLING] Render Job requested. Estimated Cost: ${estimatedCost.credits} credits (Policy ${estimatedCost.policyVersion}). Reason: ${estimatedCost.reason}.`);
 
     return NextResponse.json({
       jobId: job.id,

@@ -12,6 +12,7 @@ import { AudioPlaybackManager } from "./audio-playback-manager"
 import { globalAudioEngine } from "@/utils/audio/audio-engine"
 import { AudioDiagnosticsPanel } from "./audio-diagnostics-panel"
 import { updateTimelineDurations } from "../timeline-actions"
+import { ExportSettingsModal } from "./export-settings-modal"
 
 interface Scene {
   id: string
@@ -56,13 +57,17 @@ export function TimelineEditor({
   media = [], 
   voiceMedia = [], 
   projectId, 
-  sections = []
+  sections = [],
+  exportPresets = [],
+  activePresetId = null
 }: { 
   initialScenes: Scene[], 
   media?: any[], 
   voiceMedia?: any[], 
   projectId: string, 
-  sections?: any[]
+  sections?: any[],
+  exportPresets?: any[],
+  activePresetId?: string | null
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [renderJobId, setRenderJobId] = useState<string | undefined>(undefined)
@@ -500,6 +505,12 @@ export function TimelineEditor({
         >
           <Download className="w-4 h-4 mr-2" /> Render Video (MP4)
         </Button>
+        <ExportSettingsModal 
+          projectId={projectId} 
+          activePresetId={activePresetId || null} 
+          presets={exportPresets || []}
+          totalDurationMs={totalDurationMs}
+        />
       </div>
 
       <div className="flex flex-col lg:flex-row min-h-[400px]">

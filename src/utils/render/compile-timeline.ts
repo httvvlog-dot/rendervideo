@@ -20,6 +20,40 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
   if (projectError || !project) throw new Error("Project not found")
   if (!bypassAuth && project.user_id !== userId) throw new Error("Forbidden")
 
+  // 2b. Fetch Export Preset
+  let exportPreset = {
+    aspectRatio: "9:16",
+    width: 1080,
+    height: 1920,
+    fps: 30,
+    codec: "h264"
+  };
+
+  if (project.export_preset_id) {
+    const { data: presetData } = await supabase
+      .from('export_presets')
+      .select('width, height, fps, codec')
+      .eq('id', project.export_preset_id)
+      .single();
+      
+    if (presetData) {
+      const w = presetData.width || 1080;
+      const h = presetData.height || 1920;
+      
+      const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+      const divisor = gcd(w, h);
+      const aspect = `${w / divisor}:${h / divisor}`;
+
+      exportPreset = {
+        aspectRatio: aspect,
+        width: w,
+        height: h,
+        fps: presetData.fps || 30,
+        codec: presetData.codec || "h264"
+      };
+    }
+  }
+
   // 3. Read project_scenes ordered by sort_order
   const { data: scenes, error: scenesError } = await supabase
     .from('project_scenes')
@@ -160,13 +194,7 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
     projectId: project.id,
     timelineVersion: project.timeline_version || 1,
     totalDurationMs,
-    preset: {
-      aspectRatio: "9:16",
-      width: 1080,
-      height: 1920,
-      fps: 30,
-      codec: "h264"
-    },
+    preset: exportPreset,
     scenes: renderScenes,
     audioTracks: audioTracks
   }
