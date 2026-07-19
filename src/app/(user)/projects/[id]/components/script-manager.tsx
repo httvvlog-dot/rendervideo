@@ -40,7 +40,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
 
   const handleGenerate = async () => {
     setIsGenerating(true)
-    const toastId = toast.loading("Generating script via OpenRouter...")
+    const toastId = toast.loading("Generating script...")
     try {
       const res = await generateScript(projectId)
       if (res && res.error) {
