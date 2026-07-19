@@ -166,7 +166,7 @@ export async function toggleCredential(id: string) {
   }).eq("id", id).select().single()
   if (error) return { error: error.message }
 
-  await logAudit({ action: "Toggle", entityType: "ProviderCredential", entityId: id, oldData, newData: { is_active: newState } })
+  await logAudit({ action: "Update", entityType: "ProviderCredential", entityId: id, oldData, newData: { is_active: newState } })
 
   revalidatePath("/admin/providers", "layout")
   return { success: true, is_active: data.is_active }
