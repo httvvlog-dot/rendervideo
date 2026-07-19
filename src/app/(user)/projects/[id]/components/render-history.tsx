@@ -98,6 +98,15 @@ export function RenderHistory({ projectId }: { projectId: string }) {
     if (!ms) return "0.0s"
     return (ms / 1000).toFixed(1) + "s"
   }
+
+  const getResolutionLabel = (w: number, h: number) => {
+    const pixels = w * h;
+    if (pixels >= 3840 * 2160 * 0.9) return '4K';
+    if (pixels >= 2560 * 1440 * 0.9) return '1440P';
+    if (pixels >= 1920 * 1080 * 0.9) return '1080P';
+    if (pixels >= 1280 * 720 * 0.9) return '720P';
+    return `${w}x${h}`;
+  }
   
   const timeAgo = (dateStr: string) => {
     const diff = Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 1000)
@@ -143,7 +152,7 @@ export function RenderHistory({ projectId }: { projectId: string }) {
                 </h2>
                 <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400 font-mono">
                   <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">MP4</span>
-                  <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">{outputs.latest.width >= 1920 ? '1080P' : outputs.latest.height >= 720 ? '720P' : `${outputs.latest.width}x${outputs.latest.height}`}</span>
+                  <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">{getResolutionLabel(outputs.latest.width, outputs.latest.height)}</span>
                   <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">{outputs.latest.fps} FPS</span>
                   <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">{formatDuration(outputs.latest.duration_ms)}</span>
                   <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">{formatSize(outputs.latest.file_size)}</span>
@@ -183,7 +192,7 @@ export function RenderHistory({ projectId }: { projectId: string }) {
                     </div>
                     <div className="text-xs text-slate-500 font-mono mt-1 flex gap-3">
                       <span>{new Date(output.created_at).toLocaleString()}</span>
-                      <span>{output.width >= 1920 ? '1080P' : '720P'}</span>
+                      <span>{getResolutionLabel(output.width, output.height)}</span>
                       <span>{formatDuration(output.duration_ms)}</span>
                       <span>{formatSize(output.file_size)}</span>
                     </div>
