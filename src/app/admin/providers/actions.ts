@@ -133,7 +133,7 @@ export async function saveCredential(formData: any) {
     await setDefaultCredential(resultId, provider_id)
   }
 
-  revalidatePath("/admin/providers")
+  revalidatePath("/admin/providers", "layout")
   return { success: true, id: resultId }
 }
 
@@ -145,11 +145,9 @@ export async function deleteCredential(id: string) {
   if (!oldData) return { error: "Not found" }
 
   const { error } = await supabase.from("provider_credentials").delete().eq("id", id)
-  if (error) return { error: error.message }
-
   await logAudit({ action: "Delete", entityType: "ProviderCredential", entityId: id, oldData, newData: null })
 
-  revalidatePath("/admin/providers")
+  revalidatePath("/admin/providers", "layout")
   return { success: true }
 }
 
@@ -162,16 +160,16 @@ export async function toggleCredential(id: string) {
   
   const newState = !oldData.is_active
   
-  const { error } = await supabase.from("provider_credentials").update({ 
+  const { error, data } = await supabase.from("provider_credentials").update({ 
     is_active: newState, 
     updated_at: new Date().toISOString() 
-  }).eq("id", id)
+  }).eq("id", id).select().single()
   if (error) return { error: error.message }
 
-  await logAudit({ action: "Update", entityType: "ProviderCredential", entityId: id, oldData, newData: { is_active: newState } })
+  await logAudit({ action: "Toggle", entityType: "ProviderCredential", entityId: id, oldData, newData: { is_active: newState } })
 
-  revalidatePath("/admin/providers")
-  return { success: true, is_active: newState }
+  revalidatePath("/admin/providers", "layout")
+  return { success: true, is_active: data.is_active }
 }
 
 export async function setDefaultCredential(id: string, provider_id: string) {
