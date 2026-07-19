@@ -71,11 +71,19 @@ Important:
   });
 
   try {
-    const responseData = await runtime.execute(new OpenRouterAdapter(), {
-      step: "SCRIPT",
-      projectId: projectId,
-      args: { prompt: promptText }
-    });
+    const { UsageEngine } = await import("@/utils/billing");
+    const responseData = await UsageEngine.executeAndCharge(
+      { userId: user.id, projectId: projectId, feature: "Script" },
+      "openrouter",
+      "openai/gpt-4o-mini", // Fallback, normally fetched from project or preset
+      async () => {
+        return await runtime.execute(new OpenRouterAdapter(), {
+          step: "SCRIPT",
+          projectId: projectId,
+          args: { prompt: promptText }
+        });
+      }
+    );
 
     const { content, tokensInput, tokensOutput, cost } = responseData;
     

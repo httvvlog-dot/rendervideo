@@ -16,7 +16,7 @@ export async function generateAIImageStub(projectId: string, sectionId: string, 
   }
 
   try {
-    const result = await UsageEngine.validateAndCharge(
+    const result = await UsageEngine.executeAndCharge(
       context,
       'openai', // Mock provider
       'gpt-image-1', // Mock model
@@ -51,9 +51,18 @@ export async function generateAIImageStub(projectId: string, sectionId: string, 
         const imageUrl = `https://images.unsplash.com/photo-1707343843437-caacff5cfa74?w=${width}&h=${height}&fit=crop&q=80`
 
         return {
-          url: imageUrl,
-          width,
-          height
+          result: {
+            url: imageUrl,
+            width,
+            height
+          },
+          usage: {
+            provider: "openai",
+            model: "gpt-image-1",
+            pricingType: "image",
+            images: 1,
+            resolution: `${width}x${height}`
+          }
         }
       }
     )

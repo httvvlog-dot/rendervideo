@@ -185,23 +185,35 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
         // request_text is explicitly omitted for privacy unless in debug mode
       };
 
-      console.log(`[VOICE] GENERATE_START project=${projectId} section=${section.id} voice=${resolvedVoiceId} model=${resolvedSettings.model_id} textHash=${generationSnapshot.text_sha256}`);
+      console.log(`[VOICE] GENERATE_START project=${projectId} section=${section.id} voice=${resolvedVoiceId} model=${resolvedSettings.model_id}`);
+      
+      // Update section status to processing
+      await supabase.from("script_sections").update({ voice_generation_status: 'processing' }).eq("id", section.id);
+      
       const startTimeMs = Date.now();
-      
-      const audioBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {
-        step: "VOICE",
-        projectId: projectId,
-        args: { 
-          text: section.narration, 
-          voiceId: resolvedVoiceId,
-          modelId: resolvedSettings.model_id,
-          stability: resolvedSettings.stability,
-          similarityBoost: resolvedSettings.similarity_boost,
-          style: resolvedSettings.style,
-          useSpeakerBoost: resolvedSettings.use_speaker_boost
+      const { UsageEngine } = await import("@/utils/billing");
+      const arrayBuffer = await UsageEngine.executeAndCharge(
+        { userId: userId, projectId: projectId, feature: "Voice" },
+        "elevenlabs",
+        resolvedSettings.model_id,
+        async () => {
+          return await ttsRuntime.execute(new ElevenLabsAdapter(), {
+            step: "VOICE",
+            projectId: projectId,
+            args: { 
+              text: section.narration, 
+              voiceId: resolvedVoiceId,
+              modelId: resolvedSettings.model_id,
+              stability: resolvedSettings.stability,
+              similarityBoost: resolvedSettings.similarity_boost,
+              style: resolvedSettings.style,
+              useSpeakerBoost: resolvedSettings.use_speaker_boost
+            }
+          });
         }
-      });
+      );
       
+      const audioBuffer = Buffer.from(arrayBuffer);
       const generationTimeMs = Date.now() - startTimeMs;
       generationSnapshot.generation_time_ms = generationTimeMs;
 
@@ -238,21 +250,21 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
           projectId: projectId
         }
       });
-      console.log("[VOICE] R2_UPLOAD_SUCCESS publicUrl=", uploadResult.publicUrl);
+      console.log("[VOICE] R2_UPLOAD_SUCCESS publicUrl=", uploadResult.result.publicUrl);
 
       // d. Save to storage_files (Global Asset Rule)
       const { data: storageFile, error: storageErr } = await adminClient.from("storage_files").insert({
         provider: "cloudflare_r2",
-        bucket: uploadResult.bucket,
-        path: uploadResult.objectKey,
+        bucket: uploadResult.result.bucket,
+        path: uploadResult.result.objectKey,
         mime_type: "audio/mpeg",
         size: audioBuffer.byteLength,
-        public_url: uploadResult.publicUrl
+        public_url: uploadResult.result.publicUrl
       }).select("id").single();
 
       if (storageErr) {
         await storageRuntime.execute(new CloudflareR2Adapter(), {
-            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.objectKey }
+            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.result.objectKey }
         });
         throw new Error("Failed to save storage_files record");
       }
@@ -262,8 +274,8 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
         project_id: projectId,
         user_id: project.user_id,
         file_name: fileName,
-        storage_key: uploadResult.objectKey,
-        public_url: uploadResult.publicUrl,
+        storage_key: uploadResult.result.objectKey,
+        public_url: uploadResult.result.publicUrl,
         mime_type: "audio/mpeg",
         file_size: audioBuffer.byteLength,
         asset_type: "voice",
@@ -274,7 +286,7 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
 
       if (mediaErr) {
         await storageRuntime.execute(new CloudflareR2Adapter(), {
-            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.objectKey }
+            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.result.objectKey }
         });
         await adminClient.from("storage_files").delete().eq("id", storageFile.id);
         throw new Error("Failed to insert project_media record");
@@ -290,13 +302,13 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
 
       if (sectionUpdateErr) {
         await storageRuntime.execute(new CloudflareR2Adapter(), {
-            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.objectKey }
+            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.result.objectKey }
         });
         await adminClient.from("storage_files").delete().eq("id", storageFile.id);
         await supabase.from("project_media").delete().eq("id", mediaInsert.id);
         throw new Error("Failed to update script_sections");
       }
-      console.log(`[VOICE] GENERATE_END durationMs=${durationMs} audioBytes=${audioBuffer.byteLength} r2Key=${uploadResult.objectKey} mediaId=${mediaInsert.id} storageId=${storageFile.id}`);
+      console.log(`[VOICE] GENERATE_END durationMs=${durationMs} audioBytes=${audioBuffer.byteLength} r2Key=${uploadResult.result.objectKey} mediaId=${mediaInsert.id} storageId=${storageFile.id}`);
       
       // g. Cleanup old media asynchronously if overwriting
       if (forceRegenerate && section.voice_media_id) {

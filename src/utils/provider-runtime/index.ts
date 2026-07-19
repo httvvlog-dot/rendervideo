@@ -1,4 +1,4 @@
-import { ProviderRuntimeOptions, ExecuteParams, ProviderAdapter } from "./types"
+import { ProviderRuntimeOptions, ExecuteParams, ProviderAdapter, ProviderExecutionResult } from "./types"
 import { CredentialSelector } from "./credential-selector"
 import { RetryEngine } from "./retry-engine"
 
@@ -22,7 +22,7 @@ export class ProviderRuntime {
     this.engine = new RetryEngine(defaultOptions);
   }
 
-  async execute<TArgs, TResult>(adapter: ProviderAdapter<TArgs, TResult>, params: ExecuteParams<TArgs>): Promise<TResult> {
+  async execute<TArgs, TResult>(adapter: ProviderAdapter<TArgs, TResult>, params: ExecuteParams<TArgs>): Promise<ProviderExecutionResult<TResult>> {
     const credentials = await this.selector.getActiveCredentials();
     
     if (!credentials || credentials.length === 0) {
@@ -33,7 +33,7 @@ export class ProviderRuntime {
 
     // Failover loop
     for (const cred of credentials) {
-      const result = await this.engine.executeWithRetry<TResult>(cred, {
+      const result = await this.engine.executeWithRetry<ProviderExecutionResult<TResult>>(cred, {
         step: params.step,
         projectId: params.projectId,
         operation: async (credential) => {
@@ -42,7 +42,7 @@ export class ProviderRuntime {
       });
       
       if (result.success) {
-        return result.data as TResult;
+        return result.data as ProviderExecutionResult<TResult>;
       } else {
         lastGlobalError = result.error;
         console.warn(`ProviderRuntime: Credential ${cred.credential_name} failed. Failing over...`);

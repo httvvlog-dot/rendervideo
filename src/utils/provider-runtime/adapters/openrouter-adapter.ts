@@ -1,4 +1,4 @@
-import { ProviderAdapter } from "../types"
+import { ProviderAdapter, ProviderExecutionResult } from "../types"
 
 export interface OpenRouterArgs {
   prompt: string;
@@ -12,7 +12,7 @@ export interface OpenRouterResult {
 }
 
 export class OpenRouterAdapter implements ProviderAdapter<OpenRouterArgs, OpenRouterResult> {
-  async execute(credential: any, args: OpenRouterArgs): Promise<OpenRouterResult> {
+  async execute(credential: any, args: OpenRouterArgs): Promise<ProviderExecutionResult<OpenRouterResult>> {
     const config = credential.config_json || {};
     const apiKey = config.apiKey || config.api_key;
     const model = config.defaultModel || config.default_model;
@@ -44,10 +44,19 @@ export class OpenRouterAdapter implements ProviderAdapter<OpenRouterArgs, OpenRo
     const cost = ((tokensInput * 0.15) + (tokensOutput * 0.6)) / 1000000;
 
     return {
-      content: data.choices?.[0]?.message?.content || "",
-      tokensInput,
-      tokensOutput,
-      cost
+      result: {
+        content: data.choices?.[0]?.message?.content || "",
+        tokensInput,
+        tokensOutput,
+        cost
+      },
+      usage: {
+        provider: "openrouter",
+        model: model,
+        pricingType: "token",
+        promptTokens: tokensInput,
+        completionTokens: tokensOutput
+      }
     };
   }
 }

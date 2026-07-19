@@ -65,7 +65,7 @@ export class WalletEngine {
 
     // Fire & Forget Analytics
     if (context.projectId && type === 'USAGE') {
-      AnalyticsEngine.logProjectUsage(context.projectId, context.feature, charge).catch(console.error);
+      AnalyticsEngine.logProjectCredits(context.projectId, context.feature, charge.credits).catch(console.error);
     }
   }
 }

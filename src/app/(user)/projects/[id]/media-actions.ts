@@ -56,18 +56,19 @@ export async function uploadProjectMedia(projectId: string, formData: FormData, 
     const adminClient = createAdminClient();
     const { data: storageFile, error: storageErr } = await adminClient.from("storage_files").insert({
       provider: "cloudflare_r2",
-      bucket: uploadResult.bucket,
-      path: uploadResult.objectKey,
+      bucket: uploadResult.result.bucket,
+      path: uploadResult.result.objectKey,
       mime_type: file.type,
       size: file.size,
-      public_url: uploadResult.publicUrl
-    }).select("id").single()
+      public_url: uploadResult.result.publicUrl,
+      created_by: user.id
+    }).select().single()
 
     if (storageErr) {
       // Rollback R2 upload
       try {
         await runtime.execute(new CloudflareR2Adapter(), {
-          step: "UPLOAD", projectId: projectId, args: { action: "DELETE", objectKey: uploadResult.objectKey }
+          step: "UPLOAD", projectId: projectId, args: { action: "DELETE", objectKey: uploadResult.result.objectKey }
         });
       } catch (e) {
         console.error("Failed to rollback R2 upload:", e);
@@ -94,8 +95,8 @@ export async function uploadProjectMedia(projectId: string, formData: FormData, 
       project_id: projectId,
       user_id: user.id,
       file_name: file.name,
-      storage_key: uploadResult.objectKey,
-      public_url: uploadResult.publicUrl,
+      storage_key: uploadResult.result.objectKey,
+      public_url: uploadResult.result.publicUrl,
       mime_type: file.type,
       file_size: file.size,
       asset_type: "image",
@@ -109,7 +110,7 @@ export async function uploadProjectMedia(projectId: string, formData: FormData, 
       // Rollback R2 upload
       try {
         await runtime.execute(new CloudflareR2Adapter(), {
-          step: "UPLOAD", projectId: projectId, args: { action: "DELETE", objectKey: uploadResult.objectKey }
+          step: "UPLOAD", projectId: projectId, args: { action: "DELETE", objectKey: uploadResult.result.objectKey }
         });
       } catch (e) {
         console.error("Failed to rollback R2 upload:", e);
@@ -118,7 +119,7 @@ export async function uploadProjectMedia(projectId: string, formData: FormData, 
     }
 
     revalidatePath(`/projects/${projectId}`)
-    return { success: true, url: uploadResult.publicUrl }
+    return { success: true, url: uploadResult.result.publicUrl }
 
   } catch (error: any) {
     return { error: `Upload failed after exhausting all buckets: ${error.message}` }

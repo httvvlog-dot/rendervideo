@@ -1,4 +1,4 @@
-import { ProviderAdapter } from "../types"
+import { ProviderAdapter, ProviderExecutionResult } from "../types"
 
 export interface ElevenLabsArgs {
   text: string
@@ -11,7 +11,7 @@ export interface ElevenLabsArgs {
 }
 
 export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayBuffer> {
-  async execute(credential: any, args: ElevenLabsArgs): Promise<ArrayBuffer> {
+  async execute(credential: any, args: ElevenLabsArgs): Promise<ProviderExecutionResult<ArrayBuffer>> {
     const config = credential.config_json || {};
     const apiKey = credential.encrypted_key || config.apiKey || config.api_key;
     if (!apiKey) {
@@ -75,7 +75,15 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayB
       throw new Error("ElevenLabsAdapter: Received empty audio buffer");
     }
     
-    return arrayBuffer;
+    return {
+      result: arrayBuffer,
+      usage: {
+        provider: "elevenlabs",
+        model: effectiveModelId,
+        pricingType: "character",
+        characters: args.text.length
+      }
+    };
   }
 
   async listVoices(credential: any): Promise<any[]> {

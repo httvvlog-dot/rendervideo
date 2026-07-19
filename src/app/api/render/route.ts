@@ -179,8 +179,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to create render job, no data returned" }, { status: 500 })
     }
 
-    const estimatedCost = await calculateRenderCost(supabaseAdmin, validatedTimeline.preset.width, validatedTimeline.preset.height, presetSnapshot.quality);
-    console.log(`[BILLING] Render Job requested. Estimated Cost: ${estimatedCost.credits} credits (Policy ${estimatedCost.policyVersion}). Reason: ${estimatedCost.reason}.`);
+    try {
+      const { UsageEngine } = await import("@/utils/billing");
+      
+      // Get user from auth
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Run Usage Engine to charge the user for rendering
+        await UsageEngine.executeAndCharge(
+          { userId: user.id, projectId: projectId, feature: "Render" },
+          "render_worker", // Internal provider
+          validatedTimeline.preset.codec || "h264",
+          async () => {
+            // Execution is already queued in DB, so we just return the result
+            return {
+              result: true,
+              usage: {
+                provider: "render_worker",
+                model: validatedTimeline.preset.codec || "h264",
+                pricingType: "second",
+                durationSeconds: validatedTimeline.totalDurationMs / 1000,
+                resolution: `${validatedTimeline.preset.width}x${validatedTimeline.preset.height}`
+              }
+            };
+          }
+        );
+        console.log(`[BILLING] Render Job requested and charged successfully.`);
+      }
+    } catch (billingErr: any) {
+      // If billing fails, we should technically delete or cancel the job
+      await supabaseAdmin.from('render_jobs').update({ status: RENDER_JOB_STATUS.FAILED, error_message: "Insufficient credits" }).eq("id", job.id);
+      return NextResponse.json({ error: billingErr.message || "Insufficient credits" }, { status: 402 });
+    }
 
     return NextResponse.json({
       jobId: job.id,

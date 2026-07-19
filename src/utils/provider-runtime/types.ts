@@ -19,8 +19,26 @@ export interface ProviderRuntimeOptions {
   failureThreshold?: number;
 }
 
+export interface UsageMetadata {
+  provider: string;
+  model: string;
+  pricingType: 'token' | 'character' | 'image' | 'second' | 'none';
+  promptTokens?: number;
+  completionTokens?: number;
+  characters?: number;
+  images?: number;
+  durationSeconds?: number;
+  resolution?: string;
+}
+
+export interface ProviderExecutionResult<T = any> {
+  result: T;
+  usage: UsageMetadata;
+  cost?: number; // Legacy or external provider returned cost
+}
+
 export interface ProviderAdapter<TArgs, TResult> {
-  execute(credential: any, args: TArgs): Promise<TResult>;
+  execute(credential: any, args: TArgs): Promise<ProviderExecutionResult<TResult>>;
 }
 
 export interface ExecuteParams<TArgs> {

@@ -265,12 +265,12 @@ export class FFmpegAdapter implements RenderAdapter {
           }
         });
 
-        if (!res.publicUrl) {
+        if (!res.result.publicUrl) {
           throw new Error("R2 upload succeeded but returned no public URL");
         }
 
-        console.log(`[Upload] Success! URL: ${res.publicUrl}`);
-        return { url: res.publicUrl, key: objectKey };
+        console.log(`[Upload] Success! URL: ${res.result.publicUrl}`);
+        return { url: res.result.publicUrl, key: objectKey };
       } catch (err: any) {
         lastError = err;
         console.warn(`[Upload] Attempt ${attempt} failed: ${err.message}`);

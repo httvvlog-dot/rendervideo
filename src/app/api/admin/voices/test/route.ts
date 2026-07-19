@@ -61,11 +61,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to generate audio" }, { status: 500 });
     }
 
-    return new Response(audioBuffer, {
+    return new Response(audioBuffer.result, {
       status: 200,
       headers: {
         "Content-Type": "audio/mpeg",
-        "Content-Length": audioBuffer.byteLength.toString(),
+        "Content-Length": audioBuffer.result.byteLength.toString(),
       },
     });
 

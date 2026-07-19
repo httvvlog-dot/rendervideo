@@ -29,13 +29,13 @@ async function run() {
   
   // Injecting an interceptor into fetch is hard without modifying global.fetch
   // But we know the adapter code. Let's just run it and get the raw ArrayBuffer.
-  const rawArrayBuffer = await ttsRuntime.execute(new ElevenLabsAdapter(), {
+  const result = await ttsRuntime.execute(new ElevenLabsAdapter(), {
     step: "VOICE",
     projectId: projectId,
     args: { text }
   })
   
-  const rawBuffer = Buffer.from(rawArrayBuffer)
+  const rawBuffer = Buffer.from(result.result)
   fs.writeFileSync("debug_elevenlabs_raw.mp3", rawBuffer)
   console.log("Saved debug_elevenlabs_raw.mp3")
   console.log("Size:", rawBuffer.length)

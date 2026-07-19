@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   BarChart3, Wallet, FileText, Package, Bot, CreditCard, 
-  DollarSign, Activity, Users, TrendingUp, Download, Plus 
+  DollarSign, Activity, Users, TrendingUp, Download, Plus, RefreshCw 
 } from "lucide-react";
 
 export function BillingTabsClient({ analytics, wallets, rules }: { analytics: any, wallets: any[], rules: any[] }) {
@@ -72,7 +72,24 @@ export function BillingTabsClient({ analytics, wallets, rules }: { analytics: an
               <MetricCard title="Pending Orders" value={analytics.pendingOrders.toLocaleString()} icon={<CreditCard className="w-4 h-4 text-orange-500" />} />
             </div>
 
-            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+              <div>
+                <h4 className="font-semibold text-slate-800 dark:text-slate-200">Historical API Cost</h4>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {analytics.apiCost === 0 ? "Unavailable before Billing V3. Status: Not Calculated" : "Run backfill to estimate costs for old generations."}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => {
+                fetch("/api/admin/backfill", { method: "POST" })
+                  .then(() => alert("Backfill background job started."))
+                  .catch(e => alert("Error starting backfill: " + e.message));
+              }}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Run Backfill
+              </Button>
+            </div>
+
+            <Card className="bg-white dark:bg-[#1b2742] border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
               <CardHeader>
                 <CardTitle className="text-slate-800 dark:text-slate-200">Detailed Cost Breakdown</CardTitle>
               </CardHeader>
@@ -202,7 +219,7 @@ export function BillingTabsClient({ analytics, wallets, rules }: { analytics: an
 
 function MetricCard({ title, value, icon }: { title: string, value: string, icon: React.ReactNode }) {
   return (
-    <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+    <Card className="bg-white dark:bg-[#1b2742] border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{title}</CardTitle>
         {icon}

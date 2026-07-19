@@ -1,39 +1,78 @@
 import { ChargeResult, EngineContext } from "./types";
 import { BillingEngine } from "./BillingEngine";
+import { ProviderCostCalculator } from "./ProviderCostCalculator";
+import { AnalyticsEngine } from "./AnalyticsEngine";
+import { WalletEngine } from "./WalletEngine";
+import { ProviderExecutionResult } from "../provider-runtime/types";
+import { createClient } from "@/utils/supabase/server";
 
 export class UsageEngine {
-  static async validateAndCharge(
+  static async executeAndCharge<T>(
     context: EngineContext,
     provider: string,
     model: string,
-    executeAI: () => Promise<any>
-  ) {
-    // 1. Calculate Cost via BillingEngine
+    executeAI: () => Promise<ProviderExecutionResult<T>>
+  ): Promise<T> {
+    // 1. Calculate Credit Cost via BillingEngine
     const chargeInfo: ChargeResult = await BillingEngine.calculateCost(context.feature, provider, model);
 
-    // 2. Validate sufficient funds (Optional early check, but WalletEngine does the atomic check)
-    // For now we rely on the atomic executeCharge to fail if insufficient.
-    // However, checking subscription tiers or unlimited plans would happen here.
-    
-    // If Subscription == Enterprise, override chargeInfo.credits = 0
-
-    // 3. Execute the AI Action
-    // We charge AFTER successful generation to avoid complex refunds, OR charge before and refund on error.
-    // Standard practice: Pre-auth or charge after. Let's charge before and refund if error.
-    const chargeSuccess = await BillingEngine.executeCharge(context, chargeInfo);
-    if (!chargeSuccess) {
+    // 2. Pre-auth (Optional: we can verify Wallet balance here before executing AI)
+    // For now we'll do charge AFTER success. If they don't have enough, AI won't run, or runs but goes negative.
+    // Let's rely on WalletEngine.deductCredits which prevents going below 0 via constraint.
+    const supabase = await createClient();
+    const { data: balanceData } = await supabase.rpc('get_wallet_balance', { p_user_id: context.userId });
+    if (!balanceData || balanceData < chargeInfo.credits) {
       throw new Error("Insufficient credits. Please top up your wallet.");
     }
 
+    let aiResult: ProviderExecutionResult<T>;
+
+    // 3. Execute the AI Action
     try {
-      const result = await executeAI();
-      return result;
-    } catch (error) {
-      // Refund if AI failed
-      const refundCharge = { ...chargeInfo, credits: chargeInfo.credits }; // Positive
-      // A full implementation would call WalletEngine.refund()
-      // For now, we will just re-grant credits
+      aiResult = await executeAI();
+    } catch (error: any) {
+      // Log failed attempt to AI Usage Ledger if needed, but DO NOT charge credits
+      const supabaseAdmin = await createClient(); // Use service role for logging
+      await supabaseAdmin.from("ai_usage_logs").insert({
+        project_id: context.projectId || null,
+        user_id: context.userId,
+        feature: context.feature,
+        provider: provider,
+        model: model,
+        usage_metadata: { pricingType: "none", error: error.message },
+        api_cost: 0,
+        currency: "USD",
+        status: "FAILED",
+        error_message: error.message || "Unknown error"
+      });
       throw error;
     }
+
+    // 4. Calculate actual API Cost (USD)
+    const apiCostUsd = await ProviderCostCalculator.calculateCost(aiResult.usage);
+
+    // 5. Log API Cost to ai_usage_logs and Analytics
+    await AnalyticsEngine.logApiCost(
+      context.projectId || null,
+      context.userId,
+      null, // sectionId not strictly tracked here unless in context
+      context.feature,
+      aiResult.usage,
+      apiCostUsd
+    ).catch(console.error); // Fire and forget logging
+
+    // 6. Deduct User Credits
+    const chargeSuccess = await BillingEngine.executeCharge(context, chargeInfo);
+    if (!chargeSuccess) {
+      // Ideally we would rollback or mark as negative balance
+      console.error(`[UsageEngine] Critical: Failed to charge ${chargeInfo.credits} credits from ${context.userId} after successful generation.`);
+    } else {
+      // Log credits to Project Usage Analytics
+      if (context.projectId) {
+        await AnalyticsEngine.logProjectCredits(context.projectId, context.feature, chargeInfo.credits).catch(console.error);
+      }
+    }
+
+    return aiResult.result;
   }
 }

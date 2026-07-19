@@ -1,4 +1,4 @@
-import { ProviderAdapter } from "../types"
+import { ProviderAdapter, ProviderExecutionResult } from "../types"
 import { uploadToS3, deleteFromS3 } from "@/utils/s3-signer"
 
 export interface R2Args {
@@ -19,7 +19,7 @@ export interface R2Result {
 }
 
 export class CloudflareR2Adapter implements ProviderAdapter<R2Args, R2Result> {
-  async execute(credential: any, args: R2Args): Promise<R2Result> {
+  async execute(credential: any, args: R2Args): Promise<ProviderExecutionResult<R2Result>> {
     const config = credential.config_json || {};
     
     if (!config.accountId || !config.accessKeyId || !config.secretAccessKey || !config.bucket) {
@@ -40,7 +40,10 @@ export class CloudflareR2Adapter implements ProviderAdapter<R2Args, R2Result> {
       if (!res.success) {
         throw new Error(`R2 Delete failed: ${res.error}`);
       }
-      return { success: true };
+      return { 
+        result: { success: true },
+        usage: { provider: "cloudflare_r2", model: "storage", pricingType: "none" }
+      };
     }
 
     // UPLOAD
@@ -67,11 +70,19 @@ export class CloudflareR2Adapter implements ProviderAdapter<R2Args, R2Result> {
     }
 
     return {
-      bucket: config.bucket,
-      region: "auto",
-      publicUrl: config.publicUrl ? `${config.publicUrl}/${objectKey}` : "",
-      objectKey,
-      success: true
+      result: {
+        bucket: config.bucket,
+        region: "auto",
+        publicUrl: config.publicUrl ? `${config.publicUrl}/${objectKey}` : "",
+        objectKey,
+        success: true
+      },
+      usage: {
+        provider: "cloudflare_r2",
+        model: "storage",
+        pricingType: "none",
+        characters: args.fileBuffer.byteLength // Can store byte length here if needed for bandwidth logging
+      }
     };
   }
 
