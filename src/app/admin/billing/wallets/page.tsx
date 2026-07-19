@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 
 export default async function WalletsPage() {
   const supabase = await createClient();
-  const { data: wallets } = await supabase.from("wallets").select("*, auth.users(email)").limit(50);
+  const { data: wallets } = await supabase.from("wallets").select("*").limit(50);
 
   return (
     <div className="space-y-6">
