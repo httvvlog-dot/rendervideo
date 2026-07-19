@@ -107,6 +107,13 @@ export default async function AdminDashboard() {
                 <p className="text-xs text-muted-foreground">{providersCount || 0} active providers</p>
               </div>
             </Link>
+            <Link href="/admin/billing" className="flex items-center p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
+              <Activity className="h-5 w-5 mr-3 text-emerald-500" />
+              <div>
+                <p className="font-medium">Commercial Billing</p>
+                <p className="text-xs text-muted-foreground">Manage wallets & pricing</p>
+              </div>
+            </Link>
             <div className="flex items-center p-3 border rounded-lg opacity-50">
               <FileCode2 className="h-5 w-5 mr-3 text-orange-500" />
               <div>
