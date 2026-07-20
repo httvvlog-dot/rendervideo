@@ -7,10 +7,11 @@ export default async function BillingDashboardPage() {
   const supabase = await createClient();
 
   // 1. Fetch Wallets
-  const { count: walletsCount, data: wallets } = await supabase
+  const { count: walletsCount, data: walletsRaw } = await supabase
     .from("wallets")
     .select("*, auth.users(email)", { count: "exact" })
     .limit(50);
+  const wallets = walletsRaw as any[];
 
   // 2. Fetch Usage & Revenue
   const { data: orders } = await supabase.from("payment_orders").select("amount_vnd").eq("status", "SUCCESS");
@@ -34,18 +35,20 @@ export default async function BillingDashboardPage() {
     .order("created_at", { ascending: false });
 
   // 4. Fetch Transactions Ledger
-  const { data: transactions } = await supabase
+  const { data: transactionsRaw } = await supabase
     .from("wallet_transactions")
     .select("*, auth.users(email)")
     .order("created_at", { ascending: false })
     .limit(100);
+  const transactions = transactionsRaw as any[];
 
   // 5. Fetch Reservations
-  const { data: reservations } = await supabase
+  const { data: reservationsRaw } = await supabase
     .from("wallet_reservations")
     .select("*, wallet_transactions(user_id, feature, description), wallets(user_id, auth.users(email))")
     .order("created_at", { ascending: false })
     .limit(100);
+  const reservations = reservationsRaw as any[];
 
   return (
     <div className="h-full flex flex-col space-y-6">
