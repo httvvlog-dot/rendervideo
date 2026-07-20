@@ -48,14 +48,5 @@ export class BillingEngine {
       currency: pricing.currency,
     };
   }
-
-  static async executeCharge(context: EngineContext, charge: ChargeResult): Promise<boolean> {
-    const success = await WalletEngine.deductCredits(context.userId, charge.credits);
-    
-    if (success) {
-      await WalletEngine.logTransaction(context, charge, 'USAGE');
-    }
-    
-    return success;
-  }
 }
+

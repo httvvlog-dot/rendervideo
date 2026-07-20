@@ -6,10 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   BarChart3, Wallet, FileText, Package, Bot, CreditCard, 
-  DollarSign, Activity, Users, TrendingUp, Download, Plus, RefreshCw 
+  DollarSign, Activity, Users, TrendingUp, Download, Plus, RefreshCw, Clock
 } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
-export function BillingTabsClient({ analytics, wallets, rules }: { analytics: any, wallets: any[], rules: any[] }) {
+export function BillingTabsClient({ analytics, wallets, rules, transactions, reservations = [] }: { analytics: any, wallets: any[], rules: any[], transactions: any[], reservations?: any[] }) {
+  
+  const handleReleaseReservation = async (txId: string) => {
+    if (!confirm("Are you sure you want to manually release this reservation?")) return;
+    const supabase = createClient();
+    const { error } = await supabase.rpc('release_credits', {
+      p_transaction_id: txId,
+      p_reason: 'Released manually by Admin'
+    });
+    if (error) alert("Error releasing reservation: " + error.message);
+    else alert("Reservation released successfully! Please refresh.");
+  };
+
   return (
     <div className="flex flex-col space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -47,6 +60,9 @@ export function BillingTabsClient({ analytics, wallets, rules }: { analytics: an
           </TabsTrigger>
           <TabsTrigger value="transactions" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm rounded-md px-4 py-2 flex items-center gap-2 transition-all">
             <FileText className="w-4 h-4" /> Transactions
+          </TabsTrigger>
+          <TabsTrigger value="reservations" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm rounded-md px-4 py-2 flex items-center gap-2 transition-all">
+            <Clock className="w-4 h-4" /> Reservations
           </TabsTrigger>
           <TabsTrigger value="packages" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm rounded-md px-4 py-2 flex items-center gap-2 transition-all">
             <Package className="w-4 h-4" /> Packages
@@ -88,22 +104,6 @@ export function BillingTabsClient({ analytics, wallets, rules }: { analytics: an
                 Run Backfill
               </Button>
             </div>
-
-            <Card className="bg-white dark:bg-[#1b2742] border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
-              <CardHeader>
-                <CardTitle className="text-slate-800 dark:text-slate-200">Detailed Cost Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px] flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50">
-                  <Activity className="h-10 w-10 mb-3 text-slate-300 dark:text-slate-700" />
-                  <p className="text-slate-600 dark:text-slate-400 font-medium">No billing data yet</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-500 mt-1 mb-4 text-center">
-                    Generate AI content or create transactions to see analytics.
-                  </p>
-                  <Button variant="outline" size="sm">Go to Projects</Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="wallets" className="m-0 focus:outline-none">
@@ -111,8 +111,8 @@ export function BillingTabsClient({ analytics, wallets, rules }: { analytics: an
               <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
                 <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b dark:border-slate-800">
                   <tr>
-                    <th className="px-6 py-4 font-medium">User ID</th>
-                    <th className="px-6 py-4 font-medium">Lifetime Earned</th>
+                    <th className="px-6 py-4 font-medium">User Email</th>
+                    <th className="px-6 py-4 font-medium">Current Balance</th>
                     <th className="px-6 py-4 font-medium">Lifetime Used</th>
                     <th className="px-6 py-4 font-medium text-right">Actions</th>
                   </tr>
@@ -131,11 +131,12 @@ export function BillingTabsClient({ analytics, wallets, rules }: { analytics: an
                   ) : (
                     wallets.map(w => (
                       <tr key={w.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="px-6 py-4 font-mono text-xs text-slate-900 dark:text-slate-100">{w.user_id}</td>
-                        <td className="px-6 py-4 text-emerald-600 dark:text-emerald-400 font-medium">+{w.lifetime_earned}</td>
-                        <td className="px-6 py-4 text-rose-600 dark:text-rose-400 font-medium">-{w.lifetime_used}</td>
+                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{w.auth?.users?.email || w.user_id}</td>
+                        <td className="px-6 py-4 text-emerald-600 dark:text-emerald-400 font-bold">{w.balance_credits?.toLocaleString()}</td>
+                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">{w.total_consumed_credits?.toLocaleString() || w.lifetime_used?.toLocaleString()}</td>
                         <td className="px-6 py-4 text-right">
-                          <button className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors">View Buckets</button>
+                          <button className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors mr-3">Edit</button>
+                          <button className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium transition-colors">Buckets</button>
                         </td>
                       </tr>
                     ))
@@ -189,11 +190,116 @@ export function BillingTabsClient({ analytics, wallets, rules }: { analytics: an
           </TabsContent>
 
           <TabsContent value="transactions" className="m-0 focus:outline-none">
-            <PlaceholderTab 
-              icon={<FileText className="h-10 w-10 mb-3 text-slate-300 dark:text-slate-700" />}
-              title="Transaction Ledger"
-              description="A full audit log of all credit deductions and top-ups will appear here."
-            />
+            <div className="border rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+              <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b dark:border-slate-800">
+                  <tr>
+                    <th className="px-6 py-4 font-medium">Date</th>
+                    <th className="px-6 py-4 font-medium">User Email</th>
+                    <th className="px-6 py-4 font-medium">Status</th>
+                    <th className="px-6 py-4 font-medium">Type</th>
+                    <th className="px-6 py-4 font-medium">Amount</th>
+                    <th className="px-6 py-4 font-medium">Balance After</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                  {transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={6}>
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <FileText className="h-10 w-10 mb-3 text-slate-300 dark:text-slate-700" />
+                          <p className="text-slate-600 dark:text-slate-400 font-medium">No transactions found</p>
+                          <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">When users consume credits, they will appear here.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    transactions.map(t => (
+                      <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="px-6 py-4 font-mono text-xs text-slate-500">{new Date(t.created_at).toLocaleString()}</td>
+                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{t.auth?.users?.email || t.user_id}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold 
+                            ${t.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' : 
+                              t.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 
+                              'bg-rose-100 text-rose-800'}`}>
+                            {t.status || 'COMPLETED'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-600 font-medium">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800`}>
+                            {t.transaction_type}
+                          </span>
+                        </td>
+                        <td className={`px-6 py-4 font-bold ${t.amount < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                          {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 font-medium text-slate-600">{t.balance_after?.toLocaleString()}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="reservations" className="m-0 focus:outline-none">
+            <div className="border rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+              <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b dark:border-slate-800">
+                  <tr>
+                    <th className="px-6 py-4 font-medium">Created</th>
+                    <th className="px-6 py-4 font-medium">User Email</th>
+                    <th className="px-6 py-4 font-medium">Credits</th>
+                    <th className="px-6 py-4 font-medium">Status</th>
+                    <th className="px-6 py-4 font-medium">Timeout</th>
+                    <th className="px-6 py-4 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                  {reservations.length === 0 ? (
+                    <tr>
+                      <td colSpan={6}>
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <Clock className="h-10 w-10 mb-3 text-slate-300 dark:text-slate-700" />
+                          <p className="text-slate-600 dark:text-slate-400 font-medium">No active reservations</p>
+                          <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">Pending AI generations will appear here.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    reservations.map(r => {
+                      const isExpired = new Date(r.expires_at) < new Date();
+                      return (
+                        <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="px-6 py-4 font-mono text-xs text-slate-500">{new Date(r.created_at).toLocaleString()}</td>
+                          <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{r.wallets?.auth?.users?.email || r.wallet_id}</td>
+                          <td className="px-6 py-4 font-bold text-amber-600">{r.reserved_amount.toLocaleString()}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold 
+                              ${r.status === 'ACTIVE' ? (isExpired ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800') : 
+                                r.status === 'COMMITTED' ? 'bg-emerald-100 text-emerald-800' : 
+                                'bg-slate-100 text-slate-800'}`}>
+                              {r.status === 'ACTIVE' && isExpired ? 'EXPIRED' : r.status}
+                            </span>
+                          </td>
+                          <td className={`px-6 py-4 font-mono text-xs ${isExpired ? 'text-rose-500 font-bold' : 'text-slate-500'}`}>
+                            {new Date(r.expires_at).toLocaleTimeString()}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            {r.status === 'ACTIVE' && (
+                              <button onClick={() => handleReleaseReservation(r.wallet_transaction_id)} className="text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 font-medium transition-colors">
+                                Release
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </TabsContent>
 
           <TabsContent value="packages" className="m-0 focus:outline-none">
@@ -245,3 +351,5 @@ function PlaceholderTab({ icon, title, description }: { icon: React.ReactNode, t
     </div>
   )
 }
+
+

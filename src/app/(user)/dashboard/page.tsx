@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FolderKanban, Plus, Clock, PlayCircle, CheckCircle2, DollarSign } from "lucide-react"
+import { FolderKanban, Plus, Clock, PlayCircle, CheckCircle2, Activity } from "lucide-react"
 import Link from "next/link"
 import { getCurrentUser } from "@/utils/auth-service"
 import { createClient } from "@/utils/supabase/server"
@@ -22,8 +22,9 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
     .limit(5)
 
-  // Calculate estimated cost (mocked aggregation for now, Sprint 3 will track real usage)
-  const estimatedCost = (totalProjects || 0) * 0.15
+  // Fetch Credits Used
+  const { data: wallet } = await supabase.from('wallets').select('lifetime_used').eq('user_id', user?.id).single()
+  const creditsUsed = wallet?.lifetime_used || 0
 
   return (
     <div className="space-y-8">
@@ -69,12 +70,12 @@ export default async function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Estimated Cost</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Credits Used</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${estimatedCost.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Approx. API usage</p>
+            <div className="text-2xl font-bold">{creditsUsed.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Lifetime usage</p>
           </CardContent>
         </Card>
       </div>
