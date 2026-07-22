@@ -52,7 +52,7 @@ SELECT
     p.title,
     p.created_at,
     CASE 
-        WHEN p.status = 'archived' THEN 'ARCHIVED'::public.project_lifecycle_state
+        WHEN p.status::text = 'archived' THEN 'ARCHIVED'::public.project_lifecycle_state
         WHEN EXISTS (SELECT 1 FROM public.render_jobs rj WHERE rj.project_id = p.id AND rj.status IN ('pending', 'processing', 'running')) THEN 'RENDERING'::public.project_lifecycle_state
         WHEN os.successful_outputs > 0 THEN 'COMPLETED'::public.project_lifecycle_state
         WHEN rs.failed_renders > 0 AND COALESCE(os.successful_outputs, 0) = 0 THEN 'FAILED'::public.project_lifecycle_state

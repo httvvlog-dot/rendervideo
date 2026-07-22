@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.wallet_reservations (
 ALTER TABLE public.wallet_reservations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Admin only wallet reservations" ON public.wallet_reservations 
 FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM user_roles WHERE user_roles.user_id = auth.uid() AND user_roles.role = 'admin')
+  EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
 );
 
 -- 5. RPC: RESERVE CREDITS
