@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, Video, HardDrive, Cpu, Activity, Server, FileCode2, Clock, CheckCircle } from "lucide-react"
+import { Users, Video, DollarSign, Activity, Server, FileCode2, Clock, CheckCircle, TrendingUp, CreditCard, AlertTriangle, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/utils/supabase/server"
 import { requireAdmin } from "@/utils/roles"
@@ -9,16 +9,12 @@ export default async function AdminDashboard() {
   await requireAdmin()
   const supabase = await createClient()
   
-  // Real database counters
-  const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true })
-  
-  // Use unified statistics RPC for system-wide stats
-  const { data: statsRaw } = await supabase.rpc('get_user_project_statistics')
-  const stats = statsRaw as any || { summary: {}, metrics: {} }
-  const projectsCount = stats.summary?.total || 0
-  const completedCount = stats.summary?.completed || 0
+  // Real database global stats
+  const { data: statsRaw, error } = await supabase.rpc('get_admin_global_statistics')
+  const stats = statsRaw as any || { financial: {}, operational: {} }
+  const financial = stats.financial || {}
+  const operational = stats.operational || {}
 
-  const { count: jobsCount } = await supabase.from('job_queue').select('*', { count: 'exact', head: true }).in('status', ['pending', 'processing'])
   const { count: providersCount } = await supabase.from('providers').select('*', { count: 'exact', head: true }).eq('is_active', true)
 
   return (
@@ -36,44 +32,88 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-indigo-50">Total Revenue (VND)</CardTitle>
+            <DollarSign className="h-4 w-4 text-indigo-100" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{usersCount || 0}</div>
-            <p className="text-xs text-muted-foreground">Active platform members</p>
+            <div className="text-2xl font-bold">{(financial.revenue_total_vnd || 0).toLocaleString()} ₫</div>
+            <p className="text-xs text-indigo-200 mt-1">From successful orders</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Provider Costs (USD)</CardTitle>
+            <Server className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${Number(financial.provider_cost_usd || 0).toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">API usage expenses</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Gross Profit (Est. USD)</CardTitle>
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">${Number(financial.gross_profit_estimate_usd || 0).toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Revenue - API Costs</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <Users className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{operational.active_users || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Verified & Active</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Credits Sold</CardTitle>
+            <CreditCard className="h-4 w-4 text-indigo-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{(financial.credits_sold || 0).toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-            <FolderKanbanIcon className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Credits Used</CardTitle>
+            <Activity className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{projectsCount || 0}</div>
-            <p className="text-xs text-muted-foreground">Across all stages</p>
+            <div className="text-2xl font-bold">{(financial.credits_used || 0).toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Videos</CardTitle>
-            <Video className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Rendering Jobs</CardTitle>
+            <Clock className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completedCount || 0}</div>
-            <p className="text-xs text-muted-foreground">Successfully rendered</p>
+            <div className="text-2xl font-bold">{operational.rendering_jobs || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Currently processing</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Failed Jobs</CardTitle>
+            <AlertCircle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{jobsCount || 0}</div>
-            <p className="text-xs text-muted-foreground">In processing queue</p>
+            <div className="text-2xl font-bold">{operational.failed_jobs || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Requires admin attention</p>
           </CardContent>
         </Card>
       </div>
@@ -81,14 +121,32 @@ export default async function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Platform Activity</CardTitle>
-            <CardDescription>System usage metrics (Sprint 3)</CardDescription>
+            <CardTitle>System Alerts</CardTitle>
+            <CardDescription>Recent anomalies or failed tasks</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center border-dashed border-2 m-4 rounded-md">
-            <div className="text-muted-foreground flex flex-col items-center">
-               <Activity className="h-10 w-10 mb-2 opacity-20" />
-               Activity Chart Placeholder
-            </div>
+          <CardContent>
+            {operational.failed_jobs > 0 ? (
+              <div className="rounded-md bg-red-50 dark:bg-red-950/50 p-4 border border-red-200 dark:border-red-900">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-red-400" aria-hidden="true" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Attention Required</h3>
+                    <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                      <p>
+                        There are {operational.failed_jobs} failed rendering jobs in the queue. Please check the Job Queue Logs or User Projects to retry them.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+               <div className="flex flex-col items-center justify-center py-8 text-slate-500">
+                 <CheckCircle className="h-10 w-10 text-emerald-500 mb-2 opacity-50" />
+                 <p>All systems operational. No recent failures.</p>
+               </div>
+            )}
           </CardContent>
         </Card>
         
@@ -98,11 +156,11 @@ export default async function AdminDashboard() {
             <CardDescription>Common admin tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Link href="/admin/system" className="flex items-center p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
-              <Server className="h-5 w-5 mr-3 text-blue-500" />
+            <Link href="/admin/users" className="flex items-center p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
+              <Users className="h-5 w-5 mr-3 text-indigo-500" />
               <div>
-                <p className="font-medium">System Health</p>
-                <p className="text-xs text-muted-foreground">Check connection status</p>
+                <p className="font-medium">User Management</p>
+                <p className="text-xs text-muted-foreground">Manage RBAC & Wallets</p>
               </div>
             </Link>
             <Link href="/admin/providers" className="flex items-center p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
@@ -113,33 +171,15 @@ export default async function AdminDashboard() {
               </div>
             </Link>
             <Link href="/admin/billing" className="flex items-center p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
-              <Activity className="h-5 w-5 mr-3 text-emerald-500" />
+              <CreditCard className="h-5 w-5 mr-3 text-emerald-500" />
               <div>
                 <p className="font-medium">Commercial Billing</p>
-                <p className="text-xs text-muted-foreground">Manage wallets & pricing</p>
+                <p className="text-xs text-muted-foreground">Pricing & Packages</p>
               </div>
             </Link>
-            <div className="flex items-center p-3 border rounded-lg opacity-50">
-              <FileCode2 className="h-5 w-5 mr-3 text-orange-500" />
-              <div>
-                <p className="font-medium">Job Queue Logs</p>
-                <p className="text-xs text-muted-foreground">Coming in Sprint 4</p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
     </div>
   )
-}
-
-function FolderKanbanIcon(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
-      <path d="M8 10v4" />
-      <path d="M12 10v2" />
-      <path d="M16 10v6" />
-    </svg>
-  )
-}
+}
