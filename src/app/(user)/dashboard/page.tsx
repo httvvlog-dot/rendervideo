@@ -9,15 +9,15 @@ export default async function DashboardPage() {
   const user = await getCurrentUser()
   const supabase = await createClient()
 
-  // Fetch real counts
-  const { count: totalProjects } = await supabase.from('projects').select('*', { count: 'exact', head: true }).eq('user_id', user?.id)
-  const { count: draftProjects } = await supabase.from('projects').select('*', { count: 'exact', head: true }).eq('user_id', user?.id).eq('status', 'draft')
-  const { count: completedProjects } = await supabase.from('projects').select('*', { count: 'exact', head: true }).eq('user_id', user?.id).eq('status', 'completed')
-  
-  // Fetch recent projects
+  // Fetch unified dashboard statistics via RPC
+  const { data: statsRaw } = await supabase.rpc('get_user_project_statistics', { p_user_id: user?.id })
+  const stats = statsRaw as any || { summary: {}, metrics: {} }
+  const summary = stats.summary || {}
+
+  // Fetch recent projects from the canonical lifecycle view
   const { data: recentProjects } = await supabase
-    .from('projects')
-    .select('id, title, status, created_at, video_length')
+    .from('vw_project_lifecycle_status')
+    .select('*')
     .eq('user_id', user?.id)
     .order('created_at', { ascending: false })
     .limit(5)
@@ -40,23 +40,32 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+            <CardTitle className="text-sm font-medium">Projects</CardTitle>
             <FolderKanban className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalProjects || 0}</div>
+            <div className="text-2xl font-bold">{summary.total || 0}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Drafts</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Draft</CardTitle>
+            <FolderKanban className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{draftProjects || 0}</div>
+            <div className="text-2xl font-bold">{summary.draft || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rendering</CardTitle>
+            <Clock className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary.rendering || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -65,7 +74,16 @@ export default async function DashboardPage() {
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completedProjects || 0}</div>
+            <div className="text-2xl font-bold">{summary.completed || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Failed</CardTitle>
+            <Activity className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary.failed || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -75,7 +93,6 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{creditsUsed.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Lifetime usage</p>
           </CardContent>
         </Card>
       </div>
@@ -89,22 +106,38 @@ export default async function DashboardPage() {
           <CardContent>
             {recentProjects && recentProjects.length > 0 ? (
               <div className="space-y-4">
-                {recentProjects.map((project) => (
-                  <Link href={`/projects/${project.id}`} key={project.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
+                {recentProjects.map((project: any) => (
+                  <Link href={`/projects/${project.project_id}`} key={project.project_id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="bg-indigo-100 dark:bg-indigo-900/50 p-2 rounded-md">
                         <PlayCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                       </div>
                       <div>
                         <p className="font-medium text-sm">{project.title}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(project.created_at).toLocaleDateString()}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {project.lifecycle_status === 'COMPLETED' ? (
+                            `Last render: ${new Date(project.last_completed_at).toLocaleString()}`
+                          ) : project.lifecycle_status === 'FAILED' ? (
+                            'Last render failed - Retry available'
+                          ) : project.lifecycle_status === 'RENDERING' ? (
+                            `Rendering... ${project.current_progress}%`
+                          ) : (
+                            'Not rendered yet'
+                          )}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                       <span className="text-xs text-muted-foreground">{project.video_length}m</span>
-                       <span className={`text-xs px-2 py-1 rounded-full ${project.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'}`}>
-                         {project.status}
+                    <div className="flex flex-col items-end gap-1">
+                       <span className={`text-xs px-2 py-1 rounded-full 
+                         ${project.lifecycle_status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' : 
+                           project.lifecycle_status === 'FAILED' ? 'bg-red-100 text-red-800' : 
+                           project.lifecycle_status === 'RENDERING' ? 'bg-amber-100 text-amber-800' : 
+                           'bg-slate-100 text-slate-800'}`}>
+                         {project.lifecycle_status}
                        </span>
+                       {project.lifecycle_status === 'COMPLETED' && project.latest_resolution && (
+                         <span className="text-[10px] text-muted-foreground">{project.latest_resolution} • {Math.round(project.latest_output_duration / 1000)}s</span>
+                       )}
                     </div>
                   </Link>
                 ))}

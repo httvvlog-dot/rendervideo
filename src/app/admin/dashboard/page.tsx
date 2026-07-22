@@ -11,8 +11,13 @@ export default async function AdminDashboard() {
   
   // Real database counters
   const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true })
-  const { count: projectsCount } = await supabase.from('projects').select('*', { count: 'exact', head: true })
-  const { count: completedCount } = await supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'completed')
+  
+  // Use unified statistics RPC for system-wide stats
+  const { data: statsRaw } = await supabase.rpc('get_user_project_statistics')
+  const stats = statsRaw as any || { summary: {}, metrics: {} }
+  const projectsCount = stats.summary?.total || 0
+  const completedCount = stats.summary?.completed || 0
+
   const { count: jobsCount } = await supabase.from('job_queue').select('*', { count: 'exact', head: true }).in('status', ['pending', 'processing'])
   const { count: providersCount } = await supabase.from('providers').select('*', { count: 'exact', head: true }).eq('is_active', true)
 
