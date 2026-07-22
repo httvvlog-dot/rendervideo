@@ -69,7 +69,7 @@ export default function SettingsClient({
                   {(settings as any[]).map((setting) => (
                     <div key={setting.setting_key} className="space-y-2">
                       <Label htmlFor={setting.setting_key}>
-                        {setting.setting_key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        {setting.setting_key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                       </Label>
                       
                       {setting.value_type === 'boolean' ? (
@@ -131,7 +131,7 @@ export default function SettingsClient({
                 <div key={feature.feature_name} className="flex items-center justify-between space-x-2 border-b pb-4 last:border-0 last:pb-0">
                   <div className="space-y-0.5">
                     <Label htmlFor={feature.feature_name} className="text-base">
-                      {feature.feature_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      {feature.feature_name.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                     </Label>
                     <p className="text-sm text-muted-foreground">
                       {feature.description}

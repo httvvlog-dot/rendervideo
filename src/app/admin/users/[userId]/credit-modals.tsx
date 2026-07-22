@@ -30,11 +30,10 @@ export function GrantCreditsModal({ userId }: { userId: string }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="default">Grant Credits</Button>
-      </DialogTrigger>
-      <DialogContent>
+    <>
+      <Button variant="default" onClick={() => setOpen(true)}>Grant Credits</Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
         <DialogHeader>
           <DialogTitle>Grant Credits</DialogTitle>
           <DialogDescription>Add credits to this user's wallet. Bonus credits expire in 30 days.</DialogDescription>
@@ -63,6 +62,7 @@ export function GrantCreditsModal({ userId }: { userId: string }) {
         </form>
       </DialogContent>
     </Dialog>
+    </>
   )
 }
 
@@ -86,11 +86,10 @@ export function AdjustCreditsModal({ userId }: { userId: string }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">Manual Adjust</Button>
-      </DialogTrigger>
-      <DialogContent>
+    <>
+      <Button variant="outline" onClick={() => setOpen(true)}>Manual Adjust</Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
         <DialogHeader>
           <DialogTitle>Manual Credit Adjustment</DialogTitle>
           <DialogDescription>Use this to deduct credits or compensate. Can be positive or negative.</DialogDescription>
@@ -111,5 +110,6 @@ export function AdjustCreditsModal({ userId }: { userId: string }) {
         </form>
       </DialogContent>
     </Dialog>
+    </>
   )
 }
