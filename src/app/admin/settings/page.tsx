@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function AdminSettingsPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   
   // Auth check
   const { data: { user } } = await supabase.auth.getUser();

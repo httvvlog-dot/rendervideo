@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, Video, DollarSign, Activity, Server, FileCode2, Clock, CheckCircle, TrendingUp, CreditCard, AlertTriangle, AlertCircle } from "lucide-react"
+import { Users, Video, DollarSign, Activity, Server, FileCode2, Clock, CheckCircle, TrendingUp, CreditCard, AlertTriangle, AlertCircle, Cpu } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/utils/supabase/server"
 import { requireAdmin } from "@/utils/roles"

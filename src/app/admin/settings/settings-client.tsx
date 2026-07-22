@@ -66,7 +66,7 @@ export default function SettingsClient({
                   <CardTitle className="capitalize">{groupName}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {settings.map((setting) => (
+                  {(settings as any[]).map((setting) => (
                     <div key={setting.setting_key} className="space-y-2">
                       <Label htmlFor={setting.setting_key}>
                         {setting.setting_key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
