@@ -11,17 +11,17 @@ import { InfoPopover } from "@/components/ui/info-popover"
 export function GrantCreditsModal({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [amount, setAmount] = useState(0)
+  const [amount, setAmount] = useState<number | "">("")
   const [type, setType] = useState<'PURCHASED' | 'WELCOME_BONUS'>('WELCOME_BONUS')
   const [desc, setDesc] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (amount <= 0) return
+    if (amount === "" || amount <= 0) return
     setLoading(true)
     try {
       const expireDays = type === 'WELCOME_BONUS' ? 30 : null
-      await grantUserCreditsAction(userId, amount, type, expireDays, desc || `Granted ${type}`)
+      await grantUserCreditsAction(userId, amount as number, type, expireDays, desc || `Granted ${type}`)
       setOpen(false)
     } catch (err: any) {
       alert(err.message)
@@ -56,13 +56,13 @@ export function GrantCreditsModal({ userId }: { userId: string }) {
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Amount</label>
-            <Input type="number" min="1" value={amount} onChange={e => setAmount(Number(e.target.value))} required />
+            <Input type="number" min="1" value={amount} onChange={e => setAmount(e.target.value === "" ? "" : Number(e.target.value))} required />
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Reason / Description</label>
             <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="e.g. Compensation for error" required />
           </div>
-          <Button type="submit" className="w-full" disabled={loading || amount <= 0}>
+          <Button type="submit" className="w-full" disabled={loading || amount === "" || amount <= 0}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Confirm Grant
           </Button>
@@ -76,14 +76,15 @@ export function GrantCreditsModal({ userId }: { userId: string }) {
 export function AdjustCreditsModal({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [amount, setAmount] = useState(0)
+  const [amount, setAmount] = useState<number | "">("")
   const [desc, setDesc] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (amount === "" || amount === 0) return
     setLoading(true)
     try {
-      await adjustUserCreditsAction(userId, amount, desc || "Manual adjustment")
+      await adjustUserCreditsAction(userId, amount as number, desc || "Manual adjustment")
       setOpen(false)
     } catch (err: any) {
       alert(err.message)
@@ -110,13 +111,13 @@ export function AdjustCreditsModal({ userId }: { userId: string }) {
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div>
             <label className="text-sm font-medium mb-1 block">Amount (+ or -)</label>
-            <Input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} required />
+            <Input type="number" value={amount} onChange={e => setAmount(e.target.value === "" ? "" : Number(e.target.value))} required />
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Reason</label>
             <Input value={desc} onChange={e => setDesc(e.target.value)} placeholder="e.g. Deduct for manual render" required />
           </div>
-          <Button type="submit" className="w-full" disabled={loading || amount === 0}>
+          <Button type="submit" className="w-full" disabled={loading || amount === "" || amount === 0}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Apply Adjustment
           </Button>
