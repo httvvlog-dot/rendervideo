@@ -7,6 +7,7 @@ import { notFound } from "next/navigation"
 import { GrantCreditsModal, AdjustCreditsModal } from "./credit-modals"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { InfoPopover } from "@/components/ui/info-popover"
 
 export default async function UserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
   await requireAdmin()
@@ -73,11 +74,26 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="mb-4">
-          <TabsTrigger value="overview"><User className="h-4 w-4 mr-2"/> Overview</TabsTrigger>
-          <TabsTrigger value="wallet"><Wallet className="h-4 w-4 mr-2"/> Wallet</TabsTrigger>
-          <TabsTrigger value="projects"><FolderKanban className="h-4 w-4 mr-2"/> Projects</TabsTrigger>
-          <TabsTrigger value="transactions"><History className="h-4 w-4 mr-2"/> Transactions</TabsTrigger>
-          <TabsTrigger value="audit"><Shield className="h-4 w-4 mr-2"/> Audit Logs</TabsTrigger>
+          <TabsTrigger value="overview">
+            <User className="h-4 w-4 mr-2"/> Overview
+            <InfoPopover description="Nơi cung cấp cái nhìn nhanh nhất về tài khoản này: tổng số Credit đang có, tổng Credit đã dùng, số lượng Project đang làm, và trạng thái tài khoản." />
+          </TabsTrigger>
+          <TabsTrigger value="wallet">
+            <Wallet className="h-4 w-4 mr-2"/> Wallet
+            <InfoPopover description="Hiển thị chi tiết cấu trúc tiền trong ví (các Bucket). Bạn sẽ thấy danh sách các khoản tín dụng đang còn hiệu lực và hạn sử dụng của chúng." />
+          </TabsTrigger>
+          <TabsTrigger value="projects">
+            <FolderKanban className="h-4 w-4 mr-2"/> Projects
+            <InfoPopover description="Liệt kê các video/script mà user này đã và đang làm. Giúp theo dõi trạng thái tiến độ các project (Draft, Rendering, Completed, Failed)." />
+          </TabsTrigger>
+          <TabsTrigger value="transactions">
+            <History className="h-4 w-4 mr-2"/> Transactions
+            <InfoPopover description="Sao kê (Bank Statement) của tài khoản. Ghi nhận mọi biến động số dư: cộng tiền do Admin cấp hay trừ tiền do render video." />
+          </TabsTrigger>
+          <TabsTrigger value="audit">
+            <Shield className="h-4 w-4 mr-2"/> Audit Logs
+            <InfoPopover description="Nhật ký kiểm toán giám sát Admin. Ghi lại hành động của Admin đối với User này (ai cấp credit, cấp bao nhiêu, lúc mấy giờ...)." />
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">

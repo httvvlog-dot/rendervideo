@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { grantUserCreditsAction, adjustUserCreditsAction } from "./actions"
 import { Loader2 } from "lucide-react"
+import { InfoPopover } from "@/components/ui/info-popover"
 
 export function GrantCreditsModal({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false)
@@ -31,7 +32,13 @@ export function GrantCreditsModal({ userId }: { userId: string }) {
 
   return (
     <>
-      <Button variant="default" onClick={() => setOpen(true)}>Grant Credits</Button>
+      <div className="flex items-center">
+        <Button variant="default" onClick={() => setOpen(true)}>Grant Credits</Button>
+        <InfoPopover 
+          title="Grant Credits" 
+          description="Cấp phát Credit cho người dùng. Dùng khi khách nạp tiền mua gói mới hoặc bạn muốn tặng khuyến mãi. Purchased Credit sẽ tồn tại vĩnh viễn, còn Bonus Credit sẽ tự động hết hạn sau 30 ngày." 
+        />
+      </div>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
         <DialogHeader>
@@ -87,7 +94,13 @@ export function AdjustCreditsModal({ userId }: { userId: string }) {
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>Manual Adjust</Button>
+      <div className="flex items-center">
+        <Button variant="outline" onClick={() => setOpen(true)}>Manual Adjust</Button>
+        <InfoPopover 
+          title="Manual Adjust" 
+          description="Điều chỉnh linh hoạt số dư trong ví. Khác với Grant (chỉ được cộng), Adjust cho phép bạn nhập số âm để trừ trực tiếp tiền (ví dụ: phát hiện gian lận) hoặc nhập số dương để bù tiền cho khách." 
+        />
+      </div>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
         <DialogHeader>
