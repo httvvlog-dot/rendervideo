@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ListTodo, CheckCircle2, XCircle, PlayCircle, Loader2, Clock } from "lucide-react"
 import { AutoRefresh } from "../components/auto-refresh"
 
+export const dynamic = 'force-dynamic'
+
 export default async function QueuePage() {
   await requireAdmin()
   const supabase = await createClient()
