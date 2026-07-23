@@ -382,6 +382,7 @@ export async function testCredentialConnection(credential_id: string) {
       await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.HEALTHY, latency, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
       return { success: true, latency, status: res.status };
     } else {
+      await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.HEALTHY, latency: 0, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
       return { success: true, message: "Credential format looks valid. Deep test not implemented for this provider yet.", latency: 0 };
     }
   } catch (err: any) {

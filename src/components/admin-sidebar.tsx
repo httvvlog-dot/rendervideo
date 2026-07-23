@@ -2,15 +2,16 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, Server, Settings, FileCode2, Video, ScrollText, CreditCard } from "lucide-react"
+import { LayoutDashboard, Users, Server, Settings, FileCode2, Video, ScrollText, CreditCard, Cpu } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const adminNavItems = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { name: "Providers", href: "/admin/providers", icon: Server },
+  { name: "Providers", href: "/admin/providers", icon: Cpu },
   { name: "Templates", href: "/admin/templates", icon: FileCode2 },
   { name: "Billing", href: "/admin/billing", icon: CreditCard },
   { name: "Users", href: "/admin/users", icon: Users },
+  { name: "Infrastructure", href: "/admin/infrastructure/workers", icon: Server },
   { name: "Settings", href: "/admin/settings", icon: Settings },
   { name: "Logs", href: "/admin/logs", icon: ScrollText },
   { name: "System Validation", href: "/admin/system", icon: Server },

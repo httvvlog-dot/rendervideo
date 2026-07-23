@@ -19,8 +19,7 @@ export function ProvidersTabs({ initialData }: { initialData: any[] }) {
     { id: "llm", label: "LLM" },
     { id: "tts", label: "TTS" },
     { id: "storage", label: "Storage" },
-    { id: "subtitle", label: "Subtitle" },
-    { id: "render", label: "Render" }
+    { id: "subtitle", label: "Subtitle" }
   ]
 
   return (
@@ -45,7 +44,6 @@ export function ProvidersTabs({ initialData }: { initialData: any[] }) {
       {activeTab === "tts" && <ProviderCards providers={ttsProviders} type="tts" />}
       {activeTab === "storage" && <ProviderCards providers={storageProviders} type="storage" />}
       {activeTab === "subtitle" && <ProviderCards providers={subtitleProviders} type="subtitle" />}
-      {activeTab === "render" && <ProviderCards providers={renderProviders} type="render" />}
     </div>
   )
 }
