@@ -9,15 +9,16 @@ import { requireAdmin } from "@/utils/roles"
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: { q?: string; page?: string; role?: string; status?: string }
+  searchParams: Promise<{ q?: string; page?: string; role?: string; status?: string }>
 }) {
   await requireAdmin()
   const supabase = await createClient()
 
-  const q = searchParams.q || ''
-  const page = parseInt(searchParams.page || '1', 10)
-  const role = searchParams.role || null
-  const status = searchParams.status || null
+  const resolvedParams = await searchParams;
+  const q = resolvedParams.q || ''
+  const page = parseInt(resolvedParams.page || '1', 10)
+  const role = resolvedParams.role || null
+  const status = resolvedParams.status || null
   const limit = 20
   const offset = (page - 1) * limit
 

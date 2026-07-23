@@ -8,16 +8,17 @@ import { GrantCreditsModal, AdjustCreditsModal } from "./credit-modals"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
-export default async function UserDetailPage({ params }: { params: { userId: string } }) {
+export default async function UserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
   await requireAdmin()
   const supabase = await createClient()
+  const { userId } = await params;
 
   // 1. Fetch Profile
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', params.userId).single()
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single()
   if (!profile) notFound()
 
   // 2. Fetch Wallet
-  const { data: wallet } = await supabase.from('wallets').select('*').eq('user_id', params.userId).single()
+  const { data: wallet } = await supabase.from('wallets').select('*').eq('user_id', userId).single()
   
   // 3. Fetch Buckets (Active)
   const { data: buckets } = await supabase.from('wallet_credit_buckets')
@@ -29,21 +30,21 @@ export default async function UserDetailPage({ params }: { params: { userId: str
   // 4. Fetch Transactions
   const { data: transactions } = await supabase.from('wallet_transactions')
     .select('*')
-    .eq('user_id', params.userId)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(20)
 
   // 5. Fetch Projects
   const { data: projects } = await supabase.from('vw_project_lifecycle_status')
     .select('*')
-    .eq('user_id', params.userId)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(10)
 
   // 6. Fetch Audit Logs
   const { data: auditLogs } = await supabase.from('admin_audit_logs')
     .select('*, admin:admin_id(email)')
-    .eq('target_user_id', params.userId)
+    .eq('target_user_id', userId)
     .order('created_at', { ascending: false })
     .limit(20)
 
