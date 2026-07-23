@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { requireAdmin } from "@/utils/roles"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Activity, Server, Clock, CheckCircle2, TrendingUp, BarChart4 } from "lucide-react"
+import { AutoRefresh } from "../components/auto-refresh"
 
 export default async function MetricsPage() {
   await requireAdmin()
@@ -49,6 +50,7 @@ export default async function MetricsPage() {
 
   return (
     <div className="space-y-6">
+      <AutoRefresh intervalMs={5000} />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

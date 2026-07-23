@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { requireAdmin } from "@/utils/roles"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { ListTodo, CheckCircle2, XCircle, PlayCircle, Loader2, Clock } from "lucide-react"
+import { AutoRefresh } from "../components/auto-refresh"
 
 export default async function QueuePage() {
   await requireAdmin()
@@ -24,9 +25,9 @@ export default async function QueuePage() {
 
   const pendingJobs = jobs?.filter(j => j.status === 'pending') || []
   const pending = pendingJobs.length
-  const rendering = jobs?.filter(j => j.status === 'processing').length || 0
+  const rendering = jobs?.filter(j => j.status === 'processing' || j.status === 'claimed').length || 0
   const completed = jobs?.filter(j => j.status === 'completed').length || 0
-  const failed = jobs?.filter(j => j.status === 'failed').length || 0
+  const failed = jobs?.filter(j => j.status === 'failed' || j.status === 'FAILED_FINAL').length || 0
 
   let oldestWaitingText = "-"
   if (pendingJobs.length > 0) {
@@ -43,6 +44,7 @@ export default async function QueuePage() {
 
   return (
     <div className="space-y-6">
+      <AutoRefresh intervalMs={5000} />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
