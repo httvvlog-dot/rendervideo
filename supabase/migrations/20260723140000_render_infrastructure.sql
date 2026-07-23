@@ -195,7 +195,7 @@ BEGIN
     
     -- Try to lock the oldest pending job
     FOR v_job IN
-        SELECT r.id, r.project_id, r.retry_count, r.input_payload
+        SELECT r.id, r.project_id, r.retry_count, r.timeline_snapshot, r.preset_snapshot
         FROM public.render_jobs r
         WHERE r.status = 'pending'
         ORDER BY r.created_at ASC
@@ -205,7 +205,7 @@ BEGIN
         IF COALESCE(v_job.retry_count, 0) >= 3 THEN
             -- Move to DLQ
             INSERT INTO public.render_dead_letter_jobs (original_job_id, worker_id, failed_reason, retry_count, payload)
-            VALUES (v_job.id, p_worker_id::TEXT, 'Exceeded max retries (3)', v_job.retry_count, v_job.input_payload);
+            VALUES (v_job.id, p_worker_id::TEXT, 'Exceeded max retries (3)', v_job.retry_count, jsonb_build_object('timeline', v_job.timeline_snapshot, 'preset', v_job.preset_snapshot));
             
             -- Delete from main table to keep it clean
             DELETE FROM public.render_jobs WHERE render_jobs.id = v_job.id;
