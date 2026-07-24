@@ -54,3 +54,36 @@ values
   ('Mystery Dark', 'fade', 1.2, '{"color": "#FFFFFF", "background": "#000000"}'::jsonb, false),
   ('Space Cinematic', 'zoom_in', 1.1, '{"color": "#FFFFFF", "background": "transparent"}'::jsonb, true)
 on conflict do nothing;
+-- 8. Provider Model Pricing & Credit Rules Seed
+-- Note: Since credit_rules relies on provider_model_pricing_id, we use a DO block or CTE to link them, or hardcode IDs.
+-- For seed script, we can insert into provider_model_pricing and then into credit_rules.
+
+DO $\$
+DECLARE
+  pricing_deepseek UUID;
+  pricing_gpt4o UUID;
+  pricing_eleven UUID;
+BEGIN
+  -- Insert pricing
+  INSERT INTO public.provider_model_pricing (provider, model, api_cost, currency, pricing_type, version, unit)
+  VALUES ('openrouter', 'deepseek/deepseek-v4-flash', 0.0001, 'USD', 'per_unit', 1, '1M tokens')
+  RETURNING id INTO pricing_deepseek;
+
+  INSERT INTO public.provider_model_pricing (provider, model, api_cost, currency, pricing_type, version, unit)
+  VALUES ('openrouter', 'openai/gpt-4o-mini', 0.0001, 'USD', 'per_unit', 1, '1M tokens')
+  RETURNING id INTO pricing_gpt4o;
+
+  INSERT INTO public.provider_model_pricing (provider, model, api_cost, currency, pricing_type, version, unit)
+  VALUES ('elevenlabs', 'eleven_multilingual_v2', 0.03, 'USD', 'per_unit', 1, '1M tokens')
+  RETURNING id INTO pricing_eleven;
+
+  -- Insert rules
+  INSERT INTO public.credit_rules (feature, provider_model_pricing_id, credit_cost, version)
+  VALUES ('Script', pricing_deepseek, 1, 1);
+
+  INSERT INTO public.credit_rules (feature, provider_model_pricing_id, credit_cost, version)
+  VALUES ('Script', pricing_gpt4o, 1, 1);
+
+  INSERT INTO public.credit_rules (feature, provider_model_pricing_id, credit_cost, version)
+  VALUES ('Voice', pricing_eleven, 1, 1);
+END $\$;
