@@ -3,13 +3,14 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { LayoutDashboard, FolderKanban, DownloadCloud, User, Video } from "lucide-react"
+import { LayoutDashboard, FolderKanban, DownloadCloud, User, Video, Wallet } from "lucide-react"
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Projects", href: "/projects", icon: FolderKanban },
   { name: "Downloads", href: "/downloads", icon: DownloadCloud },
   { name: "Profile", href: "/profile", icon: User },
+  { name: "Wallet & Credits", href: "/wallet", icon: Wallet },
 ]
 
 export function UserSidebar() {
