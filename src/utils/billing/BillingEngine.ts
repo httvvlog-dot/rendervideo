@@ -1,41 +1,104 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@/utils/supabase/server";
 import { ChargeResult, EngineContext } from "./types";
 import { WalletEngine } from "./WalletEngine";
 
 export class BillingEngine {
+  private static pricingCache = new Map<string, any>();
+  private static ruleCache = new Map<string, any>();
+  private static cacheInitialized = false;
+
+  private static async initCache() {
+    if (this.cacheInitialized) return;
+
+    const supabase = await createClient();
+    
+    const { data: pricings, error: pErr } = await supabase.from("provider_model_pricing").select("*");
+    if (pErr) console.error("BillingEngine: Error loading pricing cache:", pErr);
+    
+    if (!pricings || pricings.length === 0) {
+      console.warn("==========================================================");
+      console.warn("[WARNING] Billing seed missing. Run: supabase db seed");
+      console.warn("==========================================================");
+    } else {
+      for (const p of pricings) {
+        this.pricingCache.set(${p.provider}/, p);
+      }
+    }
+
+    const { data: rules, error: rErr } = await supabase.from("credit_rules").select("*");
+    if (rErr) console.error("BillingEngine: Error loading rules cache:", rErr);
+    
+    if (rules && rules.length > 0) {
+      for (const r of rules) {
+        this.ruleCache.set(${r.feature}_, r);
+      }
+    }
+
+    this.cacheInitialized = true;
+    
+    // Simple TTL for cache (flush every 5 minutes to avoid stale rules)
+    setTimeout(() => {
+      this.cacheInitialized = false;
+      this.pricingCache.clear();
+      this.ruleCache.clear();
+    }, 5 * 60 * 1000);
+  }
+
   static async calculateCost(
     feature: 'Script' | 'Voice' | 'Image' | 'Render',
     provider: string,
     model: string
   ): Promise<ChargeResult> {
-    const supabase = await createClient();
+    await this.initCache();
 
     // 1. Fetch Provider Model Pricing
-    const { data: pricing, error: pricingErr } = await supabase
-      .from("provider_model_pricing")
-      .select("*")
-      .eq("provider", provider)
-      .eq("model", model)
-      .order("version", { ascending: false })
-      .limit(1)
-      .single();
+    const cacheKey = ${provider}/;
+    let pricing = this.pricingCache.get(cacheKey);
 
-    if (pricingErr || !pricing) {
-      throw new Error(`Pricing not found for ${provider}/${model}`);
+    if (!pricing) {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("provider_model_pricing")
+        .select("*")
+        .eq("provider", provider)
+        .eq("model", model)
+        .order("version", { ascending: false })
+        .limit(1)
+        .single();
+        
+      if (!error && data) {
+        pricing = data;
+        this.pricingCache.set(cacheKey, data);
+      }
+    }
+
+    if (!pricing) {
+      throw new Error(Pricing not found.\n\nprovider = \nmodel = \n\nDid you run: supabase db seed ?);
     }
 
     // 2. Fetch Credit Rule
-    const { data: rule, error: ruleErr } = await supabase
-      .from("credit_rules")
-      .select("*")
-      .eq("feature", feature)
-      .eq("provider_model_pricing_id", pricing.id)
-      .order("version", { ascending: false })
-      .limit(1)
-      .single();
+    const ruleKey = ${feature}_;
+    let rule = this.ruleCache.get(ruleKey);
 
-    if (ruleErr || !rule) {
-      throw new Error(`Credit rule not found for feature ${feature}`);
+    if (!rule) {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("credit_rules")
+        .select("*")
+        .eq("feature", feature)
+        .eq("provider_model_pricing_id", pricing.id)
+        .order("version", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!error && data) {
+        rule = data;
+        this.ruleCache.set(ruleKey, data);
+      }
+    }
+
+    if (!rule) {
+      throw new Error(Credit rule not found for feature  and pricing . Run supabase db seed.);
     }
 
     return {
@@ -49,4 +112,3 @@ export class BillingEngine {
     };
   }
 }
-
