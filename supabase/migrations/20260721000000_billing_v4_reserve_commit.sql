@@ -279,11 +279,15 @@ DECLARE
     v_wallet_id UUID;
     v_total_balance BIGINT;
 BEGIN
+    IF p_bucket_type NOT IN ('PURCHASED', 'WELCOME_BONUS', 'PROMOTION', 'COMPENSATION', 'REFERRAL') THEN
+        RAISE EXCEPTION 'Invalid bucket_type: %', p_bucket_type;
+    END IF;
+
     SELECT id INTO v_wallet_id FROM public.wallets WHERE user_id = p_user_id FOR UPDATE;
     IF v_wallet_id IS NULL THEN RETURN false; END IF;
 
     INSERT INTO public.wallet_credit_buckets (wallet_id, bucket_type, balance, expires_at)
-    VALUES (v_wallet_id, p_bucket_type, p_amount, p_expires_at);
+    VALUES (v_wallet_id, p_bucket_type::public.bucket_type, p_amount, p_expires_at);
 
     SELECT COALESCE(SUM(balance), 0) INTO v_total_balance 
     FROM public.wallet_credit_buckets 
@@ -293,17 +297,27 @@ BEGIN
         wallet_id, user_id, transaction_type, amount, balance_before, balance_after,
         reference_type, reference_id, description, status
     ) VALUES (
-        v_wallet_id, p_user_id, 'PURCHASE', p_amount, v_total_balance - p_amount, v_total_balance,
+        v_wallet_id, p_user_id, 'ADMIN_GRANT', p_amount, v_total_balance - p_amount, v_total_balance,
         p_reference_type, p_reference_id, p_description, 'COMPLETED'
     );
 
-    UPDATE public.wallets 
-    SET 
-        balance_credits = v_total_balance,
-        total_purchased_credits = total_purchased_credits + p_amount,
-        lifetime_earned = lifetime_earned + p_amount,
-        updated_at = NOW()
-    WHERE id = v_wallet_id;
+    IF p_bucket_type = 'PURCHASED' THEN
+        UPDATE public.wallets 
+        SET 
+            balance_credits = v_total_balance,
+            total_purchased_credits = total_purchased_credits + p_amount,
+            lifetime_earned = lifetime_earned + p_amount,
+            updated_at = NOW()
+        WHERE id = v_wallet_id;
+    ELSE
+        UPDATE public.wallets 
+        SET 
+            balance_credits = v_total_balance,
+            total_bonus_credits = total_bonus_credits + p_amount,
+            lifetime_bonus = lifetime_bonus + p_amount,
+            updated_at = NOW()
+        WHERE id = v_wallet_id;
+    END IF;
 
     RETURN true;
 END;

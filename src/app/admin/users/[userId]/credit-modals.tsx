@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { grantUserCreditsAction, adjustUserCreditsAction } from "./actions"
 import { Loader2 } from "lucide-react"
 import { InfoPopover } from "@/components/ui/info-popover"
+import { toast } from "sonner"
 
 export function GrantCreditsModal({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false)
@@ -22,9 +23,10 @@ export function GrantCreditsModal({ userId }: { userId: string }) {
     try {
       const expireDays = type === 'WELCOME_BONUS' ? 30 : null
       await grantUserCreditsAction(userId, amount as number, type, expireDays, desc || `Granted ${type}`)
+      toast.success("Credits granted successfully!")
       setOpen(false)
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     } finally {
       setLoading(false)
     }
@@ -85,9 +87,10 @@ export function AdjustCreditsModal({ userId }: { userId: string }) {
     setLoading(true)
     try {
       await adjustUserCreditsAction(userId, amount as number, desc || "Manual adjustment")
+      toast.success("Credits adjusted successfully!")
       setOpen(false)
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     } finally {
       setLoading(false)
     }
