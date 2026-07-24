@@ -47,10 +47,6 @@ export function UserSidebar() {
             )
           })}
         </ul>
-        <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400">
-          <p>APP_VERSION=2026.07.24.01</p>
-          <p>Env: {process.env.NODE_ENV}</p>
-        </div>
       </div>
     </aside>
   )

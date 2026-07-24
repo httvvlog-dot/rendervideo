@@ -21,11 +21,6 @@ export async function grantUserCreditsAction(
     expiresAt = d.toISOString()
   }
 
-  console.log("=== ADMIN ENV DEBUG ===", {
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    projectRef: process.env.NEXT_PUBLIC_SUPABASE_URL?.split("//")[1]?.split(".")[0]
-  });
-
   const { data, error } = await supabase.rpc('grant_credits', {
     p_user_id: userId,
     p_amount: amount,

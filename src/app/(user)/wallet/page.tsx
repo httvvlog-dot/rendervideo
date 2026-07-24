@@ -11,21 +11,11 @@ export default async function UserWalletPage() {
   }
 
   // 1. Fetch Wallet
-  const { data: wallet, error } = await supabase
+  const { data: wallet } = await supabase
     .from("wallets")
     .select("*")
     .eq("user_id", user.id)
     .single();
-
-  console.log("=== WALLET DEBUG ===", {
-    authUserId: user.id,
-    authEmail: user.email,
-    walletUserId: wallet?.user_id,
-    balance: wallet?.balance_credits,
-    error,
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    projectRef: process.env.NEXT_PUBLIC_SUPABASE_URL?.split("//")[1]?.split(".")[0]
-  });
 
   // 2. Fetch Packages
   const { data: packages } = await supabase
