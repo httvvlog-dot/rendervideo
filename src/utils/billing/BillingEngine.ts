@@ -1,4 +1,4 @@
-﻿import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/server";
 import { ChargeResult, EngineContext } from "./types";
 import { WalletEngine } from "./WalletEngine";
 
@@ -21,7 +21,7 @@ export class BillingEngine {
       console.warn("==========================================================");
     } else {
       for (const p of pricings) {
-        this.pricingCache.set(${p.provider}/, p);
+        this.pricingCache.set(`${p.provider}/${p.model}`, p);
       }
     }
 
@@ -30,7 +30,7 @@ export class BillingEngine {
     
     if (rules && rules.length > 0) {
       for (const r of rules) {
-        this.ruleCache.set(${r.feature}_, r);
+        this.ruleCache.set(`${r.feature}_${r.provider_model_pricing_id}`, r);
       }
     }
 
@@ -52,7 +52,7 @@ export class BillingEngine {
     await this.initCache();
 
     // 1. Fetch Provider Model Pricing
-    const cacheKey = ${provider}/;
+    const cacheKey = `${provider}/${model}`;
     let pricing = this.pricingCache.get(cacheKey);
 
     if (!pricing) {
@@ -73,11 +73,11 @@ export class BillingEngine {
     }
 
     if (!pricing) {
-      throw new Error(Pricing not found.\n\nprovider = \nmodel = \n\nDid you run: supabase db seed ?);
+      throw new Error(`Pricing not found.\n\nprovider = ${provider}\nmodel = ${model}\n\nDid you run: supabase db seed ?`);
     }
 
     // 2. Fetch Credit Rule
-    const ruleKey = ${feature}_;
+    const ruleKey = `${feature}_${pricing.id}`;
     let rule = this.ruleCache.get(ruleKey);
 
     if (!rule) {
@@ -98,7 +98,7 @@ export class BillingEngine {
     }
 
     if (!rule) {
-      throw new Error(Credit rule not found for feature  and pricing . Run supabase db seed.);
+      throw new Error(`Credit rule not found for feature ${feature} and pricing ${pricing.id}. Run supabase db seed.`);
     }
 
     return {
