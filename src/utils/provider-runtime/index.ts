@@ -21,6 +21,13 @@ export class ProviderRuntime {
     this.selector = new CredentialSelector(providerKey);
     this.engine = new RetryEngine(defaultOptions);
   }
+  async getDefaultModel(): Promise<string | null> {
+    const credentials = await this.selector.getActiveCredentials();
+    if (!credentials || credentials.length === 0) return null;
+    // Attempt to parse config_json to find the default model
+    const config = credentials[0].config_json || {};
+    return config.defaultModel || config.default_model || null;
+  }
 
   async execute<TArgs, TResult>(adapter: ProviderAdapter<TArgs, TResult>, params: ExecuteParams<TArgs>): Promise<ProviderExecutionResult<TResult>> {
     const credentials = await this.selector.getActiveCredentials();

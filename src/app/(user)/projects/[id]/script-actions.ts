@@ -70,12 +70,14 @@ Important:
     failureThreshold: 3 
   });
 
+  const defaultModel = await runtime.getDefaultModel() || "openai/gpt-4o-mini";
+
   try {
     const { UsageEngine } = await import("@/utils/billing");
     const responseData = await UsageEngine.executeAndCharge(
       { userId: user.id, projectId: projectId, feature: "Script" },
       "openrouter",
-      "openai/gpt-4o-mini", // Fallback, normally fetched from project or preset
+      defaultModel, // Fetched dynamically from provider credentials
       async () => {
         return await runtime.execute(new OpenRouterAdapter(), {
           step: "SCRIPT",
