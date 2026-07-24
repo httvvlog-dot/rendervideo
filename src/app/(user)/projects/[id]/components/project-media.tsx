@@ -133,7 +133,7 @@ export function ProjectMedia({ projectId, initialMedia, targetDuration }: { proj
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-3">
               {initialMedia.map((media) => (
                 <div key={media.id} className="group relative border rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800 aspect-square">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  { }
                   <img 
                     src={media.public_url} 
                     alt={media.file_name}

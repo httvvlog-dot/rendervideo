@@ -5,7 +5,7 @@ import { Check, Loader2, AlertCircle, Play, Download, Copy, RefreshCw } from "lu
 import { Button } from "@/components/ui/button"
 
 export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: string, onRenderAgain?: () => void, onComplete?: () => void }) {
-  const [status, setStatus] = useState("queued") // queued, preparing, rendering, uploading, completed, failed
+  const [status, setStatus] = useState("pending") // pending, preparing, rendering, uploading, completed, failed
   const [progress, setProgress] = useState(0)
   const [progressMessage, setProgressMessage] = useState("")
   const [outputUrl, setOutputUrl] = useState("")
@@ -55,7 +55,7 @@ export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: 
   if (!jobId) return null
 
   const renderSteps = [
-    { id: "queued", label: "Queued" },
+    { id: "pending", label: "Queued" },
     { id: "preparing", label: "Downloading Assets" },
     { id: "rendering", label: "Rendering Frames" },
     { id: "uploading", label: "Uploading to R2" },

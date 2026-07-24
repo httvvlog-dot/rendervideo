@@ -57,7 +57,25 @@ export default async function WorkersPage() {
       onlineCount++
     }
 
-    return { ...worker, secondsAgo, computedStatus, statusColor, StatusIcon }
+    let lastCompletedStr = 'Never'
+    if (worker.last_job_completed_at) {
+      const completedAgo = Math.floor((now.getTime() - new Date(worker.last_job_completed_at).getTime()) / 1000)
+      if (completedAgo < 60) lastCompletedStr = `${completedAgo}s ago`
+      else if (completedAgo < 3600) lastCompletedStr = `${Math.floor(completedAgo/60)}m ago`
+      else lastCompletedStr = `${Math.floor(completedAgo/3600)}h ago`
+    }
+
+    let uptimeStr = '0s'
+    if (worker.uptime_seconds) {
+      const h = Math.floor(worker.uptime_seconds / 3600)
+      const m = Math.floor((worker.uptime_seconds % 3600) / 60)
+      const s = worker.uptime_seconds % 60
+      if (h > 0) uptimeStr = `${h}h ${m}m`
+      else if (m > 0) uptimeStr = `${m}m ${s}s`
+      else uptimeStr = `${s}s`
+    }
+
+    return { ...worker, secondsAgo, computedStatus, statusColor, StatusIcon, lastCompletedStr, uptimeStr }
   })
 
   return (
@@ -143,10 +161,10 @@ export default async function WorkersPage() {
                 </div>
 
                 <div className="bg-slate-50 dark:bg-slate-900 rounded p-2 text-xs font-mono space-y-1 text-slate-500">
+                  <div className="flex justify-between"><span>Uptime:</span> <span className="text-slate-900 dark:text-slate-300">{worker.uptimeStr}</span></div>
+                  <div className="flex justify-between"><span>Last Job:</span> <span className="text-slate-900 dark:text-slate-300">{worker.lastCompletedStr}</span></div>
                   <div className="flex justify-between"><span>App:</span> <span className="text-slate-900 dark:text-slate-300">{worker.app_version || 'N/A'}</span></div>
-                  <div className="flex justify-between"><span>Worker:</span> <span className="text-slate-900 dark:text-slate-300">{worker.worker_version || 'N/A'}</span></div>
                   <div className="flex justify-between"><span>FFmpeg:</span> <span className="text-slate-900 dark:text-slate-300">{worker.ffmpeg_version || 'N/A'}</span></div>
-                  <div className="flex justify-between"><span>Remotion:</span> <span className="text-slate-900 dark:text-slate-300">{worker.remotion_version || 'N/A'}</span></div>
                 </div>
 
                 <div className="flex items-center text-xs text-slate-500 gap-1 mt-2 justify-between">
@@ -156,7 +174,7 @@ export default async function WorkersPage() {
                   </div>
                   <div className="flex items-center gap-1" title={JSON.stringify(worker.capabilities)}>
                     <HardDrive className="h-3 w-3" />
-                    Capabilities
+                    Capabilities v{worker.capabilities?.schema || 0}
                   </div>
                 </div>
               </div>

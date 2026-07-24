@@ -17,7 +17,9 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
     visual_description: section.visual_description || "",
     image_prompt: section.image_prompt || "",
     recommended_image_count: section.recommended_image_count || 1,
-    keywords: section.keywords ? section.keywords.join(", ") : ""
+    keywords: section.keywords ? section.keywords.join(", ") : "",
+    transition_type: section.transition_type || "fade",
+    transition_duration: section.transition_duration || 0.5
   })
   const [isSaving, setIsSaving] = useState(false)
 
@@ -128,11 +130,61 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
           )}
 
           {!isEditing && (
-            <SectionMediaUploader 
-              sectionId={section.id} 
-              projectId={projectId} 
-              recommendedCount={section.recommended_image_count} 
-            />
+            <>
+              <SectionMediaUploader 
+                sectionId={section.id} 
+                projectId={projectId} 
+                recommendedCount={section.recommended_image_count} 
+              />
+              <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/50 p-2 rounded-md border border-slate-200 dark:border-slate-700/50">
+                <span className="font-semibold text-slate-600 dark:text-slate-300">🎬 Transition:</span>
+                <span className="capitalize">{section.transition_type || 'fade'}</span>
+                <span className="opacity-60">({section.transition_duration || 0.5}s)</span>
+              </div>
+            </>
+          )}
+
+          {isEditing && (
+            <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800">
+              <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5">
+                🎬 Transition Settings
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Type</label>
+                  <select 
+                    value={formData.transition_type} 
+                    onChange={e => setFormData({...formData, transition_type: e.target.value})}
+                    className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="none">None</option>
+                    <option value="fade">🎬 Fade</option>
+                    <option value="cross_fade">⇆ Cross Fade</option>
+                    <option value="dissolve">✨ Dissolve</option>
+                    <option value="slide_left">⬅ Slide Left</option>
+                    <option value="slide_right">➡ Slide Right</option>
+                    <option value="slide_up">⬆ Slide Up</option>
+                    <option value="slide_down">⬇ Slide Down</option>
+                    <option value="zoom">🔍 Zoom</option>
+                    <option value="blur">🌫 Blur Fade</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 mb-1 block">Duration</label>
+                  <select 
+                    value={formData.transition_duration} 
+                    onChange={e => setFormData({...formData, transition_duration: parseFloat(e.target.value)})}
+                    className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="0.3">0.3s</option>
+                    <option value="0.5">0.5s</option>
+                    <option value="0.8">0.8s</option>
+                    <option value="1.0">1.0s</option>
+                    <option value="1.5">1.5s</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </CardContent>

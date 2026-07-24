@@ -142,7 +142,7 @@ export async function POST(req: Request) {
       .from('render_jobs')
       .insert({
         project_id: projectId,
-        status: RENDER_JOB_STATUS.QUEUED,
+        status: RENDER_JOB_STATUS.PENDING,
         progress: 0,
         timeline_snapshot: validatedTimeline,
         preset_snapshot: presetSnapshot,
@@ -180,35 +180,35 @@ export async function POST(req: Request) {
     }
 
     try {
-      const { UsageEngine } = await import("@/utils/billing");
+      const { WalletEngine } = await import("@/utils/billing/WalletEngine");
+      const { BillingEngine } = await import("@/utils/billing/BillingEngine");
       
       // Get user from auth
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Run Usage Engine to charge the user for rendering
-        await UsageEngine.executeAndCharge(
+        // Calculate Cost
+        const codec = validatedTimeline.preset.codec || "h264";
+        const chargeInfo = await BillingEngine.calculateCost("Render", "render_worker", codec);
+        
+        // Only reserve credits here. The Worker will handle Commit/Release based on final state.
+        const reserveResult = await WalletEngine.reserveCredits(
           { userId: user.id, projectId: projectId, feature: "Render" },
-          "render_worker", // Internal provider
-          validatedTimeline.preset.codec || "h264",
-          async () => {
-            // Execution is already queued in DB, so we just return the result
-            return {
-              result: true,
-              usage: {
-                provider: "render_worker",
-                model: validatedTimeline.preset.codec || "h264",
-                pricingType: "second",
-                durationSeconds: validatedTimeline.totalDurationMs / 1000,
-                resolution: `${validatedTimeline.preset.width}x${validatedTimeline.preset.height}`
-              }
-            };
-          }
+          chargeInfo,
+          "render_jobs",
+          job.id
         );
-        console.log(`[BILLING] Render Job requested and charged successfully.`);
+        
+        if (!reserveResult.success) {
+            // Delete the job if billing reserve failed
+            await supabaseAdmin.from('render_jobs').delete().eq("id", job.id);
+            return NextResponse.json({ error: "Insufficient credits" }, { status: 402 });
+        }
+        
+        console.log(`[BILLING] Render Job requested and credits reserved successfully. Job ID: ${job.id}`);
       }
     } catch (billingErr: any) {
-      // If billing fails, we should technically delete or cancel the job
-      await supabaseAdmin.from('render_jobs').update({ status: RENDER_JOB_STATUS.FAILED, error_message: "Insufficient credits" }).eq("id", job.id);
+      // If billing fails, delete the job
+      await supabaseAdmin.from('render_jobs').delete().eq("id", job.id);
       return NextResponse.json({ error: billingErr.message || "Insufficient credits" }, { status: 402 });
     }
 

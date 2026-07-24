@@ -20,7 +20,7 @@ export function AudioPlaybackManager({ isPlaying, currentTimeMs, audioTracks }: 
   // 1. Sync tracks with engine
   useEffect(() => {
     globalAudioEngine.syncTracks(audioTracks)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [tracksHash])
 
   // 2. Playback Sync Logic

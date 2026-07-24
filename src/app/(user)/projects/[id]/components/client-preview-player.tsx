@@ -96,7 +96,7 @@ export function ClientPreviewPlayer({ scenes, currentTimeMs, aspectRatio = "9/16
           }
 
           return (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img
               key={scene.id}
               src={scene.publicUrl}

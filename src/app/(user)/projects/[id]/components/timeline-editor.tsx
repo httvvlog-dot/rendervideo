@@ -597,7 +597,7 @@ export function TimelineEditor({
                         title={`Scene: ${(scene.durationMs/1000).toFixed(1)}s ${warningClass ? '(Video ends before narration)' : ''}`}
                       >
                         {scene.mediaId ? (
-                          // eslint-disable-next-line @next/next/no-img-element
+                           
                           <img src={scene.publicUrl || ""} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay pointer-events-none" />
                         ) : null}
                         <span className="relative z-10 drop-shadow-md truncate w-full text-center px-4 font-mono font-bold">

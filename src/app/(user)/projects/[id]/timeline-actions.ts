@@ -77,7 +77,8 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
   let globalSortOrder = 0
   let expectedGlobalTotalMs = 0
 
-  for (const section of sections) {
+  for (let sIdx = 0; sIdx < sections.length; sIdx++) {
+    const section = sections[sIdx]
     const sectionMedia = mediaBySectionId.get(section.id) || []
     
     if (sectionMedia.length === 0) {
@@ -122,13 +123,25 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
       const startTimeMs = globalCursorMs
       const endTimeMs = startTimeMs + durationMs
 
+      let transitionType = section.transition_type || 'fade'
+      let transitionDuration = section.transition_duration || 0.5
+
+      // If it's the last media in the section, and there is a next section, use next section's transition
+      if (isLastMedia && sIdx < sections.length - 1) {
+        const nextSection = sections[sIdx + 1]
+        transitionType = nextSection.transition_type || 'fade'
+        transitionDuration = nextSection.transition_duration || 0.5
+      }
+
       newScenes.push({
         media_id: media.id,
         section_id: section.id,
         duration: durationMs / 1000.0,
         start_time: startTimeMs / 1000.0,
         end_time: endTimeMs / 1000.0,
-        sort_order: globalSortOrder
+        sort_order: globalSortOrder,
+        transition_type: transitionType,
+        transition_duration: transitionDuration
       })
 
       actualSectionAccumulatorMs += durationMs

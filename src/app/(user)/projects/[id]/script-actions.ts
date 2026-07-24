@@ -191,6 +191,8 @@ export async function updateScriptSection(sectionId: string, projectId: string, 
     image_prompt: patch.image_prompt,
     recommended_image_count: patch.recommended_image_count,
     keywords: patch.keywords,
+    transition_type: patch.transition_type,
+    transition_duration: patch.transition_duration,
     updated_at: new Date().toISOString()
   }).eq("id", sectionId).eq("project_id", projectId)
 

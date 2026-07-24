@@ -24,6 +24,7 @@ const FFMPEG_VERSION = "7.0"; // Usually parsed from binary, hardcoded for now
 const REMOTION_VERSION = "4.0"; // Hardcoded for now
 
 const CAPABILITIES = {
+  schema: 1,
   gpu: true,
   gpu_name: "RTX 4090", // Example
   gpu_memory_gb: 24,
@@ -35,6 +36,7 @@ const CAPABILITIES = {
   ffmpeg: true
 };
 
+const START_TIME = Date.now();
 let workerId: string | null = null;
 let activeJobIds: string[] = [];
 
@@ -93,11 +95,16 @@ async function sendGlobalHeartbeat() {
     p_worker_id: workerId,
     p_cpu_usage: cpuUsage,
     p_ram_usage: ramUsage,
-    p_active_jobs: activeJobIds.length
+    p_active_jobs: activeJobIds.length,
+    p_uptime_seconds: Math.floor((Date.now() - START_TIME) / 1000)
   });
 
   if (error) {
     console.error("[Worker] Heartbeat failed:", error.message);
+    if (error.message.includes("Worker not found")) {
+      console.warn("[Worker] Worker record missing in database. Re-registering...");
+      await registerWorker();
+    }
   }
 }
 
@@ -105,7 +112,8 @@ async function claimNextJob() {
   if (!workerId) return null;
   const { data, error } = await supabase.rpc("claim_next_render_job", {
     p_worker_id: workerId,
-    p_capabilities: CAPABILITIES
+    p_capabilities: CAPABILITIES,
+    p_request_id: `claim-${Date.now()}`
   });
 
   if (error) {
@@ -139,6 +147,9 @@ async function processJob(job: any) {
     }).eq("id", job.id).eq("worker_id", workerId);
     
     await adapter.prepare(job.id, job.timeline_snapshot);
+    if (job.timeline_snapshot.fail_on_purpose) {
+      throw new Error("Simulated failure for DLQ test");
+    }
     prepareTime = (performance.now() - t0) / 1000;
 
     const t1 = performance.now();
@@ -175,14 +186,30 @@ async function processJob(job: any) {
     
     const nextVersion = latestOutput ? latestOutput.version + 1 : 1;
 
-    await supabase.from("render_jobs").update({
-      status: RENDER_JOB_STATUS.COMPLETED,
-      progress: 100,
-      progress_message: "Completed",
-      output_url: outputUrl,
-      finished_at: new Date().toISOString(),
-      error_message: null
-    }).eq("id", job.id).eq("worker_id", workerId);
+    const totalDurationSeconds = Math.round(job.timeline_snapshot.totalDurationMs) / 1000;
+    
+    // Usage metadata for Billing
+    const usageMetadata = {
+      provider: "render_worker",
+      model: job.timeline_snapshot.preset.codec || "h264",
+      pricingType: "second",
+      durationSeconds: totalDurationSeconds,
+      resolution: `${job.timeline_snapshot.preset.width}x${job.timeline_snapshot.preset.height}`
+    };
+
+    const { error: completeErr } = await supabase.rpc("complete_render_job", {
+      p_job_id: job.id,
+      p_worker_id: workerId,
+      p_output_url: outputUrl,
+      p_usage_metadata: usageMetadata,
+      p_usd_cost: 0,
+      p_request_id: `req-${job.id}`
+    });
+
+    if (completeErr) {
+      console.error(`[Worker ${WORKER_NAME}] Error completing job:`, completeErr);
+      throw completeErr;
+    }
 
     try {
       await supabase.from("project_outputs").insert({
@@ -213,7 +240,7 @@ async function processJob(job: any) {
     console.error(`[${WORKER_NAME}] Job ${job.id} failed:`, err);
     errorMessage = err.message || "Unknown error";
     await supabase.from("render_jobs").update({
-      status: RENDER_JOB_STATUS.FAILED,
+      status: RENDER_JOB_STATUS.PENDING,
       error_message: errorMessage,
       finished_at: new Date().toISOString(),
     }).eq("id", job.id).eq("worker_id", workerId);
