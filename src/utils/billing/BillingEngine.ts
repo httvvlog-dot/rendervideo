@@ -31,6 +31,9 @@ export class BillingEngine {
     });
     
     try {
+      const { count } = await supabase.from("ai_capabilities").select("*", { count: "exact", head: true });
+      console.log("DB COUNT =", count);
+
       const { data: capabilities, error: cErr } = await supabase.from("ai_capabilities").select("*").eq("is_active", true).order("priority", { ascending: false });
       
       console.log("=== RAW QUERY RESULT ===");

@@ -1,4 +1,4 @@
-﻿-- Migration: Advanced Billing Capabilities & Audit Logs
+-- Migration: Advanced Billing Capabilities & Audit Logs
 
 -- 1. AI Capabilities Registry
 CREATE TABLE IF NOT EXISTS public.ai_capabilities (
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.ai_capabilities (
 );
 
 -- Ensure only one default per feature
-CREATE UNIQUE INDEX ai_capabilities_one_default_per_feature 
+CREATE UNIQUE INDEX IF NOT EXISTS ai_capabilities_one_default_per_feature 
 ON public.ai_capabilities (feature) 
 WHERE is_default = true;
 

@@ -20,13 +20,18 @@ CREATE INDEX IF NOT EXISTS idx_system_audit_logs_action ON public.system_audit_l
 ALTER TABLE public.system_audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Only super_admins can view system audit logs
-CREATE POLICY "Super Admins can view system audit logs"
-    ON public.system_audit_logs
-    FOR SELECT
-    USING (
-        auth.uid() IN (
-            SELECT id FROM public.profiles WHERE role = 'super_admin'
-        )
-    );
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Super Admins can view system audit logs' AND tablename = 'system_audit_logs') THEN
+        CREATE POLICY "Super Admins can view system audit logs"
+            ON public.system_audit_logs
+            FOR SELECT
+            USING (
+                auth.uid() IN (
+                    SELECT id FROM public.profiles WHERE role = 'super_admin'
+                )
+            );
+    END IF;
+END $$;
 
 -- Logs are immutable, no update or delete allowed (insert usually done via service role)
