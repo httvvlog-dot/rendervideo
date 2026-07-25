@@ -27,14 +27,23 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         const adapter = AdapterRegistry.get(provider);
         if (!adapter) throw new Error(`Adapter for provider ${provider} not found`);
 
-        const runtime = new ProviderRuntime(provider, { retryCount: 2, retryDelay: 1000, failureThreshold: 3 });
-        
         // Retrieve prompt from database
-        const { data: section } = await supabase.from("project_sections").select("image_prompt, visual_description").eq("id", sectionId).single();
+        const runtime = new ProviderRuntime(provider, { retryCount: 2, retryDelay: 1000, failureThreshold: 3 });
+
+        console.log("=== DEBUG Image Generation ===");
+        console.log("sectionId:", sectionId);
+        
+        const { data: section, error: dbError } = await supabase.from("script_sections").select("image_prompt, visual_description").eq("id", sectionId).single();
+        
+        console.log("section:", section);
+        console.log("dbError:", dbError);
+        console.log("image_prompt:", section?.image_prompt);
+        console.log("visual_description:", section?.visual_description);
+        
         if (!section) throw new Error("Không tìm thấy phân cảnh.");
         
-        const prompt = section.image_prompt || section.visual_description;
-        if (!prompt) throw new Error("Không tìm thấy Prompt của phân cảnh (Image Prompt & Visual Description are empty).");
+        const prompt = section.image_prompt?.trim() || section.visual_description?.trim();
+        if (!prompt) throw new Error(`Section ${sectionId} không có image_prompt và visual_description`);
 
         // Determine resolution
         let width = 1080;
