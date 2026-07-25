@@ -104,7 +104,7 @@ export async function saveAIImage(projectId: string, sectionId: string, url: str
       .insert({
         project_id: projectId,
         section_id: sectionId,
-        media_type: "image",
+        asset_type: "image",
         file_path: path,
         public_url: publicUrl,
         size_bytes: buffer.byteLength,
