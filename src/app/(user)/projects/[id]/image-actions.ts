@@ -30,9 +30,11 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         const runtime = new ProviderRuntime(provider, { retryCount: 2, retryDelay: 1000, failureThreshold: 3 });
         
         // Retrieve prompt from database
-        const { data: section } = await supabase.from("project_sections").select("image_prompt").eq("id", sectionId).single();
-        if (!section || !section.image_prompt) throw new Error("Không tìm thấy Prompt của phân cảnh (Image Prompt is empty).");
-        const prompt = section.image_prompt;
+        const { data: section } = await supabase.from("project_sections").select("image_prompt, visual_description").eq("id", sectionId).single();
+        if (!section) throw new Error("Không tìm thấy phân cảnh.");
+        
+        const prompt = section.image_prompt || section.visual_description;
+        if (!prompt) throw new Error("Không tìm thấy Prompt của phân cảnh (Image Prompt & Visual Description are empty).");
 
         // Determine resolution
         let width = 1080;
