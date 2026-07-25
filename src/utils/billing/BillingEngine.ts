@@ -31,9 +31,6 @@ export class BillingEngine {
     });
     
     try {
-      const { count } = await supabase.from("ai_capabilities").select("*", { count: "exact", head: true });
-      console.log("DB COUNT =", count);
-
       const { data: capabilities, error: cErr } = await supabase.from("ai_capabilities").select("*").eq("is_active", true).order("priority", { ascending: false });
       
       console.log("=== RAW QUERY RESULT ===");
@@ -155,7 +152,6 @@ export class BillingEngine {
     },
     executeAI: (provider: string, model: string) => Promise<{ result: T; usage?: any; actualUsdCost?: number }>
   ): Promise<T> {
-    console.log("ENTER BillingEngine.executeAndCharge");
     const chargeResult = await this.getChargeInfo(context.feature, options.provider, options.model);
     const { provider, model } = chargeResult;
 
