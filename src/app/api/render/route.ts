@@ -182,17 +182,18 @@ export async function POST(req: Request) {
     try {
       const { WalletEngine } = await import("@/utils/billing/WalletEngine");
       const { BillingEngine } = await import("@/utils/billing/BillingEngine");
+      const { BillingFeature } = await import("@/utils/billing/types");
       
       // Get user from auth
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         // Calculate Cost
         const codec = validatedTimeline.preset.codec || "h264";
-        const chargeInfo = await BillingEngine.calculateCost("Render", "render_worker", codec);
+        const chargeInfo = await BillingEngine.getChargeInfo(BillingFeature.VIDEO_RENDER, "render_worker", codec);
         
         // Only reserve credits here. The Worker will handle Commit/Release based on final state.
         const reserveResult = await WalletEngine.reserveCredits(
-          { userId: user.id, projectId: projectId, feature: "Render" },
+          { userId: user.id, projectId: projectId, feature: BillingFeature.VIDEO_RENDER },
           chargeInfo,
           "render_jobs",
           job.id

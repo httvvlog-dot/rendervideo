@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server"
 
-import { UsageEngine, EngineContext } from "@/utils/billing"
+import { BillingEngine, BillingFeature, EngineContext } from "@/utils/billing"
 
 export async function generateAIImageStub(projectId: string, sectionId: string, prompt: string) {
   const supabase = await createClient()
@@ -12,15 +12,14 @@ export async function generateAIImageStub(projectId: string, sectionId: string, 
   const context: EngineContext = {
     userId: user.id,
     projectId: projectId,
-    feature: 'Image'
+    feature: BillingFeature.IMAGE_GENERATION
   }
 
   try {
-    const result = await UsageEngine.executeAndCharge(
+    const result = await BillingEngine.executeAndCharge(
       context,
-      'openai', // Mock provider
-      'gpt-image-1', // Mock model
-      async () => {
+      { provider: 'openai', model: 'gpt-image-1' },
+      async (provider, model) => {
         // Simulate AI Generation latency
         await new Promise(resolve => setTimeout(resolve, 2000))
 
@@ -47,12 +46,10 @@ export async function generateAIImageStub(projectId: string, sectionId: string, 
           }
         }
 
-        // Generate a placeholder from Unsplash based on aspect ratio
-        const imageUrl = `https://images.unsplash.com/photo-1707343843437-caacff5cfa74?w=${width}&h=${height}&fit=crop&q=80`
-
+        // Mock output
         return {
           result: {
-            url: imageUrl,
+            url: `https://fakeimg.pl/${width}x${height}/282828/eae0d0/?text=Generated+Image+For+Prompt:+${encodeURIComponent(prompt).substring(0, 50)}`,
             width,
             height
           },
@@ -62,7 +59,8 @@ export async function generateAIImageStub(projectId: string, sectionId: string, 
             pricingType: "image",
             images: 1,
             resolution: `${width}x${height}`
-          }
+          },
+          actualUsdCost: 0.001
         }
       }
     )

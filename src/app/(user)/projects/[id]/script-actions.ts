@@ -73,17 +73,17 @@ Important:
   const defaultModel = await runtime.getDefaultModel() || "openai/gpt-4o-mini";
 
   try {
-    const { UsageEngine } = await import("@/utils/billing");
-    const responseData = await UsageEngine.executeAndCharge(
-      { userId: user.id, projectId: projectId, feature: "Script" },
-      "openrouter",
-      defaultModel, // Fetched dynamically from provider credentials
-      async () => {
-        return await runtime.execute(new OpenRouterAdapter(), {
+    const { BillingEngine, BillingFeature } = await import("@/utils/billing");
+    const responseData = await BillingEngine.executeAndCharge(
+      { userId: user.id, projectId: projectId, feature: BillingFeature.SCRIPT_GENERATION },
+      { provider: "openrouter", model: defaultModel },
+      async (provider, model) => {
+        const aiResult = await runtime.execute(new OpenRouterAdapter(), {
           step: "SCRIPT",
           projectId: projectId,
           args: { prompt: promptText }
         });
+        return { result: aiResult.result, usage: aiResult.usage, actualUsdCost: aiResult.cost };
       }
     );
 

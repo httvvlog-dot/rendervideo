@@ -191,13 +191,12 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
       await supabase.from("script_sections").update({ voice_generation_status: 'processing' }).eq("id", section.id);
       
       const startTimeMs = Date.now();
-      const { UsageEngine } = await import("@/utils/billing");
-      const arrayBuffer = await UsageEngine.executeAndCharge(
-        { userId: userId, projectId: projectId, feature: "Voice" },
-        "elevenlabs",
-        resolvedSettings.model_id,
-        async () => {
-          return await ttsRuntime.execute(new ElevenLabsAdapter(), {
+      const { BillingEngine, BillingFeature } = await import("@/utils/billing");
+      const arrayBuffer = await BillingEngine.executeAndCharge(
+        { userId: userId, projectId: projectId, feature: BillingFeature.VOICE_GENERATION },
+        { provider: "elevenlabs", model: resolvedSettings.model_id },
+        async (provider, model) => {
+          const aiResult = await ttsRuntime.execute(new ElevenLabsAdapter(), {
             step: "VOICE",
             projectId: projectId,
             args: { 
@@ -210,6 +209,7 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
               useSpeakerBoost: resolvedSettings.use_speaker_boost
             }
           });
+          return { result: aiResult.result, usage: aiResult.usage, actualUsdCost: aiResult.cost };
         }
       );
       
