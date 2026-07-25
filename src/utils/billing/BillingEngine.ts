@@ -8,22 +8,52 @@ export class BillingEngine {
   private static pricingCache = new Map<string, any>();
   private static ruleCache = new Map<string, any>();
   private static cacheInitialized = false;
+  private static instanceId = Math.random().toString(36);
 
   private static async initCache() {
-    if (this.cacheInitialized) return;
+    console.count("BillingEngine.initCache");
+    
+    // TEMPORARY BYPASS: Always reload
+    this.cacheInitialized = false;
+    this.capabilityCache.clear();
+    this.pricingCache.clear();
+    this.ruleCache.clear();
+
+    // if (this.cacheInitialized) return;
     const supabase = await createClient();
     
-    // Load Capabilities
-    const { data: capabilities, error: cErr } = await supabase.from("ai_capabilities").select("*").eq("is_active", true).order("priority", { ascending: false });
-    if (cErr) console.error("BillingEngine: Error loading capability cache:", cErr);
-    if (!capabilities || capabilities.length === 0) {
-      console.warn("[WARNING] Billing seed missing for ai_capabilities. Run: supabase db seed");
-    } else {
-      for (const cap of capabilities) {
-        const list = this.capabilityCache.get(cap.feature) || [];
-        list.push(cap);
-        this.capabilityCache.set(cap.feature, list);
+    console.log("=== BillingEngine Query ===");
+    console.log(new Date().toISOString());
+    console.log({
+      instance: this.instanceId,
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      keyPrefix: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20)
+    });
+    
+    try {
+      const { data: capabilities, error: cErr } = await supabase.from("ai_capabilities").select("*").eq("is_active", true).order("priority", { ascending: false });
+      
+      console.log("=== RAW QUERY RESULT ===");
+      console.dir(capabilities, { depth: null });
+      console.log({
+        error: cErr,
+        count: capabilities?.length
+      });
+
+      if (cErr) console.error("BillingEngine: Error loading capability cache:", cErr);
+      if (!capabilities || capabilities.length === 0) {
+        console.warn("[WARNING] Billing seed missing for ai_capabilities. Run: supabase db seed");
+      } else {
+        for (const cap of capabilities) {
+          const list = this.capabilityCache.get(cap.feature) || [];
+          list.push(cap);
+          this.capabilityCache.set(cap.feature, list);
+        }
+        console.log("Map size:", this.capabilityCache.size);
+        console.dir(Array.from(this.capabilityCache.entries()), { depth: null });
       }
+    } catch (ex) {
+      console.error("Exception in initCache capabilities loading:", ex);
     }
 
     // Load Pricing
@@ -53,8 +83,23 @@ export class BillingEngine {
 
   static async resolveCapability(feature: BillingFeature, requestedProvider?: string, requestedModel?: string) {
     await this.initCache();
+    
+    console.log({ featureRequested: feature });
+    console.log(Array.from(this.capabilityCache.keys()));
+
     const caps = this.capabilityCache.get(feature) || [];
     if (caps.length === 0) {
+      console.log('--- DIAGNOSTIC LOG ---');
+      console.log({
+        instance: this.instanceId,
+        feature,
+        requestedProvider,
+        requestedModel,
+        capabilitiesLoaded: this.cacheInitialized,
+        cacheKeys: Array.from(this.capabilityCache.keys()),
+        capabilityCache: this.capabilityCache
+      });
+      console.log('----------------------');
       throw new Error(`Capability not found. feature=${feature}. Did you run: supabase db seed?`);
     }
 
