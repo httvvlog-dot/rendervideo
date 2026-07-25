@@ -26,6 +26,7 @@ const ScriptResponseSchema = z.object({
 })
 
 export async function generateScript(projectId: string) {
+  console.log("ENTER generateScript");
   const user = await getCurrentUser()
   if (!user) throw new Error("Unauthorized")
 
@@ -140,10 +141,12 @@ Important:
     return { success: true }
 
   } catch (err: any) {
-    await supabase.from("projects").update({
-      workflow_state: { ...project.workflow_state, script: "failed" }
-    }).eq("id", projectId)
-    return { error: `Script generation failed: ${err.message}` }
+    console.error("FULL ERROR", err);
+    throw err;
+    // await supabase.from("projects").update({
+    //   workflow_state: { ...project.workflow_state, script: "failed" }
+    // }).eq("id", projectId)
+    // return { error: `Script generation failed: ${err.message}` }
   }
 }
 

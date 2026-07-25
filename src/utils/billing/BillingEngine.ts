@@ -155,6 +155,7 @@ export class BillingEngine {
     },
     executeAI: (provider: string, model: string) => Promise<{ result: T; usage?: any; actualUsdCost?: number }>
   ): Promise<T> {
+    console.log("ENTER BillingEngine.executeAndCharge");
     const chargeResult = await this.getChargeInfo(context.feature, options.provider, options.model);
     const { provider, model } = chargeResult;
 
