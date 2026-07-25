@@ -1,11 +1,18 @@
 import { ProviderAdapter, ProviderExecutionResult } from "../types"
 import { IMAGE_MODELS } from "../image-models"
+import { FalClient } from "./fal-client"
 
 export interface ImageGenerationArgs {
   prompt: string;
   width?: number;
   height?: number;
   numImages?: number;
+  model?: string; // Model injected from BillingEngine / User Plan
+  seed?: number;
+  guidance_scale?: number;
+  num_inference_steps?: number;
+  aspect_ratio?: string;
+  output_format?: string;
 }
 
 export interface ImageGenerationResult {
@@ -48,7 +55,27 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
     const config = credential.config_json || {};
     const apiKey = config.apiKey || config.api_key;
-    const model = args.width ? 'dall-e-3' : 'dall-e-3'; // Simplify for now
+    const model = args.model || credential.image_model || 'dall-e-3';
+
+    if (process.env.IMAGE_PROVIDER_MODE === "mock") {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const width = args.width || 1080;
+      const height = args.height || 1920;
+      return {
+        result: {
+          url: `https://fakeimg.pl/${width}x${height}/282828/eae0d0/?text=Mock+Image`,
+          width,
+          height
+        },
+        usage: {
+          provider: "openai",
+          model,
+          pricingType: "image",
+          images: args.numImages || 1,
+        },
+        cost: 0
+      };
+    }
 
     if (!apiKey) throw new Error("API Key missing in OpenAI credential");
 
@@ -97,9 +124,65 @@ export class FalImageAdapter implements ImageProviderAdapter {
   }
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
     const DEFAULT_MODEL = IMAGE_MODELS.falai.find(x => x.recommended)?.id || "fal-ai/flux-pro/v1";
-    const model = credential.image_model || DEFAULT_MODEL;
+    const model = args.model || credential.image_model || DEFAULT_MODEL;
     console.log(`[FalImageAdapter] Executing with model: ${model}`);
-    throw new Error(`Fal generation not fully implemented yet (Model: ${model})`);
+    
+    // Check for Mock mode
+    if (process.env.IMAGE_PROVIDER_MODE === "mock") {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const width = args.width || 1080;
+      const height = args.height || 1920;
+      return {
+        result: {
+          url: `https://fakeimg.pl/${width}x${height}/282828/eae0d0/?text=Mock+Image`,
+          width,
+          height
+        },
+        usage: {
+          provider: "falai",
+          model,
+          pricingType: "image",
+          images: args.numImages || 1,
+        },
+        cost: 0
+      };
+    }
+    // Live Mode
+    const config = credential.config_json || {};
+    const apiKey = config.apiKey || config.api_key;
+    if (!apiKey) throw new Error("API chưa được cấu hình (Invalid API Key).");
+
+    const client = new FalClient(apiKey);
+    const result = await client.run({
+      model,
+      prompt: args.prompt,
+      image_size: (args.width && args.height) ? { width: args.width, height: args.height } : undefined,
+      seed: args.seed,
+      guidance_scale: args.guidance_scale,
+      num_inference_steps: args.num_inference_steps,
+      aspect_ratio: args.aspect_ratio,
+      output_format: args.output_format,
+      num_images: args.numImages
+    });
+
+    if (!result || result.length === 0) {
+      throw new Error("Không tìm thấy ảnh từ kết quả trả về.");
+    }
+
+    return {
+      result: {
+        url: result[0].url,
+        width: result[0].width,
+        height: result[0].height
+      },
+      usage: {
+        provider: "falai",
+        model,
+        pricingType: "image",
+        images: args.numImages || 1,
+      },
+      cost: 0
+    };
   }
 }
 
@@ -108,17 +191,38 @@ export class ReplicateImageAdapter implements ImageProviderAdapter {
     return { success: true, message: "Replicate Connected", latency: 50 };
   }
   async listModels() { return []; }
-  async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
+  async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { 
+    const model = args.model || credential.image_model || "black-forest-labs/flux-pro";
+    if (process.env.IMAGE_PROVIDER_MODE === "mock") {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return { result: { url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920 }, usage: { provider: "replicate", model, pricingType: "image", images: 1 }, cost: 0 };
+    }
+    throw new Error("Not implemented"); 
+  }
 }
 
 export class IdeogramImageAdapter implements ImageProviderAdapter {
   async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) { return { success: true, message: "Ideogram Connected", latency: 50 }; }
   async listModels() { return []; }
-  async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
+  async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { 
+    const model = args.model || credential.image_model || "ideogram-v3";
+    if (process.env.IMAGE_PROVIDER_MODE === "mock") {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return { result: { url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920 }, usage: { provider: "ideogram", model, pricingType: "image", images: 1 }, cost: 0 };
+    }
+    throw new Error("Not implemented"); 
+  }
 }
 
 export class StabilityImageAdapter implements ImageProviderAdapter {
   async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) { return { success: true, message: "Stability Connected", latency: 50 }; }
   async listModels() { return []; }
-  async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
+  async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { 
+    const model = args.model || credential.image_model || "stable-diffusion-3";
+    if (process.env.IMAGE_PROVIDER_MODE === "mock") {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return { result: { url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920 }, usage: { provider: "stability", model, pricingType: "image", images: 1 }, cost: 0 };
+    }
+    throw new Error("Not implemented"); 
+  }
 }

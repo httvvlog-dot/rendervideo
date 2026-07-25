@@ -85,7 +85,7 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
     setAiPreviewUrl(null)
     const toastId = toast.loading("Generating AI image...")
     try {
-      const res = await generateAIImage(projectId, sectionId, "Generate image")
+      const res = await generateAIImage(projectId, sectionId)
       if ('error' in res) throw new Error((res as any).error || "No URL returned")
       const data = res as { url: string; width: number; height: number; }
       if (!data.url) throw new Error("No URL returned")

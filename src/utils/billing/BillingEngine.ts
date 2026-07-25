@@ -100,7 +100,39 @@ export class BillingEngine {
     return caps[0];
   }
 
-  static async getChargeInfo(feature: BillingFeature, requestedProvider?: string, requestedModel?: string): Promise<ChargeResult> {
+  static async getChargeInfo(feature: BillingFeature, requestedProvider?: string, requestedModel?: string, userId?: string): Promise<ChargeResult> {
+    const supabase = await createClient();
+    
+    if (userId) {
+      // 1. Fetch User Plan
+      let planKey = 'FREE';
+      const { data: sub } = await supabase.from('subscriptions').select('plan_id').eq('user_id', userId).single();
+      if (sub && sub.plan_id) {
+        planKey = sub.plan_id.toUpperCase();
+      }
+
+      // 2. Resolve AI Plan Profile
+      const { data: profile } = await supabase.from('ai_plan_profiles')
+        .select('provider_id, model_id, credits_per_unit, providers(provider_key)')
+        .eq('plan_key', planKey)
+        .eq('capability', feature)
+        .eq('is_active', true)
+        .single();
+        
+      if (profile && profile.providers) {
+        return {
+          credits: profile.credits_per_unit,
+          apiCost: 0, // Calculated post-execution
+          provider: Array.isArray(profile.providers) ? profile.providers[0]?.provider_key : (profile.providers as any).provider_key,
+          model: profile.model_id,
+          pricingVersion: 1,
+          creditRuleVersion: 1,
+          currency: 'USD',
+        };
+      }
+    }
+
+    // Fallback to Legacy Capabilities
     // TODO: (Technical Debt) Remove model field from ai_capabilities -> Lookup provider_models -> Resolve default model dynamically
     const capability = await this.resolveCapability(feature, requestedProvider, requestedModel);
     const { provider, model } = capability;
@@ -139,7 +171,7 @@ export class BillingEngine {
     },
     executeAI: (provider: string, model: string) => Promise<{ result: T; usage?: any; actualUsdCost?: number }>
   ): Promise<T> {
-    const chargeResult = await this.getChargeInfo(context.feature, options.provider, options.model);
+    const chargeResult = await this.getChargeInfo(context.feature, options.provider, options.model, context.userId);
     const { provider, model } = chargeResult;
 
     // 1. Reserve

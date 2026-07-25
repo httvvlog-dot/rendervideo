@@ -5,7 +5,7 @@ import { BillingEngine, BillingFeature, EngineContext } from "@/utils/billing"
 import { ProviderRuntime } from "@/utils/provider-runtime"
 import { AdapterRegistry } from "@/utils/provider-runtime/adapters/factory"
 
-export async function generateAIImage(projectId: string, sectionId: string, prompt: string) {
+export async function generateAIImage(projectId: string, sectionId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Unauthorized" }
@@ -24,47 +24,16 @@ export async function generateAIImage(projectId: string, sectionId: string, prom
       context,
       {}, 
       async (provider, model) => {
-        // IMAGE_PROVIDER_MODE check
-        const mode = process.env.IMAGE_PROVIDER_MODE || "mock";
-        
-        if (mode === "mock") {
-          await new Promise(resolve => setTimeout(resolve, 2000))
-          let width = 1080;
-          let height = 1920;
-          
-          const { data: project } = await supabase.from("projects").select("export_preset_id").eq("id", projectId).single()
-          if (project?.export_preset_id) {
-            const { data: preset } = await supabase.from("export_presets").select("width, height").eq("id", project.export_preset_id).single()
-            if (preset) {
-              width = preset.width || 1080;
-              height = preset.height || 1920;
-            }
-          }
-
-          const fakeUrl = `https://fakeimg.pl/${width}x${height}/282828/eae0d0/?text=Generated+Image+For+Prompt:+${encodeURIComponent(prompt).substring(0, 50)}`;
-          
-          return {
-            result: {
-              url: fakeUrl,
-              width,
-              height
-            },
-            usage: {
-              provider,
-              model,
-              pricingType: "image",
-              images: 1,
-            },
-            actualUsdCost: 0 // Mock cost
-          }
-        }
-        
-        // LIVE MODE
         const adapter = AdapterRegistry.get(provider);
         if (!adapter) throw new Error(`Adapter for provider ${provider} not found`);
 
         const runtime = new ProviderRuntime(provider, { retryCount: 2, retryDelay: 1000, failureThreshold: 3 });
         
+        // Retrieve prompt from database
+        const { data: section } = await supabase.from("project_sections").select("image_prompt").eq("id", sectionId).single();
+        if (!section || !section.image_prompt) throw new Error("Không tìm thấy Prompt của phân cảnh (Image Prompt is empty).");
+        const prompt = section.image_prompt;
+
         // Determine resolution
         let width = 1080;
         let height = 1920;
@@ -80,7 +49,7 @@ export async function generateAIImage(projectId: string, sectionId: string, prom
         const aiResult = await runtime.execute(adapter, {
           step: "IMAGE",
           projectId: projectId,
-          args: { prompt, width, height }
+          args: { prompt, width, height, model }
         });
         
         return { result: aiResult.result, usage: aiResult.usage, actualUsdCost: aiResult.cost };

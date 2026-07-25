@@ -24,7 +24,6 @@ export function GenericForm({ providerId, providerKey, providerType, providerMod
       credential_name: formData.get("credential_name"),
       priority: parseInt(formData.get("priority") as string || "0", 10),
       is_active: formData.get("is_active") === "true",
-      image_model: formData.get("image_model") as string || undefined,
       config: {
         apiKey: formData.get("apiKey"),
         endpoint: formData.get("endpoint")
@@ -82,37 +81,7 @@ export function GenericForm({ providerId, providerKey, providerType, providerMod
         </div>
       </div>
 
-      {providerType === 'image' && imageModels.length > 0 && (
-        <div className="border-t pt-4">
-          <label className="block text-sm font-medium mb-1">Default Image Model</label>
-          <select
-            name="image_model"
-            defaultValue={credential?.image_model || (imageModels.find(m => m.is_recommended)?.model_id || imageModels[0]?.model_id)}
-            className="w-full border rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {imageModels.map(model => (
-              <option key={model.model_id} value={model.model_id}>
-                {model.name} {model.badge ? `- ${model.badge}` : ''}
-              </option>
-            ))}
-          </select>
-          <div className="mt-3 space-y-2">
-            {imageModels.map(model => (
-              <div key={model.model_id} className="text-xs text-slate-500 border rounded p-2 bg-slate-50/50 dark:bg-slate-800/50">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">{model.name}</span>
-                  {model.badge && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                      {model.badge}
-                    </span>
-                  )}
-                </div>
-                {model.description && <div className="mt-1">{model.description}</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       <div className="border-t pt-4 space-y-4">
         <div>

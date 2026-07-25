@@ -61,22 +61,6 @@ export function CredentialCard({ credential, providerKey, providerModels, onEdit
             {credential.config_json?.bucket && <span className="mr-3">Bucket: {credential.config_json.bucket}</span>}
             {credential.config_json?.accessKeyId && <span className="mr-3">Key: {credential.config_json.accessKeyId}</span>}
             {credential.config_json?.accountId && <span>Acct: {credential.config_json.accountId}</span>}
-            {credential.image_model && (() => {
-              const modelDef = providerModels?.find(m => m.model_id === credential.image_model && (m.pricing_type === 'image' || m.provider === providerKey))
-              return (
-                <div className="mt-1 flex items-center gap-1.5 font-sans">
-                  <span className="text-slate-400">Model:</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                    {modelDef?.name || credential.image_model}
-                  </span>
-                  {modelDef?.badge && (
-                    <span className="text-[10px] bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium">
-                      {modelDef.badge}
-                    </span>
-                  )}
-                </div>
-              )
-            })()}
           </div>
 
           <div className="flex items-center gap-4 text-sm font-medium">
