@@ -1,4 +1,4 @@
-import { ProviderExecutionResult } from "../types"
+import { ProviderAdapter, ProviderExecutionResult } from "../types"
 import { IMAGE_MODELS } from "../image-models"
 
 export interface ImageGenerationArgs {
