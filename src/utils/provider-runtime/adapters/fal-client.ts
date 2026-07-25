@@ -51,15 +51,30 @@ export class FalClient {
         body: JSON.stringify(payload)
       });
 
+      const responseText = await res.text();
+      
+      console.log("\n=== IMAGE GENERATION DEBUG ===");
+      console.log(`Model: ${options.model}`);
+      console.log(`Endpoint: ${endpoint}`);
+      console.log(`API Key (masked): ${this.apiKey.substring(0, 6)}...`);
+      console.log("Request Body:", JSON.stringify(payload, null, 2));
+      console.log(`HTTP Status: ${res.status}`);
+      console.log(`Response: ${responseText}`);
+      console.log("==============================\n");
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Lỗi từ hệ thống AI (Status: ${res.status}): ${responseText}`);
+      }
+
       if (res.status === 401) throw new Error("API chưa được cấu hình (Invalid API Key).");
       if (res.status === 429) throw new Error("Hệ thống đang bận, vui lòng thử lại.");
       if (res.status === 404) throw new Error(`Model hiện không khả dụng (${options.model}).`);
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Lỗi từ hệ thống AI (Status: ${res.status}): ${errorText}`);
+        throw new Error(`Lỗi từ hệ thống AI (Status: ${res.status}): ${responseText}`);
       }
-
-      const data = await res.json();
       if (!data.status_url) {
         // Fallback if the endpoint is not queue-based and returns immediately
         if (data.images && data.images.length > 0) {
