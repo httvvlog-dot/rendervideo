@@ -51,7 +51,9 @@ INSERT INTO public.provider_model_pricing (provider, model, api_cost, input_cost
 VALUES 
   ('openrouter', 'deepseek/deepseek-v4-flash', 0, 0.14, 0.28, 'USD', 'per_unit', 1, '1M tokens', true, 'PER_TOKEN'),
   ('openrouter', 'openai/gpt-4o-mini', 0, 0.15, 0.60, 'USD', 'per_unit', 1, '1M tokens', true, 'PER_TOKEN'),
-  ('elevenlabs', 'eleven_multilingual_v2', 0.03, 0, 0, 'USD', 'per_unit', 1, '1000 characters', false, 'PER_CHARACTER')
+  ('elevenlabs', 'eleven_multilingual_v2', 0.03, 0, 0, 'USD', 'per_unit', 1, '1000 characters', false, 'PER_CHARACTER'),
+  ('openai', 'gpt-image-1', 0, 0.04, 0, 'USD', 'per_unit', 1, '1 image', false, 'PER_UNIT'),
+  ('render_worker', 'h264', 0, 0, 0, 'USD', 'per_unit', 1, '1 min', false, 'PER_UNIT')
 ON CONFLICT (provider, model, version) 
 DO UPDATE SET 
   api_cost = EXCLUDED.api_cost,
@@ -66,7 +68,9 @@ INSERT INTO public.ai_capabilities (feature, provider, model, is_active, is_defa
 VALUES 
   ('SCRIPT_GENERATION', 'openrouter', 'deepseek/deepseek-v4-flash', true, true, 10),
   ('SCRIPT_GENERATION', 'openrouter', 'openai/gpt-4o-mini', true, false, 5),
-  ('VOICE_GENERATION', 'elevenlabs', 'eleven_multilingual_v2', true, true, 10)
+  ('VOICE_GENERATION', 'elevenlabs', 'eleven_multilingual_v2', true, true, 10),
+  ('IMAGE_GENERATION', 'openai', 'gpt-image-1', true, true, 10),
+  ('VIDEO_RENDER', 'render_worker', 'h264', true, true, 10)
 ON CONFLICT (feature, provider, model) 
 DO UPDATE SET 
   is_active = EXCLUDED.is_active,
@@ -90,4 +94,16 @@ INSERT INTO public.credit_rules (feature, provider_model_pricing_id, credit_cost
 SELECT 'VOICE_GENERATION', id, 1, 1 
 FROM public.provider_model_pricing 
 WHERE provider='elevenlabs' AND model='eleven_multilingual_v2' AND version=1
+ON CONFLICT (feature, provider_model_pricing_id, version) DO UPDATE SET credit_cost = EXCLUDED.credit_cost;
+
+INSERT INTO public.credit_rules (feature, provider_model_pricing_id, credit_cost, version)
+SELECT 'IMAGE_GENERATION', id, 2, 1 
+FROM public.provider_model_pricing 
+WHERE provider='openai' AND model='gpt-image-1' AND version=1
+ON CONFLICT (feature, provider_model_pricing_id, version) DO UPDATE SET credit_cost = EXCLUDED.credit_cost;
+
+INSERT INTO public.credit_rules (feature, provider_model_pricing_id, credit_cost, version)
+SELECT 'VIDEO_RENDER', id, 5, 1 
+FROM public.provider_model_pricing 
+WHERE provider='render_worker' AND model='h264' AND version=1
 ON CONFLICT (feature, provider_model_pricing_id, version) DO UPDATE SET credit_cost = EXCLUDED.credit_cost;
