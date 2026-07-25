@@ -1,4 +1,5 @@
-import { ProviderAdapter, ProviderExecutionResult } from "../types"
+import { ProviderExecutionResult } from "../types"
+import { IMAGE_MODELS } from "../image-models"
 
 export interface ImageGenerationArgs {
   prompt: string;
@@ -78,7 +79,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
       },
       usage: {
         provider: "openai",
-        model: "dall-e-3",
+        model: credential.image_model || IMAGE_MODELS.openai.find(x => x.recommended)?.id || "dall-e-3",
         pricingType: "image",
         images: 1
       }
@@ -95,7 +96,10 @@ export class FalImageAdapter implements ImageProviderAdapter {
     return [{ id: "fal-ai/flux/schnell", name: "FLUX Schnell" }];
   }
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
-    throw new Error("Fal generation not fully implemented yet");
+    const DEFAULT_MODEL = IMAGE_MODELS.falai.find(x => x.recommended)?.id || "fal-ai/flux-pro/v1";
+    const model = credential.image_model || DEFAULT_MODEL;
+    console.log(`[FalImageAdapter] Executing with model: ${model}`);
+    throw new Error(`Fal generation not fully implemented yet (Model: ${model})`);
   }
 }
 

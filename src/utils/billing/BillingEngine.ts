@@ -84,22 +84,8 @@ export class BillingEngine {
   static async resolveCapability(feature: BillingFeature, requestedProvider?: string, requestedModel?: string) {
     await this.initCache();
     
-    console.log({ featureRequested: feature });
-    console.log(Array.from(this.capabilityCache.keys()));
-
     const caps = this.capabilityCache.get(feature) || [];
     if (caps.length === 0) {
-      console.log('--- DIAGNOSTIC LOG ---');
-      console.log({
-        instance: this.instanceId,
-        feature,
-        requestedProvider,
-        requestedModel,
-        capabilitiesLoaded: this.cacheInitialized,
-        cacheKeys: Array.from(this.capabilityCache.keys()),
-        capabilityCache: this.capabilityCache
-      });
-      console.log('----------------------');
       throw new Error(`Capability not found. feature=${feature}. Did you run: supabase db seed?`);
     }
 

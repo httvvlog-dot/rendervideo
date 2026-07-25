@@ -6,7 +6,7 @@ import { PROVIDER_HEALTH_STATUS } from "@/utils/provider-runtime/types"
 import { toggleCredential, deleteCredential, setDefaultCredential, testCredentialConnection } from "../../actions"
 import { toast } from "sonner"
 
-export function CredentialCard({ credential, providerKey, onEdit }: { credential: any, providerKey: string, onEdit: (c: any) => void }) {
+export function CredentialCard({ credential, providerKey, providerModels, onEdit }: { credential: any, providerKey: string, providerModels?: any[], onEdit: (c: any) => void }) {
   const [isToggling, setIsToggling] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -37,7 +37,9 @@ export function CredentialCard({ credential, providerKey, onEdit }: { credential
   const handleTest = async () => {
     setIsTesting(true)
     const res = await testCredentialConnection(credential.id)
-    if (res.success) toast.success(`Healthy: ${res.latency}ms`)
+    if (res.success) {
+      toast.success(`[${res.provider}] Healthy - ${res.model} (${res.latency}ms)`)
+    }
     else toast.error(`Failed: ${res.error}`)
     setIsTesting(false)
   }
@@ -59,6 +61,22 @@ export function CredentialCard({ credential, providerKey, onEdit }: { credential
             {credential.config_json?.bucket && <span className="mr-3">Bucket: {credential.config_json.bucket}</span>}
             {credential.config_json?.accessKeyId && <span className="mr-3">Key: {credential.config_json.accessKeyId}</span>}
             {credential.config_json?.accountId && <span>Acct: {credential.config_json.accountId}</span>}
+            {credential.image_model && (() => {
+              const modelDef = providerModels?.find(m => m.model_id === credential.image_model && (m.pricing_type === 'image' || m.provider === providerKey))
+              return (
+                <div className="mt-1 flex items-center gap-1.5 font-sans">
+                  <span className="text-slate-400">Model:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {modelDef?.name || credential.image_model}
+                  </span>
+                  {modelDef?.badge && (
+                    <span className="text-[10px] bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium">
+                      {modelDef.badge}
+                    </span>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
           <div className="flex items-center gap-4 text-sm font-medium">

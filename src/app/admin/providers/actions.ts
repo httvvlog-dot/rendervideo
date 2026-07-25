@@ -101,7 +101,7 @@ export async function saveCredential(formData: any) {
     newConfig.secretAccessKey = existingConfig.secretAccessKey
   }
 
-  const payload = {
+  const payload: any = {
     provider_id,
     credential_name,
     is_active,
@@ -109,6 +109,10 @@ export async function saveCredential(formData: any) {
     priority,
     config_json: newConfig,
     updated_at: new Date().toISOString()
+  }
+
+  if (formData.image_model !== undefined) {
+    payload.image_model = formData.image_model
   }
 
   let resultId = id
@@ -328,7 +332,13 @@ export async function testCredentialConnection(credential_id: string, mode: "qui
           last_success_at: new Date().toISOString(),
           consecutive_failures: 0
         }).eq("id", credential_id);
-        return { success: true, latency: result.latency, status: result.status };
+        return { 
+          success: true, 
+          latency: result.latency, 
+          status: "Healthy",
+          provider: providerKey,
+          model: cred.image_model || "default"
+        };
       } else {
         const newFailures = (cred.consecutive_failures || 0) + 1;
         await supabase.from("provider_credentials").update({ 
@@ -349,7 +359,14 @@ export async function testCredentialConnection(credential_id: string, mode: "qui
         last_success_at: new Date().toISOString(),
         consecutive_failures: 0
       }).eq("id", credential_id);
-      return { success: true, message: "Credential format looks valid. Deep test not implemented for this provider yet.", latency: 0 };
+      return { 
+        success: true, 
+        message: "Credential format looks valid. Deep test not implemented for this provider yet.", 
+        latency: 0,
+        status: "Healthy",
+        provider: providerKey,
+        model: cred.image_model || "default"
+      };
     }
   } catch (err: any) {
     const newFailures = (cred?.consecutive_failures || 0) + 1;
@@ -362,4 +379,76 @@ export async function testCredentialConnection(credential_id: string, mode: "qui
     }).eq("id", credential_id);
     return { success: false, error: err.message };
   }
+}
+
+export async function getProviderAnalytics() {
+  await requireAdmin();
+  const supabase = createAdminClient();
+
+  // 1. Get total usage grouped by provider from ai_usage_logs
+  // Note: For simplicity, we just fetch all logs for the current month. In production, use RPC.
+  const firstDay = new Date();
+  firstDay.setDate(1);
+  firstDay.setHours(0, 0, 0, 0);
+
+  const { data: logs, error } = await supabase
+    .from("ai_usage_logs")
+    .select("provider, usd_cost, requests")
+    .gte("created_at", firstDay.toISOString());
+
+  if (error) {
+    console.error("Error fetching analytics:", error);
+    return [];
+  }
+
+  // Aggregate
+  const aggregated: Record<string, { requests: number, cost: number }> = {};
+  for (const log of (logs || [])) {
+    const p = log.provider;
+    if (!aggregated[p]) aggregated[p] = { requests: 0, cost: 0 };
+    aggregated[p].requests += (log.requests || 1); // fallback to 1 if requests column is not populated
+    aggregated[p].cost += Number(log.usd_cost || 0);
+  }
+
+  // 2. Fetch credentials to get average latency and error status
+  const { data: credentials } = await supabase
+    .from("provider_credentials")
+    .select("provider_id, health_status, latency, is_active");
+
+  const credStats: Record<string, { active: number, latency: number, count: number, offline: number }> = {};
+  for (const cred of (credentials || [])) {
+    const pid = cred.provider_id;
+    if (!credStats[pid]) credStats[pid] = { active: 0, latency: 0, count: 0, offline: 0 };
+    if (cred.is_active) credStats[pid].active++;
+    if (cred.health_status === 'OFFLINE') credStats[pid].offline++;
+    if (cred.latency) {
+      credStats[pid].latency += cred.latency;
+      credStats[pid].count++;
+    }
+  }
+
+  // 3. Get provider names
+  const { data: providers } = await supabase.from("providers").select("id, provider_name, provider_key, provider_type");
+
+  const result = (providers || []).map(p => {
+    const usage = aggregated[p.provider_key] || { requests: 0, cost: 0 };
+    const stats = credStats[p.id] || { active: 0, latency: 0, count: 0, offline: 0 };
+    const avgLatency = stats.count > 0 ? Math.round(stats.latency / stats.count) : 0;
+    
+    // Calculate a naive success rate: if it's offline, 0%, else 100% (or proportional)
+    const successRate = stats.active > 0 ? ((stats.active - stats.offline) / stats.active) * 100 : 100;
+
+    return {
+      id: p.id,
+      name: p.provider_name,
+      type: p.provider_type,
+      requests: usage.requests,
+      cost: usage.cost,
+      latency: avgLatency,
+      successRate: Math.round(successRate),
+      activeCredentials: stats.active
+    };
+  });
+
+  return result.sort((a, b) => b.requests - a.requests);
 }

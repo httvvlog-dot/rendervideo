@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 import { ProviderCards } from "./provider-cards"
+import { ProviderDashboard } from "./provider-dashboard"
 
 export function ProvidersTabs({ initialData }: { initialData: any[] }) {
-  const [activeTab, setActiveTab] = useState("llm")
+  const [activeTab, setActiveTab] = useState("overview")
   
   const safeData = initialData || []
   
@@ -17,6 +18,7 @@ export function ProvidersTabs({ initialData }: { initialData: any[] }) {
   const imageProviders = safeData.filter(p => p.provider_type === "image")
 
   const tabs = [
+    { id: "overview", label: "Overview" },
     { id: "llm", label: "LLM" },
     { id: "image", label: "Image AI" },
     { id: "tts", label: "TTS" },
@@ -42,6 +44,7 @@ export function ProvidersTabs({ initialData }: { initialData: any[] }) {
         ))}
       </div>
       
+      {activeTab === "overview" && <ProviderDashboard />}
       {activeTab === "llm" && <ProviderCards providers={llmProviders} type="llm" />}
       {activeTab === "image" && <ProviderCards providers={imageProviders} type="image" />}
       {activeTab === "tts" && <ProviderCards providers={ttsProviders} type="tts" />}

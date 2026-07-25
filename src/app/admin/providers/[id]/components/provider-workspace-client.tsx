@@ -36,9 +36,10 @@ export function ProviderWorkspaceClient({ provider, providerModels }: { provider
 
   const renderConfigurationForm = () => {
     const key = provider?.provider_key
-    // Pass provider_id so the form knows which provider this credential belongs to.
     const formProps = {
       providerId: provider?.id,
+      providerKey: provider?.provider_key,
+      providerType: provider?.provider_type,
       credential: editingCredential,
       providerModels: providerModels,
       onSuccess: () => setIsModalOpen(false)
@@ -121,7 +122,8 @@ export function ProviderWorkspaceClient({ provider, providerModels }: { provider
                 <CredentialCard 
                   key={cred.id} 
                   credential={cred} 
-                  providerKey={provider?.provider_key} 
+                  providerKey={provider?.provider_key}
+                  providerModels={providerModels}
                   onEdit={handleEdit} 
                 />
               ))}
