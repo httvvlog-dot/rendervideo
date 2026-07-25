@@ -1,10 +1,11 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
-
 import { BillingEngine, BillingFeature, EngineContext } from "@/utils/billing"
+import { ProviderRuntime } from "@/utils/provider-runtime"
+import { AdapterRegistry } from "@/utils/provider-runtime/adapters/factory"
 
-export async function generateAIImageStub(projectId: string, sectionId: string, prompt: string) {
+export async function generateAIImage(projectId: string, sectionId: string, prompt: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Unauthorized" }
@@ -16,94 +17,127 @@ export async function generateAIImageStub(projectId: string, sectionId: string, 
   }
 
   try {
+    const { BillingEngine, BillingFeature } = await import("@/utils/billing");
+    
+    // Pass empty requestedProviderModel to force BillingEngine to use default capability
     const result = await BillingEngine.executeAndCharge(
       context,
-      { provider: 'openai', model: 'gpt-image-1' },
+      {}, 
       async (provider, model) => {
-        // Simulate AI Generation latency
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // IMAGE_PROVIDER_MODE check
+        const mode = process.env.IMAGE_PROVIDER_MODE || "mock";
+        
+        if (mode === "mock") {
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          let width = 1080;
+          let height = 1920;
+          
+          const { data: project } = await supabase.from("projects").select("export_preset_id").eq("id", projectId).single()
+          if (project?.export_preset_id) {
+            const { data: preset } = await supabase.from("export_presets").select("width, height").eq("id", project.export_preset_id).single()
+            if (preset) {
+              width = preset.width || 1080;
+              height = preset.height || 1920;
+            }
+          }
 
-        // Fetch project to get export preset
-        const { data: project } = await supabase
-          .from("projects")
-          .select("export_preset_id")
-          .eq("id", projectId)
-          .single()
+          const fakeUrl = `https://fakeimg.pl/${width}x${height}/282828/eae0d0/?text=Generated+Image+For+Prompt:+${encodeURIComponent(prompt).substring(0, 50)}`;
+          
+          return {
+            result: {
+              url: fakeUrl,
+              width,
+              height
+            },
+            usage: {
+              provider,
+              model,
+              pricingType: "image",
+              images: 1,
+            },
+            actualUsdCost: 0 // Mock cost
+          }
+        }
+        
+        // LIVE MODE
+        const adapter = AdapterRegistry.get(provider);
+        if (!adapter) throw new Error(`Adapter for provider ${provider} not found`);
 
-        let width = 1080
-        let height = 1920
-
+        const runtime = new ProviderRuntime(provider, { retryCount: 2, retryDelay: 1000, failureThreshold: 3 });
+        
+        // Determine resolution
+        let width = 1080;
+        let height = 1920;
+        const { data: project } = await supabase.from("projects").select("export_preset_id").eq("id", projectId).single()
         if (project?.export_preset_id) {
-          const { data: preset } = await supabase
-            .from("export_presets")
-            .select("width, height")
-            .eq("id", project.export_preset_id)
-            .single()
-            
+          const { data: preset } = await supabase.from("export_presets").select("width, height").eq("id", project.export_preset_id).single()
           if (preset) {
-            width = preset.width || 1080
-            height = preset.height || 1920
+            width = preset.width || 1080;
+            height = preset.height || 1920;
           }
         }
 
-        // Mock output
-        return {
-          result: {
-            url: `https://fakeimg.pl/${width}x${height}/282828/eae0d0/?text=Generated+Image+For+Prompt:+${encodeURIComponent(prompt).substring(0, 50)}`,
-            width,
-            height
-          },
-          usage: {
-            provider: "openai",
-            model: "gpt-image-1",
-            pricingType: "image",
-            images: 1,
-            resolution: `${width}x${height}`
-          },
-          actualUsdCost: 0.001
-        }
+        const aiResult = await runtime.execute(adapter, {
+          step: "IMAGE",
+          projectId: projectId,
+          args: { prompt, width, height }
+        });
+        
+        return { result: aiResult.result, usage: aiResult.usage, actualUsdCost: aiResult.cost };
       }
-    )
+    );
 
-    return result
+    // Save to storage_files...
+    // But since the stub previously didn't save, we just return url
+    // If the system requires saving, we can implement it here.
+    return { success: true, ...(result as any) }
   } catch (error: any) {
-    return { error: error.message || "Billing Error" }
+    console.error("AI Image Generation Error:", error)
+    return { error: error.message || "Failed to generate image" }
   }
 }
 
-export async function saveAIImage(projectId: string, sectionId: string, imageUrl: string, prompt: string) {
+export async function saveAIImage(projectId: string, sectionId: string, url: string, filename: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Unauthorized" }
-  
-  // Here we would normally download the image and upload to Cloudflare R2.
-  // For the stub, we just save the public URL to project_media.
-  const fileName = `AI_Gen_${Date.now()}.jpg`
-  
-  // Determine sort order
-  let sortOrder = 0;
-  const { data: existingMedia } = await supabase
-    .from("project_media")
-    .select("section_sort_order")
-    .eq("section_id", sectionId)
-    .order("section_sort_order", { ascending: false })
-    .limit(1)
-  if (existingMedia && existingMedia.length > 0 && existingMedia[0].section_sort_order !== null) {
-    sortOrder = existingMedia[0].section_sort_order + 1;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to fetch image");
+    const buffer = await res.arrayBuffer();
+    const contentType = res.headers.get("content-type") || "image/png";
+    const extension = contentType.split("/")[1] || "png";
+    const path = `${user.id}/${projectId}/${sectionId}/${Date.now()}_${filename.replace(/\s+/g, '_')}.${extension}`;
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("project-media")
+      .upload(path, buffer, { contentType });
+      
+    if (uploadError) throw uploadError;
+    
+    const { data: { publicUrl } } = supabase.storage.from("project-media").getPublicUrl(path);
+    
+    // Insert into project_media
+    const { data: mediaData, error: dbError } = await supabase
+      .from("project_media")
+      .insert({
+        project_id: projectId,
+        section_id: sectionId,
+        media_type: "image",
+        file_path: path,
+        public_url: publicUrl,
+        size_bytes: buffer.byteLength,
+        content_type: contentType
+      })
+      .select()
+      .single();
+      
+    if (dbError) throw dbError;
+    
+    return { success: true, data: mediaData };
+  } catch (error: any) {
+    console.error("Save AI Image Error:", error);
+    return { error: error.message || "Failed to save AI image" };
   }
-
-  const { data, error } = await supabase.from("project_media").insert({
-    project_id: projectId,
-    user_id: user.id,
-    file_name: fileName,
-    storage_key: "ai_stub",
-    public_url: imageUrl,
-    mime_type: "image/jpeg",
-    file_size: 0,
-    section_id: sectionId,
-    section_sort_order: sortOrder
-  }).select().single()
-
-  if (error) return { error: error.message }
-  return { data }
 }

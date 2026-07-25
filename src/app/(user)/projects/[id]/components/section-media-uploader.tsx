@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { getSectionImages, uploadProjectMedia, deleteProjectMedia } from "../media-actions"
-import { generateAIImageStub, saveAIImage } from "../image-actions"
+import { generateAIImage, saveAIImage } from "../image-actions"
 import { toast } from "sonner"
 import { UploadCloud, X, Loader2, Image as ImageIcon, Trash2, Sparkles, Download, Maximize2, Plus } from "lucide-react"
 
@@ -85,7 +85,7 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
     setAiPreviewUrl(null)
     const toastId = toast.loading("Generating AI image...")
     try {
-      const res = await generateAIImageStub(projectId, sectionId, "Generate image")
+      const res = await generateAIImage(projectId, sectionId, "Generate image")
       if ('error' in res) throw new Error((res as any).error || "No URL returned")
       const data = res as { url: string; width: number; height: number; }
       if (!data.url) throw new Error("No URL returned")

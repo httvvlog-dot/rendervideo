@@ -10,8 +10,32 @@ export interface ElevenLabsArgs {
   useSpeakerBoost?: boolean
 }
 
-export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ArrayBuffer> {
-  async execute(credential: any, args: ElevenLabsArgs): Promise<ProviderExecutionResult<ArrayBuffer>> {
+export type ElevenLabsResult = ArrayBuffer
+
+export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ElevenLabsResult> {
+  async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) {
+    const { credential, mode = "quick" } = options;
+    const config = credential.config_json || {};
+    const apiKey = credential.encrypted_key || config.apiKey || config.api_key;
+    if (!apiKey) return { success: false, error: "ELEVENLABS_AUTH_FAILED: Missing API Key", latency: 0 };
+
+    const startTime = Date.now();
+    try {
+      const res = await fetch("https://api.elevenlabs.io/v1/voices", { 
+        headers: { "xi-api-key": apiKey.trim() },
+        cache: "no-store"
+      });
+      const latency = Date.now() - startTime;
+      if (!res.ok) {
+        return { success: false, error: `API returned status ${res.status}`, status: res.status, latency };
+      }
+      return { success: true, latency, status: res.status };
+    } catch (e: any) {
+      return { success: false, error: e.message, latency: Date.now() - startTime };
+    }
+  }
+
+  async execute(credential: any, args: ElevenLabsArgs): Promise<ProviderExecutionResult<ElevenLabsResult>> {
     const config = credential.config_json || {};
     const apiKey = credential.encrypted_key || config.apiKey || config.api_key;
     if (!apiKey) {

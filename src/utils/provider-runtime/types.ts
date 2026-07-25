@@ -1,4 +1,4 @@
-export type PipelineStep = "SCRIPT" | "VOICE" | "SCENE" | "RENDER" | "UPLOAD" | "TEST";
+export type PipelineStep = "SCRIPT" | "VOICE" | "SCENE" | "IMAGE" | "RENDER" | "UPLOAD" | "TEST";
 
 export const PROVIDER_HEALTH_STATUS = {
   HEALTHY: "healthy",
@@ -37,8 +37,10 @@ export interface ProviderExecutionResult<T = any> {
   cost?: number; // Legacy or external provider returned cost
 }
 
-export interface ProviderAdapter<TArgs, TResult> {
+export interface ProviderAdapter<TArgs = any, TResult = any> {
   execute(credential: any, args: TArgs): Promise<ProviderExecutionResult<TResult>>;
+  testConnection?(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }): Promise<{ success: boolean; message?: string; error?: string; latency: number; status?: number; details?: any }>;
+  listModels?(credential: any): Promise<{ id: string; name: string }[]>;
 }
 
 export interface ExecuteParams<TArgs> {

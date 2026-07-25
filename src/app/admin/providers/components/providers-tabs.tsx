@@ -9,14 +9,16 @@ export function ProvidersTabs({ initialData }: { initialData: any[] }) {
   const safeData = initialData || []
   
   // Group predefined system providers by tab
-  const llmProviders = safeData.filter(p => p.provider_key === "openrouter")
-  const ttsProviders = safeData.filter(p => p.provider_key === "elevenlabs")
-  const storageProviders = safeData.filter(p => p.provider_key === "cloudflare_r2")
-  const subtitleProviders = safeData.filter(p => p.provider_key === "whisper")
-  const renderProviders = safeData.filter(p => p.provider_key === "render_worker")
+  const llmProviders = safeData.filter(p => p.provider_type === "llm" || p.provider_key === "openrouter")
+  const ttsProviders = safeData.filter(p => p.provider_type === "tts" || p.provider_key === "elevenlabs")
+  const storageProviders = safeData.filter(p => p.provider_type === "storage" || p.provider_key === "cloudflare_r2")
+  const subtitleProviders = safeData.filter(p => p.provider_type === "subtitle" || p.provider_key === "whisper")
+  const renderProviders = safeData.filter(p => p.provider_type === "render" || p.provider_key === "render_worker")
+  const imageProviders = safeData.filter(p => p.provider_type === "image")
 
   const tabs = [
     { id: "llm", label: "LLM" },
+    { id: "image", label: "Image AI" },
     { id: "tts", label: "TTS" },
     { id: "storage", label: "Storage" },
     { id: "subtitle", label: "Subtitle" }
@@ -41,6 +43,7 @@ export function ProvidersTabs({ initialData }: { initialData: any[] }) {
       </div>
       
       {activeTab === "llm" && <ProviderCards providers={llmProviders} type="llm" />}
+      {activeTab === "image" && <ProviderCards providers={imageProviders} type="image" />}
       {activeTab === "tts" && <ProviderCards providers={ttsProviders} type="tts" />}
       {activeTab === "storage" && <ProviderCards providers={storageProviders} type="storage" />}
       {activeTab === "subtitle" && <ProviderCards providers={subtitleProviders} type="subtitle" />}

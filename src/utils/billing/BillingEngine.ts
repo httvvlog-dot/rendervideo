@@ -115,6 +115,7 @@ export class BillingEngine {
   }
 
   static async getChargeInfo(feature: BillingFeature, requestedProvider?: string, requestedModel?: string): Promise<ChargeResult> {
+    // TODO: (Technical Debt) Remove model field from ai_capabilities -> Lookup provider_models -> Resolve default model dynamically
     const capability = await this.resolveCapability(feature, requestedProvider, requestedModel);
     const { provider, model } = capability;
 

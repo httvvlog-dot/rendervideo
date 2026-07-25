@@ -95,6 +95,15 @@ export function CredentialCard({ credential, providerKey, onEdit }: { credential
         </div>
       )}
 
+      <div className="flex justify-between items-center mb-4 text-[11px] text-slate-500">
+        <div>
+          <span className="font-semibold text-slate-600 dark:text-slate-400">Last Success:</span> {credential.last_success_at ? new Date(credential.last_success_at).toLocaleString() : 'Never'}
+        </div>
+        <div>
+          <span className="font-semibold text-slate-600 dark:text-slate-400">Last Failure:</span> {credential.last_failure_at ? new Date(credential.last_failure_at).toLocaleString() : 'Never'}
+        </div>
+      </div>
+
       <div className="flex items-center gap-2 pt-4 border-t">
         <button onClick={() => onEdit(credential)} className="text-sm font-medium text-slate-600 hover:text-blue-600 flex items-center gap-1 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
           <Edit className="h-4 w-4" /> Edit

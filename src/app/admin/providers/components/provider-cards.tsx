@@ -1,6 +1,6 @@
 "use client"
 
-import { Server, Database, Volume2, Mic, ArrowRight, Cloud, Settings, Activity } from "lucide-react"
+import { Server, Database, Volume2, Mic, ArrowRight, Cloud, Settings, Activity, Image as ImageIcon, Sparkles, Box, Wand2, Frame } from "lucide-react"
 import { PROVIDER_HEALTH_STATUS } from "@/utils/provider-runtime/types"
 import { useRouter } from "next/navigation"
 
@@ -13,6 +13,14 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
     if (providerKey === "whisper") return <Mic className="h-8 w-8 text-violet-500" />
     if (providerKey === "cloudflare_r2") return <Cloud className="h-8 w-8 text-sky-500" />
     if (providerKey === "render_worker") return <Settings className="h-8 w-8 text-orange-500" />
+    
+    // Image Providers
+    if (providerKey === "openai") return <ImageIcon className="h-8 w-8 text-emerald-500" />
+    if (providerKey === "falai") return <Sparkles className="h-8 w-8 text-fuchsia-500" />
+    if (providerKey === "replicate") return <Box className="h-8 w-8 text-zinc-800 dark:text-zinc-200" />
+    if (providerKey === "stability") return <Wand2 className="h-8 w-8 text-purple-500" />
+    if (providerKey === "ideogram") return <Frame className="h-8 w-8 text-rose-500" />
+    
     return <Database className="h-8 w-8 text-slate-500" />
   }
 

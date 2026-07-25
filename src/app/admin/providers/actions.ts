@@ -8,6 +8,7 @@ import { logAudit } from "@/utils/audit"
 import { revalidatePath } from "next/cache"
 import { ProviderRuntime } from "@/utils/provider-runtime"
 import { ElevenLabsAdapter } from "@/utils/provider-runtime/adapters/elevenlabs-adapter"
+import { AdapterRegistry } from "@/utils/provider-runtime/adapters/factory"
 
 export async function getProviders() {
   await requireAdmin()
@@ -302,7 +303,7 @@ export async function getOpenRouterModels(credentialId?: string, clientApiKey?: 
   }
 }
 
-export async function testCredentialConnection(credential_id: string) {
+export async function testCredentialConnection(credential_id: string, mode: "quick" | "deep" = "quick") {
   await requireAdmin();
   const supabase = createAdminClient();
   
@@ -314,79 +315,51 @@ export async function testCredentialConnection(credential_id: string) {
 
   try {
     const startTime = Date.now();
-    let res;
+    const adapter = AdapterRegistry.get(providerKey);
 
-    if (providerKey === "openrouter") {
-      const apiKey = cred.encrypted_key || config.apiKey || config.api_key;
-      const defaultModel = config.default_model || config.defaultModel;
-      
-      if (!apiKey) return { success: false, error: "OPENROUTER_AUTH_FAILED: Missing API Key" };
-      if (!defaultModel) return { success: false, error: "MODEL_NOT_SELECTED: Missing Default Model" };
-
-      // Perform an actual completion test with max_tokens: 1
-      res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: defaultModel,
-          messages: [{ role: "user", content: "hi" }],
-          max_tokens: 1
-        })
-      });
-
-      const latency = Date.now() - startTime;
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        const errMsg = errData.error?.message || `Status ${res.status}`;
-        
-        await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: `Connection Failed: ${errMsg}`, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
-        
-        let structuredError = "OPENROUTER_CONNECTION_FAILED";
-        const lowerMsg = errMsg.toLowerCase();
-
-        if (res.status === 401) {
-           structuredError = "OPENROUTER_AUTH_FAILED";
-        } else if (res.status === 402 || lowerMsg.includes("credit") || lowerMsg.includes("balance")) {
-           structuredError = "OPENROUTER_INSUFFICIENT_CREDITS";
-        } else if (res.status === 403) {
-           structuredError = "MODEL_ACCESS_DENIED";
-        } else if (res.status === 404 || lowerMsg.includes("does not exist") || lowerMsg.includes("model")) {
-           structuredError = "MODEL_NOT_AVAILABLE";
-        } else if (res.status === 429) {
-           structuredError = "OPENROUTER_RATE_LIMITED";
-        }
-        
-        return { success: false, error: structuredError, status: res.status, details: errMsg };
+    if (adapter && adapter.testConnection) {
+      const result = await adapter.testConnection({ credential: cred, mode });
+      if (result.success) {
+        await supabase.from("provider_credentials").update({ 
+          health_status: PROVIDER_HEALTH_STATUS.HEALTHY, 
+          latency: result.latency, 
+          last_error: null, 
+          last_checked_at: new Date().toISOString(),
+          last_success_at: new Date().toISOString(),
+          consecutive_failures: 0
+        }).eq("id", credential_id);
+        return { success: true, latency: result.latency, status: result.status };
+      } else {
+        const newFailures = (cred.consecutive_failures || 0) + 1;
+        await supabase.from("provider_credentials").update({ 
+          health_status: newFailures >= 3 ? PROVIDER_HEALTH_STATUS.OFFLINE : PROVIDER_HEALTH_STATUS.WARNING, 
+          last_error: result.error || result.message || "Connection Failed", 
+          last_checked_at: new Date().toISOString(),
+          last_failure_at: new Date().toISOString(),
+          consecutive_failures: newFailures
+        }).eq("id", credential_id);
+        return { success: false, error: result.error || result.message, status: result.status, details: result.details };
       }
-
-      await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.HEALTHY, latency, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
-      return { success: true, latency, status: res.status };
-
-    } else if (providerKey === "elevenlabs") {
-      const apiKey = cred.encrypted_key || config.apiKey || config.api_key;
-      if (!apiKey) return { success: false, error: "ELEVENLABS_AUTH_FAILED: Missing API Key" };
-
-      res = await fetch("https://api.elevenlabs.io/v1/voices", { 
-        headers: { "xi-api-key": apiKey.trim() },
-        cache: "no-store"
-      });
-      const latency = Date.now() - startTime;
-      if (!res.ok) {
-        await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: `Status ${res.status}`, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
-        return { success: false, error: `API returned status ${res.status}`, status: res.status };
-      }
-      await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.HEALTHY, latency, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
-      return { success: true, latency, status: res.status };
     } else {
-      await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.HEALTHY, latency: 0, last_error: null, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
+      await supabase.from("provider_credentials").update({ 
+        health_status: PROVIDER_HEALTH_STATUS.HEALTHY, 
+        latency: 0, 
+        last_error: null, 
+        last_checked_at: new Date().toISOString(),
+        last_success_at: new Date().toISOString(),
+        consecutive_failures: 0
+      }).eq("id", credential_id);
       return { success: true, message: "Credential format looks valid. Deep test not implemented for this provider yet.", latency: 0 };
     }
   } catch (err: any) {
-    await supabase.from("provider_credentials").update({ health_status: PROVIDER_HEALTH_STATUS.OFFLINE, last_error: err.message, last_checked_at: new Date().toISOString() }).eq("id", credential_id);
+    const newFailures = (cred?.consecutive_failures || 0) + 1;
+    await supabase.from("provider_credentials").update({ 
+      health_status: newFailures >= 3 ? PROVIDER_HEALTH_STATUS.OFFLINE : PROVIDER_HEALTH_STATUS.WARNING, 
+      last_error: err.message, 
+      last_checked_at: new Date().toISOString(),
+      last_failure_at: new Date().toISOString(),
+      consecutive_failures: newFailures 
+    }).eq("id", credential_id);
     return { success: false, error: err.message };
   }
 }

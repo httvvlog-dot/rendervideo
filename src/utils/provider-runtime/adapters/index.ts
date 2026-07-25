@@ -1,7 +1,8 @@
 export * from "./openrouter-adapter";
 export * from "./cloudflare-r2-adapter";
 export * from "./elevenlabs-adapter";
-
+export * from "./image-adapters";
+export * from "./factory";
 export interface WhisperArgs { audioBuffer: Buffer; }
 export interface WhisperResult { srtContent: string; durationSec: number; }
 export class WhisperAdapter {
