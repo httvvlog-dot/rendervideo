@@ -25,7 +25,7 @@ const ScriptResponseSchema = z.object({
   sections: z.array(ScriptSectionSchema).min(1)
 })
 
-export async function generateScript(projectId: string) {
+export async function generateScript(projectId: string): Promise<{ success?: boolean; error?: string }> {
   console.log("ENTER generateScript");
   const user = await getCurrentUser()
   if (!user) throw new Error("Unauthorized")
