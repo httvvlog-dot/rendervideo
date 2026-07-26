@@ -8,6 +8,7 @@ import { GrantCreditsModal, AdjustCreditsModal } from "./credit-modals"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { InfoPopover } from "@/components/ui/info-popover"
+import { SubscriptionTab } from "./subscription-tab"
 
 export default async function UserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
   await requireAdmin()
@@ -49,6 +50,28 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
     .order('created_at', { ascending: false })
     .limit(20)
 
+  // 7. Fetch Active Subscription
+  const { data: activeSub } = await supabase.from('subscriptions')
+    .select('*, plans(code, name)')
+    .eq('user_id', userId)
+    .eq('status', 'ACTIVE')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  // 8. Fetch Subscription History
+  const { data: subHistory } = await supabase.from('subscriptions')
+    .select('*, plans(code, name)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  // 9. Fetch Available Plans (for Dropdown)
+  const { data: availablePlans } = await supabase.from('plans')
+    .select('*')
+    .eq('is_active', true)
+    .order('priority', { ascending: true })
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -81,6 +104,9 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
           <TabsTrigger value="wallet">
             <Wallet className="h-4 w-4 mr-2"/> Wallet
             <InfoPopover description="Hiển thị chi tiết cấu trúc tiền trong ví (các Bucket). Bạn sẽ thấy danh sách các khoản tín dụng đang còn hiệu lực và hạn sử dụng của chúng." />
+          </TabsTrigger>
+          <TabsTrigger value="subscription">
+            <Activity className="h-4 w-4 mr-2"/> Subscription
           </TabsTrigger>
           <TabsTrigger value="projects">
             <FolderKanban className="h-4 w-4 mr-2"/> Projects
@@ -120,6 +146,15 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="subscription" className="space-y-4">
+          <SubscriptionTab 
+            userId={userId} 
+            activeSub={activeSub} 
+            subHistory={subHistory || []} 
+            availablePlans={availablePlans || []} 
+          />
         </TabsContent>
 
         <TabsContent value="wallet" className="space-y-4">
