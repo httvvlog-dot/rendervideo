@@ -1,5 +1,4 @@
 import { createClient } from "@/utils/supabase/server"
-import { AdminHeader } from "@/components/admin-header"
 import { PlusCircle, CheckCircle2, XCircle } from "lucide-react"
 
 export default async function AIModelsPage() {
@@ -31,15 +30,16 @@ export default async function AIModelsPage() {
 
   return (
     <div className="space-y-6">
-      <AdminHeader
-        title="AI Models"
-        description="Quản lý tập trung các model AI và cờ năng lực (Features) của hệ thống."
-        action={{
-          label: "Thêm Model",
-          href: "#",
-          icon: <PlusCircle className="mr-2 h-4 w-4" />,
-        }}
-      />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">AI Models</h1>
+          <p className="text-slate-500 mt-1">Quản lý tập trung các model AI và cờ năng lực (Features) của hệ thống.</p>
+        </div>
+        <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-indigo-600 text-white shadow hover:bg-indigo-700 h-9 px-4 py-2">
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Thêm Model
+        </button>
+      </div>
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="overflow-x-auto">

@@ -1,5 +1,4 @@
 import { createClient } from "@/utils/supabase/server"
-import { AdminHeader } from "@/components/admin-header"
 import { AIPlansClient } from "./components/ai-plans-client"
 
 export default async function AIPlansPage() {
@@ -29,10 +28,12 @@ export default async function AIPlansPage() {
 
   return (
     <div className="space-y-6">
-      <AdminHeader
-        title="AI Plans"
-        description="Configure Business Rules for AI models per User Plan and Capability"
-      />
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">AI Plans</h1>
+          <p className="text-slate-500 mt-1">Configure Business Rules for AI models per User Plan and Capability</p>
+        </div>
+      </div>
       
       <AIPlansClient 
         initialProfiles={profiles || []} 
