@@ -12,7 +12,7 @@ SELECT
     COUNT(c.id) AS credential_count,
     COUNT(c.id) FILTER (WHERE c.is_active = true) AS active_credential_count,
     MAX(c.last_success_at) AS last_success,
-    MAX(c.last_error_at) AS last_failure,
+    MAX(c.last_failure_at) AS last_failure,
     CASE 
         WHEN COUNT(c.id) FILTER (WHERE c.is_active = true) > 0 THEN true 
         ELSE false 
