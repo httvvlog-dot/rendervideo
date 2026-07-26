@@ -31,11 +31,20 @@ export default async function UsersPage({
     p_offset: offset
   })
 
+  if (error) {
+    console.error("GET_ADMIN_USERS_LIST ERROR:", error)
+  }
+
   const totalCount = users && users.length > 0 ? users[0].total_count : 0
   const totalPages = Math.ceil(totalCount / limit)
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-md border border-red-200">
+          <strong>Database Error:</strong> {error.message}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
       </div>
