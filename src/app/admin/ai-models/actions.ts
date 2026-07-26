@@ -1,7 +1,7 @@
 "use server"
 
 import { createAdminClient } from "@/utils/supabase/admin"
-import { requireAdmin } from "@/utils/auth"
+import { requireAdmin } from "@/utils/roles"
 import { revalidatePath } from "next/cache"
 import { ProviderRuntime } from "@/utils/provider-runtime"
 
