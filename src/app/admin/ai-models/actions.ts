@@ -25,7 +25,7 @@ export async function saveAIModel(id: string | null, payload: any) {
 
     if (id) {
       // 2. Lock check for editing
-      const { data: usageCount, error: countErr } = await supabase
+      const { count: usageCount, error: countErr } = await supabase
         .from("ai_plan_profiles")
         .select("id", { count: "exact", head: true })
         .eq("ai_model_id", id)
