@@ -111,9 +111,7 @@ export async function saveCredential(formData: any) {
     updated_at: new Date().toISOString()
   }
 
-  if (formData.image_model !== undefined) {
-    payload.image_model = formData.image_model
-  }
+
 
   let resultId = id
 
@@ -336,8 +334,7 @@ export async function testCredentialConnection(credential_id: string, mode: "qui
           success: true, 
           latency: result.latency, 
           status: "Healthy",
-          provider: providerKey,
-          model: cred.image_model || "default"
+          provider: providerKey
         };
       } else {
         const newFailures = (cred.consecutive_failures || 0) + 1;
@@ -364,8 +361,7 @@ export async function testCredentialConnection(credential_id: string, mode: "qui
         message: "Credential format looks valid. Deep test not implemented for this provider yet.", 
         latency: 0,
         status: "Healthy",
-        provider: providerKey,
-        model: cred.image_model || "default"
+        provider: providerKey
       };
     }
   } catch (err: any) {

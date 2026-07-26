@@ -33,7 +33,22 @@ export class ProviderRuntime {
     const credentials = await this.selector.getActiveCredentials();
     
     if (!credentials || credentials.length === 0) {
-      throw new Error(`ProviderRuntime: No active credentials found for this provider.`);
+      console.error("ProviderRuntime Debug Log:");
+      console.error(`providerKey: ${this.selector['providerKey']}`);
+      // credentials empty so no count except 0
+      console.error("credentials found: 0");
+      
+      // Let's manually check what is in the provider_credentials table
+      const adminClient = require('@/utils/supabase/admin').createAdminClient();
+      const { data: pData } = await adminClient.from("providers").select("id").eq("provider_key", this.selector['providerKey']).single();
+      console.error(`providerId: ${pData?.id}`);
+      
+      if (pData?.id) {
+        const { data: allCreds } = await adminClient.from("provider_credentials").select("id, credential_name, is_active, health_status").eq("provider_id", pData.id);
+        console.error("All credentials for this provider:", JSON.stringify(allCreds));
+      }
+      
+      throw new Error(`ProviderRuntime: No active credentials found for this provider. Key used: ${this.selector['providerKey']}`);
     }
 
     let lastGlobalError = null;

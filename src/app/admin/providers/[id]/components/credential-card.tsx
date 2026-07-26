@@ -38,7 +38,7 @@ export function CredentialCard({ credential, providerKey, providerModels, onEdit
     setIsTesting(true)
     const res = await testCredentialConnection(credential.id)
     if (res.success) {
-      toast.success(`[${res.provider}] Healthy - ${res.model} (${res.latency}ms)`)
+      toast.success(`[${res.provider}] Healthy (${res.latency}ms)`)
     }
     else toast.error(`Failed: ${res.error}`)
     setIsTesting(false)

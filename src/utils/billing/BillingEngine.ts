@@ -56,7 +56,7 @@ export class BillingEngine {
       console.error("Exception in initCache capabilities loading:", ex);
     }
 
-    // Load Pricing
+    // @deprecated Legacy: Load Pricing (Migrating to AI Configuration Center)
     const { data: pricings, error: pErr } = await supabase.from("provider_model_pricing").select("*");
     if (!pErr && pricings) {
       for (const p of pricings) {
@@ -64,7 +64,7 @@ export class BillingEngine {
       }
     }
 
-    // Load Rules
+    // @deprecated Legacy: Load Rules (Migrating to AI Configuration Center)
     const { data: rules, error: rErr } = await supabase.from("credit_rules").select("*");
     if (!rErr && rules) {
       for (const r of rules) {
@@ -132,7 +132,7 @@ export class BillingEngine {
       }
     }
 
-    // Fallback to Legacy Capabilities
+    // @deprecated Fallback to Legacy Capabilities (Migrating to AI Configuration Center)
     // TODO: (Technical Debt) Remove model field from ai_capabilities -> Lookup provider_models -> Resolve default model dynamically
     const capability = await this.resolveCapability(feature, requestedProvider, requestedModel);
     const { provider, model } = capability;

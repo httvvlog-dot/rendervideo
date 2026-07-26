@@ -1,5 +1,5 @@
 import { ProviderAdapter, ProviderExecutionResult } from "../types"
-import { IMAGE_MODELS } from "../image-models"
+
 import { FalClient } from "./fal-client"
 
 export interface ImageGenerationArgs {
@@ -55,7 +55,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
     const config = credential.config_json || {};
     const apiKey = config.apiKey || config.api_key;
-    const model = args.model || credential.image_model || 'dall-e-3';
+    const model = args.model || 'dall-e-3';
 
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -106,7 +106,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
       },
       usage: {
         provider: "openai",
-        model: credential.image_model || IMAGE_MODELS.openai.find(x => x.recommended)?.id || "dall-e-3",
+        model,
         pricingType: "image",
         images: 1
       }
@@ -116,15 +116,28 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
 
 export class FalImageAdapter implements ImageProviderAdapter {
   async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) {
-    // Stub for FAL
-    return { success: true, message: "FAL Connected", latency: 50 };
+    const { credential } = options;
+    const config = credential.config_json || {};
+    const apiKey = config.apiKey || config.api_key;
+    if (!apiKey) return { success: false, message: "Missing API Key", latency: 0 };
+    
+    const start = Date.now();
+    try {
+      // Fal doesn't have a standard /models endpoint, so we test by pinging a lightweight endpoint or generating an error that isn't 401
+      const res = await fetch("https://api.fal.ai/rest/models/fal-ai/flux/schnell", {
+        headers: { "Authorization": `Key ${apiKey}` }
+      });
+      if (res.status === 401) return { success: false, message: "Invalid API Key", latency: Date.now() - start };
+      return { success: true, message: "Connected successfully", latency: Date.now() - start };
+    } catch (e: any) {
+      return { success: false, message: e.message, latency: Date.now() - start };
+    }
   }
   async listModels() {
     return [{ id: "fal-ai/flux/schnell", name: "FLUX Schnell" }];
   }
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
-    const DEFAULT_MODEL = IMAGE_MODELS.falai.find(x => x.recommended)?.id || "fal-ai/flux-pro/v1";
-    const model = args.model || credential.image_model || DEFAULT_MODEL;
+    const model = args.model || "fal-ai/flux-pro/v1";
     console.log(`[FalImageAdapter] Executing with model: ${model}`);
     
     // Check for Mock mode
@@ -192,7 +205,7 @@ export class ReplicateImageAdapter implements ImageProviderAdapter {
   }
   async listModels() { return []; }
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { 
-    const model = args.model || credential.image_model || "black-forest-labs/flux-pro";
+    const model = args.model || "black-forest-labs/flux-pro";
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
       await new Promise(resolve => setTimeout(resolve, 2000));
       return { result: { url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920 }, usage: { provider: "replicate", model, pricingType: "image", images: 1 }, cost: 0 };
@@ -205,7 +218,7 @@ export class IdeogramImageAdapter implements ImageProviderAdapter {
   async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) { return { success: true, message: "Ideogram Connected", latency: 50 }; }
   async listModels() { return []; }
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { 
-    const model = args.model || credential.image_model || "ideogram-v3";
+    const model = args.model || "ideogram-v3";
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
       await new Promise(resolve => setTimeout(resolve, 2000));
       return { result: { url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920 }, usage: { provider: "ideogram", model, pricingType: "image", images: 1 }, cost: 0 };
@@ -218,7 +231,7 @@ export class StabilityImageAdapter implements ImageProviderAdapter {
   async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) { return { success: true, message: "Stability Connected", latency: 50 }; }
   async listModels() { return []; }
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { 
-    const model = args.model || credential.image_model || "stable-diffusion-3";
+    const model = args.model || "stable-diffusion-3";
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
       await new Promise(resolve => setTimeout(resolve, 2000));
       return { result: { url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920 }, usage: { provider: "stability", model, pricingType: "image", images: 1 }, cost: 0 };
