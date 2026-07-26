@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { PlusCircle, CheckCircle2, XCircle, Pencil, Save, X, Activity, Copy, AlertTriangle } from "lucide-react"
 import { saveAIModel, testAIModel } from "../actions"
-import toast from "react-hot-toast"
+import { toast } from "sonner"
 
 export function AIModelsClient({ initialModels, providers, providerHealth }: { initialModels: any[], providers: any[], providerHealth: any[] }) {
   const [models, setModels] = useState(initialModels)
