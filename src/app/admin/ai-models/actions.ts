@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/utils/supabase/admin"
 import { requireAdmin } from "@/utils/roles"
 import { revalidatePath } from "next/cache"
-import { ProviderRuntime } from "@/utils/provider-runtime"
+import { CredentialSelector } from "@/utils/provider-runtime/credential-selector"
 
 
 export async function saveAIModel(id: string | null, payload: any) {
@@ -78,7 +78,6 @@ export async function testAIModel(modelId: string) {
     if (error || !model) throw new Error("Model not found")
 
     // For now, we only check if the provider is healthy and has an active credential
-    const runtime = ProviderRuntime.getInstance()
     let hasActiveCredential = false
 
     try {
@@ -86,8 +85,9 @@ export async function testAIModel(modelId: string) {
       const providerKey = model.providers?.provider_key
       if (!providerKey) throw new Error("Provider key missing")
       
-      const creds = await runtime.getActiveCredentials(providerKey)
-      if (creds) hasActiveCredential = true
+      const selector = new CredentialSelector(providerKey)
+      const creds = await selector.getActiveCredentials()
+      if (creds && creds.length > 0) hasActiveCredential = true
     } catch (e) {
       hasActiveCredential = false
     }
