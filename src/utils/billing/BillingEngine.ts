@@ -111,7 +111,6 @@ export class BillingEngine {
         planKey = sub.plan_id.toUpperCase();
       }
 
-      // 2. Resolve AI Plan Profile
       const { data: profile } = await supabase.from('ai_plan_profiles')
         .select('provider_id, ai_model_id, credits_per_unit, providers(provider_key), ai_models(api_slug)')
         .eq('plan_key', planKey)
@@ -119,16 +118,42 @@ export class BillingEngine {
         .eq('is_active', true)
         .single();
         
+      console.log("=== DEBUG BillingEngine ===");
+      console.log("capability:", feature);
+      console.log("plan:", planKey);
+      console.log("ai_plan_profile fetched:", profile);
+        
       if (profile && profile.providers && profile.ai_models) {
+        const providerKey = Array.isArray(profile.providers) ? profile.providers[0]?.provider_key : (profile.providers as any).provider_key;
+        const apiSlug = Array.isArray(profile.ai_models) ? profile.ai_models[0]?.api_slug : (profile.ai_models as any).api_slug;
+        
+        console.log("-> Using new AI Models configuration");
+        console.log("providerKey:", providerKey);
+        console.log("apiSlug:", apiSlug);
+        
         return {
           credits: profile.credits_per_unit,
           apiCost: 0, // Calculated post-execution
-          provider: Array.isArray(profile.providers) ? profile.providers[0]?.provider_key : (profile.providers as any).provider_key,
-          model: Array.isArray(profile.ai_models) ? profile.ai_models[0]?.api_slug : (profile.ai_models as any).api_slug,
+          provider: providerKey,
+          model: apiSlug,
           pricingVersion: 1,
           creditRuleVersion: 1,
           currency: 'USD',
         };
+      } else {
+        console.warn("-> Missing profile, providers, or ai_models in ai_plan_profiles. Falling back to legacy...");
+        if (feature === BillingFeature.IMAGE_GENERATION) {
+          console.error(JSON.stringify({
+            event: "AI_PLAN_MISCONFIGURED",
+            plan: planKey,
+            capability: feature,
+            provider: null,
+            model: null,
+            fallbackBlocked: true,
+            message: "Missing ai_model_id. Expected AI Model mapped in ai_plan_profiles."
+          }, null, 2));
+          throw new Error(`AI Plan misconfigured.\nPlan: ${planKey}\nCapability: ${feature}\nMissing: ai_model_id\nExpected: AI Model mapped in ai_plan_profiles\nCannot fallback to legacy provider.`);
+        }
       }
     }
 
