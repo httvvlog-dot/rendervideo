@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { changeUserPlanAction } from './subscription-actions'
 import { Activity, ShieldCheck, History, CalendarDays } from 'lucide-react'
 
@@ -21,7 +21,6 @@ export function SubscriptionTab({
   subHistory: any[], 
   availablePlans: any[] 
 }) {
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function onSubmit(formData: FormData) {
@@ -29,9 +28,9 @@ export function SubscriptionTab({
     const res = await changeUserPlanAction(formData)
     setIsSubmitting(false)
     if (res.success) {
-      toast({ title: "Plan updated successfully", variant: "default" })
+      toast.success("Plan updated successfully")
     } else {
-      toast({ title: "Failed to update plan", description: res.error, variant: "destructive" })
+      toast.error(res.error || "Failed to update plan")
     }
   }
 
