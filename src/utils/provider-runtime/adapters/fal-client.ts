@@ -71,7 +71,7 @@ export class FalClient {
 
       if (res.status === 401) throw new Error("API chưa được cấu hình (Invalid API Key).");
       if (res.status === 429) throw new Error("Hệ thống đang bận, vui lòng thử lại.");
-      if (res.status === 404) throw new Error(`Model hiện không khả dụng (${options.model}).`);
+      if (res.status === 404) throw new Error(`Model hiện không khả dụng (${options.model}). Lỗi từ Fal: ${responseText}`);
       if (!res.ok) {
         throw new Error(`Lỗi từ hệ thống AI (Status: ${res.status}): ${responseText}`);
       }

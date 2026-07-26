@@ -33,9 +33,9 @@ BEGIN
     IF falai_id IS NOT NULL THEN
         INSERT INTO public.ai_plan_profiles (plan_key, capability, provider_id, model_id, credits_per_unit, is_active)
         VALUES 
-        ('FREE', 'IMAGE_GENERATION', falai_id, 'fal-ai/flux-klein-4b', 1, true),
-        ('PRO', 'IMAGE_GENERATION', falai_id, 'fal-ai/flux-klein-9b', 2, true),
-        ('VIP', 'IMAGE_GENERATION', falai_id, 'fal-ai/flux-pro/v1', 4, true)
+        ('FREE', 'IMAGE_GENERATION', falai_id, 'fal-ai/flux/schnell', 1, true),
+        ('PRO', 'IMAGE_GENERATION', falai_id, 'fal-ai/flux/dev', 2, true),
+        ('VIP', 'IMAGE_GENERATION', falai_id, 'fal-ai/flux-pro/v1.1', 4, true)
         ON CONFLICT (plan_key, capability) DO UPDATE SET
             provider_id = EXCLUDED.provider_id,
             model_id = EXCLUDED.model_id,

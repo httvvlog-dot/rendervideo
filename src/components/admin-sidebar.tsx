@@ -7,8 +7,9 @@ import { cn } from "@/lib/utils"
 
 const adminNavItems = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { name: "Providers", href: "/admin/providers", icon: Cpu },
-  { name: "AI Plan Profiles", href: "/admin/ai-plans", icon: Layers },
+  { name: "AI Providers", href: "/admin/providers", icon: Cpu },
+  { name: "AI Models", href: "/admin/ai-models", icon: Layers },
+  { name: "AI Plans", href: "/admin/ai-plans", icon: Layers },
   { name: "Templates", href: "/admin/templates", icon: FileCode2 },
   { name: "Billing", href: "/admin/billing", icon: CreditCard },
   { name: "Users", href: "/admin/users", icon: Users },

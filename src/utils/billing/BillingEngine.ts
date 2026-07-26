@@ -113,18 +113,18 @@ export class BillingEngine {
 
       // 2. Resolve AI Plan Profile
       const { data: profile } = await supabase.from('ai_plan_profiles')
-        .select('provider_id, model_id, credits_per_unit, providers(provider_key)')
+        .select('provider_id, ai_model_id, credits_per_unit, providers(provider_key), ai_models(api_slug)')
         .eq('plan_key', planKey)
         .eq('capability', feature)
         .eq('is_active', true)
         .single();
         
-      if (profile && profile.providers) {
+      if (profile && profile.providers && profile.ai_models) {
         return {
           credits: profile.credits_per_unit,
           apiCost: 0, // Calculated post-execution
           provider: Array.isArray(profile.providers) ? profile.providers[0]?.provider_key : (profile.providers as any).provider_key,
-          model: profile.model_id,
+          model: Array.isArray(profile.ai_models) ? profile.ai_models[0]?.api_slug : (profile.ai_models as any).api_slug,
           pricingVersion: 1,
           creditRuleVersion: 1,
           currency: 'USD',
