@@ -32,7 +32,7 @@ export async function generateAIImage(projectId: string, sectionId: string) {
       input_source: 'SCRIPT'
     }).select().single();
 
-    if (jobError || !job) throw new Error("Failed to create image job tracking");
+    if (jobError || !job) throw new Error(`Failed to create image job tracking: ${jobError?.message || 'Unknown error'}`);
 
     // Pass empty requestedProviderModel to force BillingEngine to use default capability
     const result = await BillingEngine.executeAndCharge(
