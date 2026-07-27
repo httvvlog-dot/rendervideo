@@ -127,7 +127,7 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
       }
     };
   }
-  async capabilities() {
+  capabilities() {
     return ["IMAGE_GENERATION"];
   }
 
@@ -162,7 +162,7 @@ export class FalImageAdapter implements ImageProviderAdapter {
   async listModels() {
     return [{ id: "fal-ai/flux/schnell", name: "FLUX Schnell" }];
   }
-  async capabilities() {
+  capabilities() {
     return ["IMAGE_GENERATION", "IMAGE_EDITING"];
   }
 
@@ -265,7 +265,7 @@ export class ReplicateImageAdapter implements ImageProviderAdapter {
     }
     throw new Error("Not implemented"); 
   }
-  async capabilities() { return ["IMAGE_GENERATION"]; }
+  capabilities() { return ["IMAGE_GENERATION"]; }
   async generate(credential: any, args: ImageGenerationArgs) { return this.execute(credential, args); }
   async edit(credential: any, args: ImageEditArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
   async transform(credential: any, args: ImageTransformArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
@@ -274,7 +274,7 @@ export class ReplicateImageAdapter implements ImageProviderAdapter {
 export class IdeogramImageAdapter implements ImageProviderAdapter {
   async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) { return { success: true, message: "Ideogram Connected", latency: 50 }; }
   async listModels() { return []; }
-  async capabilities() { return ["IMAGE_GENERATION"]; }
+  capabilities() { return ["IMAGE_GENERATION"]; }
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { 
     const model = args.model || "ideogram-v3";
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
@@ -291,7 +291,7 @@ export class IdeogramImageAdapter implements ImageProviderAdapter {
 export class StabilityImageAdapter implements ImageProviderAdapter {
   async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) { return { success: true, message: "Stability Connected", latency: 50 }; }
   async listModels() { return []; }
-  async capabilities() { return ["IMAGE_GENERATION"]; }
+  capabilities() { return ["IMAGE_GENERATION"]; }
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { 
     const model = args.model || "stable-diffusion-3";
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
