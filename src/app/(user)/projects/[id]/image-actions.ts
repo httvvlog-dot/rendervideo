@@ -22,17 +22,26 @@ export async function generateAIImage(projectId: string, sectionId: string) {
   try {
     const { BillingEngine, BillingFeature } = await import("@/utils/billing");
     
-    // First, let's create a pending image_job
-    const { data: job, error: jobError } = await supabase.from("image_jobs").insert({
-      user_id: user.id,
-      project_id: projectId,
-      section_id: sectionId,
-      mode: 'TEXT_TO_IMAGE',
-      status: 'PENDING',
-      input_source: 'SCRIPT'
-    }).select().single();
+    // First, let's attempt to create a pending image_job
+    let jobId: string | null = null;
+    try {
+      const { data: job, error: jobError } = await supabase.from("image_jobs").insert({
+        user_id: user.id,
+        project_id: projectId,
+        section_id: sectionId,
+        mode: 'TEXT_TO_IMAGE',
+        status: 'PENDING',
+        input_source: 'SCRIPT'
+      }).select().single();
 
-    if (jobError || !job) throw new Error(`Failed to create image job tracking: ${jobError?.message || 'Unknown error'}`);
+      if (jobError) {
+        console.warn(`[WARNING] Failed to create image_job tracking: ${jobError.message}. Proceeding without tracking.`);
+      } else if (job) {
+        jobId = job.id;
+      }
+    } catch (e: any) {
+      console.warn(`[WARNING] Exception creating image_job: ${e.message}. Proceeding without tracking.`);
+    }
 
     // Pass empty requestedProviderModel to force BillingEngine to use default capability
     const result = await BillingEngine.executeAndCharge(
@@ -86,13 +95,19 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         }
 
         // Update Job state to PROCESSING
-        await supabase.from("image_jobs").update({
-          status: 'PROCESSING',
-          original_prompt: originalPrompt,
-          validated_prompt: finalPrompt,
-          provider: provider, // fallback if provider_id not fetched yet
-          model: model
-        }).eq("id", job.id);
+        if (jobId) {
+          try {
+            await supabase.from("image_jobs").update({
+              status: 'PROCESSING',
+              original_prompt: originalPrompt,
+              validated_prompt: finalPrompt,
+              provider: provider,
+              model: model
+            }).eq("id", jobId);
+          } catch (e) {
+            console.warn("[WARNING] Failed to update image_job to PROCESSING");
+          }
+        }
 
         const aiResult = await runtime.invoke(
           async (cred) => adapter.generate(cred, { prompt: finalPrompt, width, height, model }), 
@@ -100,13 +115,19 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         );
         
         // Finalize Job
-        await supabase.from("image_jobs").update({
-          status: 'COMPLETED',
-          credential_id: aiResult.credentialId,
-          output_image_url: aiResult.result.url,
-          provider_request: (aiResult as any).provider_request || {}, // if adapter passed it
-          provider_response: (aiResult as any).provider_response || {} 
-        }).eq("id", job.id);
+        if (jobId) {
+          try {
+            await supabase.from("image_jobs").update({
+              status: 'COMPLETED',
+              credential_id: aiResult.credentialId,
+              output_image_url: aiResult.result.url,
+              provider_request: (aiResult as any).provider_request || {}, // if adapter passed it
+              provider_response: (aiResult as any).provider_response || {} 
+            }).eq("id", jobId);
+          } catch (e) {
+            console.warn("[WARNING] Failed to finalize image_job");
+          }
+        }
 
         return { result: aiResult.result, usage: aiResult.usage, actualUsdCost: aiResult.cost, url: aiResult.result.url, width: aiResult.result.width, height: aiResult.result.height };
       }
