@@ -1,0 +1,7 @@
+{
+  "required": [
+    "20260727091100_add_image_jobs",
+    "20260727121018_add_negative_prompt_to_script_sections",
+    "20260727131230_advanced_prompt_engine"
+  ]
+}
