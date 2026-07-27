@@ -68,7 +68,14 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
           <span className={`px-2 py-1 text-xs rounded-full ${
             profile.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'
           }`}>
-            {profile.role}
+            Role: {profile.role}
+          </span>
+          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+            profile.image_tier === 'VIP' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' :
+            profile.image_tier === 'PRO' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300' :
+            'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+          }`}>
+            Tier: {profile.image_tier || 'FREE'}
           </span>
           {profile.status === 'suspended' && (
             <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Suspended</span>
