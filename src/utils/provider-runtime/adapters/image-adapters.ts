@@ -4,6 +4,7 @@ import { FalClient } from "./fal-client"
 
 export interface ImageGenerationArgs {
   prompt: string;
+  negative_prompt?: string | Record<string, string[]>;
   width?: number;
   height?: number;
   numImages?: number;
@@ -213,13 +214,27 @@ export class FalImageAdapter implements ImageProviderAdapter {
 
     const client = new FalClient(apiKey);
     
-    // Provider Formatter: Inject Flux-specific style enhancements
+    // Provider Formatter: Strictly act as a translator without inventing new styling
     let formattedPrompt = args.prompt;
-    if (model.includes("flux")) {
-       formattedPrompt = `${args.prompt}, ultra photorealistic, 8k resolution, highly detailed`;
+
+    let formattedNegativePrompt = undefined;
+    if (args.negative_prompt) {
+      if (typeof args.negative_prompt === 'string') {
+        formattedNegativePrompt = args.negative_prompt;
+      } else {
+        // Flatten structured JSON into a comma-separated string
+        const values: string[] = [];
+        for (const key of Object.keys(args.negative_prompt)) {
+           const arr = args.negative_prompt[key];
+           if (Array.isArray(arr)) {
+             values.push(...arr);
+           }
+        }
+        formattedNegativePrompt = values.filter(Boolean).join(", ");
+      }
     }
 
-    const payload = {
+    const payload: any = {
       model,
       prompt: formattedPrompt,
       image_size: (args.width && args.height) ? { width: args.width, height: args.height } : undefined,
@@ -230,6 +245,10 @@ export class FalImageAdapter implements ImageProviderAdapter {
       output_format: args.output_format,
       num_images: args.numImages
     };
+
+    if (formattedNegativePrompt) {
+      payload.negative_prompt = formattedNegativePrompt;
+    }
 
     const result = await client.run(payload);
 

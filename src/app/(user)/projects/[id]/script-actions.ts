@@ -15,6 +15,11 @@ const ScriptSectionSchema = z.object({
   duration_seconds: z.number().min(1),
   visual_description: z.string().min(1),
   image_prompt: z.string().optional(),
+  negative_prompt: z.object({
+    style: z.array(z.string()).optional(),
+    objects: z.array(z.string()).optional(),
+    quality: z.array(z.string()).optional()
+  }).optional(),
   recommended_image_count: z.number().min(1).max(20).default(1),
   keywords: z.array(z.string()).default([])
 })
@@ -37,7 +42,35 @@ export async function generateScript(projectId: string): Promise<{ success?: boo
 
   const targetDuration = project.target_duration || (project.video_length * 60) || 60;
 
-  const promptText = `Write a structured video script.
+  // Fetch domain config dynamically
+  let domainQuery = supabase.from("image_prompt_domains").select("*").eq("is_active", true);
+  if (project.topic.toLowerCase().includes("yến")) {
+     domainQuery = domainQuery.eq("code", "BIRD_NEST");
+  }
+  const { data: domainData } = await domainQuery.limit(1).maybeSingle();
+  const domain = domainData || {
+      system_prompt: "Your task is to convert each Visual Story into a realistic commercial photography prompt.",
+      camera_style: "DSLR photography. Shallow depth of field.",
+      lighting_style: "Soft natural lighting.",
+      composition_style: "Cinematic composition.",
+      negative_prompt_template: { style: ["cartoon", "anime", "painting", "fantasy"], objects: ["random objects"], quality: ["low quality", "blur"] }
+  };
+
+  const promptText = `You are a Professional AI Cinematographer and Commercial Photography Prompt Engineer.
+
+Your task is NOT to translate Vietnamese into English.
+${domain.system_prompt}
+
+Rules:
+1. Always generate PHOTOREALISTIC images.
+2. Produce prompts suitable for Flux Dev.
+3. Target Full HD (1920x1080), not 8K.
+4. Focus on realism instead of fantasy.
+5. Every object must exist in the real world.
+6. Camera language must resemble professional DSLR or cinema photography.
+7. Never invent subjects that are not mentioned.
+8. If uncertain, stay conservative instead of hallucinating.
+
 Topic: ${project.topic}
 Language: ${project.language}
 Target Duration: ${targetDuration} seconds
@@ -46,24 +79,28 @@ Return ONLY valid JSON matching this schema:
 {
   "title": "Video Title",
   "total_duration_seconds": ${targetDuration},
-    "sections": [
-      {
-        "section_index": 1,
-        "title": "Section Title",
-        "narration": "Spoken text that naturally fits the duration. Ensure reading speed matches normal Vietnamese pace (~2-3 words per second).",
-        "duration_seconds": 8,
-        "visual_description": "Visual Story (Vietnamese, describing camera angle, subjects, actions).",
-        "image_prompt": "Original Cinematic Prompt (English, highly detailed, photographic terms, lighting, 8k). DO NOT simply translate the visual_description. Act as a Professional Prompt Engineer to create a stunning image prompt.",
-        "recommended_image_count": 2,
-        "keywords": ["tag1", "tag2"]
-      }
-    ]
+  "sections": [
+    {
+      "section_index": 1,
+      "title": "Section Title",
+      "narration": "Spoken text that naturally fits the duration.",
+      "duration_seconds": 8,
+      "visual_description": "Visual Story (Vietnamese, describing camera angle, subjects, actions).",
+      "image_prompt": "Template Format:\\nSubject: ...\\nScene: ...\\nCamera: ${domain.camera_style}\\nLighting: ${domain.lighting_style}\\nComposition: ${domain.composition_style}\\nPhotorealistic commercial photography.\\n1920x1080\\nNatural color grading.",
+      "negative_prompt": {
+        "style": ["cartoon", "anime"],
+        "objects": ["watermark", "text"],
+        "quality": ["blur"]
+      },
+      "recommended_image_count": 2,
+      "keywords": ["tag1", "tag2"]
+    }
+  ]
 }
 
 Important:
 - Return ONLY the JSON object, no markdown wrappers, no explanations.
-- Make sure sum of duration_seconds exactly equals ${targetDuration}.
-- Make sure narration length is realistic for the allocated duration.`
+- Make sure sum of duration_seconds exactly equals ${targetDuration}.`;
 
   const runtime = new ProviderRuntime("openrouter", { 
     retryCount: 2, 

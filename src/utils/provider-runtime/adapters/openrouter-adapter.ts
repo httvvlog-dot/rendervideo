@@ -1,7 +1,7 @@
 import { ProviderAdapter, ProviderExecutionResult } from "../types"
 
 export interface OpenRouterArgs {
-  prompt: string;
+  prompt: string | any[];
 }
 
 export interface OpenRouterResult {

@@ -54,11 +54,12 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         // Retrieve prompt from database
         const runtime = new ProviderRuntime(provider, { retryCount: 2, retryDelay: 1000, failureThreshold: 3 });
 
-        const { data: section } = await supabase.from("script_sections").select("image_prompt, visual_description").eq("id", sectionId).single();
+        const { data: section } = await supabase.from("script_sections").select("image_prompt, visual_description, negative_prompt").eq("id", sectionId).single();
         if (!section) throw new Error("Không tìm thấy phân cảnh.");
         
         const originalPrompt = section.image_prompt?.trim() || "";
         const visualDescription = section.visual_description?.trim() || "";
+        const negativePrompt = section.negative_prompt?.trim() || undefined;
         
         if (!originalPrompt && !visualDescription) throw new Error(`Section ${sectionId} không có dữ liệu hình ảnh.`);
 
@@ -109,10 +110,32 @@ export async function generateAIImage(projectId: string, sectionId: string) {
           }
         }
 
-        const aiResult = await runtime.invoke(
-          async (cred) => adapter.generate(cred, { prompt: finalPrompt, width, height, model }), 
-          { step: "IMAGE", projectId }
-        );
+        let attempt = 0;
+        let aiResult: any;
+        const maxRetries = 2;
+
+        while (attempt <= maxRetries) {
+          attempt++;
+          aiResult = await runtime.invoke(
+            async (cred) => adapter.generate(cred, { prompt: finalPrompt, negative_prompt: negativePrompt, width, height, model }), 
+            { step: "IMAGE", projectId }
+          );
+
+          // Vision Validator (AI Checking AI)
+          if (visualDescription && aiResult.result.url) {
+            const { VisionValidator } = await import("@/utils/vision-validator");
+            const visionValidator = new VisionValidator();
+            const visionRes = await visionValidator.validate(visualDescription, finalPrompt, aiResult.result.url);
+
+            if (visionRes.status === "REGENERATE" && attempt <= maxRetries) {
+               console.log(`[VisionValidator] Rejecting image on attempt ${attempt}. Reason: ${visionRes.reason}. Retrying...`);
+               continue; // Loop again
+            } else if (visionRes.status === "REGENERATE") {
+               console.warn(`[VisionValidator] Max retries reached. Forcing PASS despite: ${visionRes.reason}`);
+            }
+          }
+          break; // Exit loop if PASS or max retries reached
+        }
         
         // Finalize Job
         if (jobId) {
