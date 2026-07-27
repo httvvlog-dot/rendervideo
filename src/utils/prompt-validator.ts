@@ -63,7 +63,7 @@ Output MUST be valid JSON matching this schema:
         args: { prompt: systemPrompt }
       });
 
-      const parsedJson = extractJSONObject(aiResult.result);
+      const parsedJson = extractJSONObject(aiResult.result.content);
       const validated = ValidationSchema.parse(parsedJson);
       
       return validated;

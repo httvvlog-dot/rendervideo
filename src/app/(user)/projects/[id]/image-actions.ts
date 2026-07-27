@@ -108,11 +108,11 @@ export async function generateAIImage(projectId: string, sectionId: string) {
           provider_response: (aiResult as any).provider_response || {} 
         }).eq("id", job.id);
 
-        return { result: aiResult.result, usage: aiResult.usage, actualUsdCost: aiResult.cost, url: aiResult.result.url };
+        return { result: aiResult.result, usage: aiResult.usage, actualUsdCost: aiResult.cost, url: aiResult.result.url, width: aiResult.result.width, height: aiResult.result.height };
       }
     );
 
-    return { success: true, url: result.url }
+    return { success: true, url: result.url, width: result.width, height: result.height }
   } catch (error: any) {
     console.error("AI Image Generation Error:", error)
     return { error: error.message || "Failed to generate image" }
