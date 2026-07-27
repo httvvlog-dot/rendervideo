@@ -111,7 +111,7 @@ export class HealthService {
         return { name: "Schema", status: "ERROR", severity: "Critical", lastChecked: now, message: "Could not read migrations (RPC missing?): " + error.message };
       }
 
-      const appliedVersions = (data || []).map(row => row.version);
+      const appliedVersions = (data || []).map((row: any) => row.version);
       
       const missing = [];
       for (const req of requiredMigrations.required) {
