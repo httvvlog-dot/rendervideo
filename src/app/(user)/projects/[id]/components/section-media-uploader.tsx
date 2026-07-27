@@ -19,20 +19,28 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
   const [isGenerating, setIsGenerating] = useState(false)
   const [aiPreviewUrl, setAiPreviewUrl] = useState<string | null>(null)
   const [isSavingAI, setIsSavingAI] = useState(false)
-  const [systemHealth, setSystemHealth] = useState<"OK" | "MAINTENANCE">("OK")
+  const [systemHealth, setSystemHealth] = useState<"OK" | "MAINTENANCE" | "CHECKING">("CHECKING")
 
   useEffect(() => {
     loadMedia()
     
     // Boot check for Schema health
     fetch("/api/health/schema")
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error("API not ok");
+        return r.json();
+      })
       .then(d => {
         if (d.schemaStatus === "ERROR" || d.dbStatus === "ERROR" || d.status === "UPGRADE_REQUIRED") {
           setSystemHealth("MAINTENANCE");
+        } else {
+          setSystemHealth("OK");
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error("Health check failed", err);
+        setSystemHealth("OK"); // Fallback to OK if we can't check
+      });
   }, [sectionId])
 
   async function loadMedia() {
@@ -213,11 +221,11 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
                 <div className="flex flex-col gap-2 w-full max-w-[200px]">
                   <button 
                     onClick={handleGenerateAI}
-                    disabled={isGenerating || isUploading || systemHealth === "MAINTENANCE"}
+                    disabled={isGenerating || isUploading || systemHealth !== "OK"}
                     className="flex items-center justify-center gap-2 py-2 px-4 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-md border border-indigo-500/30 transition-all text-sm font-medium disabled:opacity-50"
                   >
-                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    {systemHealth === "MAINTENANCE" ? "System Maintenance" : "Generate AI Image"}
+                    {systemHealth === "CHECKING" ? <Loader2 className="w-4 h-4 animate-spin" /> : isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    {systemHealth === "CHECKING" ? "Checking System..." : systemHealth === "MAINTENANCE" ? "System Maintenance" : "Generate AI Image"}
                   </button>
                   <button 
                     onClick={handleUploadClick}
@@ -256,12 +264,12 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
                       <Maximize2 className="w-3.5 h-3.5" />
                     </button>
                     <button 
-                      title={systemHealth === "MAINTENANCE" ? "System Maintenance" : "Generate More"}
+                      title={systemHealth === "CHECKING" ? "Checking System..." : systemHealth === "MAINTENANCE" ? "System Maintenance" : "Generate More"}
                       onClick={handleGenerateAI}
-                      disabled={systemHealth === "MAINTENANCE"}
+                      disabled={systemHealth !== "OK"}
                       className="p-1.5 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-md transition-colors ml-1 disabled:opacity-50"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
+                      {systemHealth === "CHECKING" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                     </button>
                     <button 
                       title="Replace/Upload"
