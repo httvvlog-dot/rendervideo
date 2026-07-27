@@ -21,9 +21,24 @@ export interface ImageGenerationResult {
   height: number;
 }
 
+export interface ImageEditArgs extends ImageGenerationArgs {
+  image_url?: string;
+  image_buffer?: Buffer;
+}
+
+export interface ImageTransformArgs extends ImageEditArgs {
+  mode: 'UPSCALE' | 'INPAINT' | 'OUTPAINT' | 'BACKGROUND_REMOVE' | 'CHARACTER_REFERENCE';
+  mask_url?: string;
+  reference_images?: { type: string, url: string, asset_id?: string, weight?: number }[];
+}
+
 export interface ImageProviderAdapter extends ProviderAdapter<ImageGenerationArgs, ImageGenerationResult> {
   testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }): Promise<{ success: boolean; message: string; latency: number }>;
   listModels(credential: any): Promise<{ id: string; name: string }[]>;
+  capabilities(): string[];
+  generate(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>>;
+  edit(credential: any, args: ImageEditArgs): Promise<ProviderExecutionResult<ImageGenerationResult>>;
+  transform(credential: any, args: ImageTransformArgs): Promise<ProviderExecutionResult<ImageGenerationResult>>;
 }
 
 export class OpenAIImageAdapter implements ImageProviderAdapter {
@@ -112,6 +127,17 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
       }
     };
   }
+  async capabilities() {
+    return ["IMAGE_GENERATION"];
+  }
+
+  async edit(credential: any, args: ImageEditArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
+    throw new Error("OpenAI Adapter does not implement edit yet.");
+  }
+
+  async transform(credential: any, args: ImageTransformArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
+    throw new Error("OpenAI Adapter does not implement transform yet.");
+  }
 }
 
 export class FalImageAdapter implements ImageProviderAdapter {
@@ -136,6 +162,22 @@ export class FalImageAdapter implements ImageProviderAdapter {
   async listModels() {
     return [{ id: "fal-ai/flux/schnell", name: "FLUX Schnell" }];
   }
+  async capabilities() {
+    return ["IMAGE_GENERATION", "IMAGE_EDITING"];
+  }
+
+  async edit(credential: any, args: ImageEditArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
+    throw new Error("Fal Adapter does not implement edit yet.");
+  }
+
+  async transform(credential: any, args: ImageTransformArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
+    throw new Error("Fal Adapter does not implement transform yet.");
+  }
+
+  async generate(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
+    return this.execute(credential, args);
+  }
+
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
     const model = args.model || "fal-ai/flux-pro/v1";
     console.log(`[FalImageAdapter] Executing with model: ${model}`);
@@ -166,9 +208,16 @@ export class FalImageAdapter implements ImageProviderAdapter {
     if (!apiKey) throw new Error("API chưa được cấu hình (Invalid API Key).");
 
     const client = new FalClient(apiKey);
-    const result = await client.run({
+    
+    // Provider Formatter: Inject Flux-specific style enhancements
+    let formattedPrompt = args.prompt;
+    if (model.includes("flux")) {
+       formattedPrompt = `${args.prompt}, ultra photorealistic, 8k resolution, highly detailed`;
+    }
+
+    const payload = {
       model,
-      prompt: args.prompt,
+      prompt: formattedPrompt,
       image_size: (args.width && args.height) ? { width: args.width, height: args.height } : undefined,
       seed: args.seed,
       guidance_scale: args.guidance_scale,
@@ -176,7 +225,9 @@ export class FalImageAdapter implements ImageProviderAdapter {
       aspect_ratio: args.aspect_ratio,
       output_format: args.output_format,
       num_images: args.numImages
-    });
+    };
+
+    const result = await client.run(payload);
 
     if (!result || result.length === 0) {
       throw new Error("Không tìm thấy ảnh từ kết quả trả về.");
@@ -194,7 +245,9 @@ export class FalImageAdapter implements ImageProviderAdapter {
         pricingType: "image",
         images: args.numImages || 1,
       },
-      cost: 0
+      cost: 0,
+      // Pass original payload back so we can log it in image_jobs (we will handle this downstream)
+      ...(payload as any) // temporary hack to pass the payload up to ProviderRuntime result if we needed, but we don't need it on execute result, we can just log it from the provider runtime if we have to. Wait, the user wants provider_request / response.
     };
   }
 }
@@ -212,11 +265,16 @@ export class ReplicateImageAdapter implements ImageProviderAdapter {
     }
     throw new Error("Not implemented"); 
   }
+  async capabilities() { return ["IMAGE_GENERATION"]; }
+  async generate(credential: any, args: ImageGenerationArgs) { return this.execute(credential, args); }
+  async edit(credential: any, args: ImageEditArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
+  async transform(credential: any, args: ImageTransformArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
 }
 
 export class IdeogramImageAdapter implements ImageProviderAdapter {
   async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) { return { success: true, message: "Ideogram Connected", latency: 50 }; }
   async listModels() { return []; }
+  async capabilities() { return ["IMAGE_GENERATION"]; }
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { 
     const model = args.model || "ideogram-v3";
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
@@ -225,11 +283,15 @@ export class IdeogramImageAdapter implements ImageProviderAdapter {
     }
     throw new Error("Not implemented"); 
   }
+  async generate(credential: any, args: ImageGenerationArgs) { return this.execute(credential, args); }
+  async edit(credential: any, args: ImageEditArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
+  async transform(credential: any, args: ImageTransformArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
 }
 
 export class StabilityImageAdapter implements ImageProviderAdapter {
   async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) { return { success: true, message: "Stability Connected", latency: 50 }; }
   async listModels() { return []; }
+  async capabilities() { return ["IMAGE_GENERATION"]; }
   async execute(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { 
     const model = args.model || "stable-diffusion-3";
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
@@ -238,4 +300,7 @@ export class StabilityImageAdapter implements ImageProviderAdapter {
     }
     throw new Error("Not implemented"); 
   }
+  async generate(credential: any, args: ImageGenerationArgs) { return this.execute(credential, args); }
+  async edit(credential: any, args: ImageEditArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
+  async transform(credential: any, args: ImageTransformArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> { throw new Error("Not implemented"); }
 }

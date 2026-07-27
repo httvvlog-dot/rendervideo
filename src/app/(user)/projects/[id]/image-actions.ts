@@ -5,6 +5,9 @@ import { BillingEngine, BillingFeature, EngineContext } from "@/utils/billing"
 import { ProviderRuntime } from "@/utils/provider-runtime"
 import { AdapterRegistry } from "@/utils/provider-runtime/adapters/factory"
 
+import { PromptValidator } from "@/utils/prompt-validator"
+import { ImageProviderAdapter } from "@/utils/provider-runtime/adapters/image-adapters"
+
 export async function generateAIImage(projectId: string, sectionId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,31 +22,56 @@ export async function generateAIImage(projectId: string, sectionId: string) {
   try {
     const { BillingEngine, BillingFeature } = await import("@/utils/billing");
     
+    // First, let's create a pending image_job
+    const { data: job, error: jobError } = await supabase.from("image_jobs").insert({
+      user_id: user.id,
+      project_id: projectId,
+      section_id: sectionId,
+      mode: 'TEXT_TO_IMAGE',
+      status: 'PENDING',
+      input_source: 'SCRIPT'
+    }).select().single();
+
+    if (jobError || !job) throw new Error("Failed to create image job tracking");
+
     // Pass empty requestedProviderModel to force BillingEngine to use default capability
     const result = await BillingEngine.executeAndCharge(
       context,
       {}, 
       async (provider, model) => {
-        const adapter = AdapterRegistry.get(provider);
-        if (!adapter) throw new Error(`Adapter for provider ${provider} not found`);
+        const adapter = AdapterRegistry.get(provider) as unknown as ImageProviderAdapter;
+        if (!adapter || !adapter.generate) throw new Error(`Image Adapter for provider ${provider} not found`);
 
         // Retrieve prompt from database
         const runtime = new ProviderRuntime(provider, { retryCount: 2, retryDelay: 1000, failureThreshold: 3 });
 
-        console.log("=== DEBUG Image Generation ===");
-        console.log("sectionId:", sectionId);
-        
-        const { data: section, error: dbError } = await supabase.from("script_sections").select("image_prompt, visual_description").eq("id", sectionId).single();
-        
-        console.log("section:", section);
-        console.log("dbError:", dbError);
-        console.log("image_prompt:", section?.image_prompt);
-        console.log("visual_description:", section?.visual_description);
-        
+        const { data: section } = await supabase.from("script_sections").select("image_prompt, visual_description").eq("id", sectionId).single();
         if (!section) throw new Error("Không tìm thấy phân cảnh.");
         
-        const prompt = section.image_prompt?.trim() || section.visual_description?.trim();
-        if (!prompt) throw new Error(`Section ${sectionId} không có image_prompt và visual_description`);
+        const originalPrompt = section.image_prompt?.trim() || "";
+        const visualDescription = section.visual_description?.trim() || "";
+        
+        if (!originalPrompt && !visualDescription) throw new Error(`Section ${sectionId} không có dữ liệu hình ảnh.`);
+
+        let finalPrompt = originalPrompt;
+        let validationStatus = "PASS";
+        
+        // 1. Prompt Validation Step
+        if (originalPrompt && visualDescription) {
+           const validator = new PromptValidator();
+           const validationResult = await validator.validate(visualDescription, originalPrompt, projectId);
+           
+           if (validationResult.status === "FAILED" && validationResult.confidence < 0.5) {
+             throw new Error(`AI Validator rejected the prompt (hallucination detected). Reason: ${validationResult.reason}`);
+           } else if (validationResult.status === "CORRECTED") {
+             finalPrompt = validationResult.validatedPrompt;
+             validationStatus = "CORRECTED";
+             // Auto-update the DB so UI sees the correction
+             await supabase.from("script_sections").update({ image_prompt: finalPrompt }).eq("id", sectionId);
+           }
+        } else if (!originalPrompt && visualDescription) {
+           finalPrompt = visualDescription; // fallback in worst case, though Prompt Engineer should have populated it
+        }
 
         // Determine resolution
         let width = 1080;
@@ -57,20 +85,34 @@ export async function generateAIImage(projectId: string, sectionId: string) {
           }
         }
 
-        const aiResult = await runtime.execute(adapter, {
-          step: "IMAGE",
-          projectId: projectId,
-          args: { prompt, width, height, model }
-        });
+        // Update Job state to PROCESSING
+        await supabase.from("image_jobs").update({
+          status: 'PROCESSING',
+          original_prompt: originalPrompt,
+          validated_prompt: finalPrompt,
+          provider: provider, // fallback if provider_id not fetched yet
+          model: model
+        }).eq("id", job.id);
+
+        const aiResult = await runtime.invoke(
+          async (cred) => adapter.generate(cred, { prompt: finalPrompt, width, height, model }), 
+          { step: "IMAGE", projectId }
+        );
         
-        return { result: aiResult.result, usage: aiResult.usage, actualUsdCost: aiResult.cost };
+        // Finalize Job
+        await supabase.from("image_jobs").update({
+          status: 'COMPLETED',
+          credential_id: aiResult.credentialId,
+          output_image_url: aiResult.result.url,
+          provider_request: (aiResult as any).provider_request || {}, // if adapter passed it
+          provider_response: (aiResult as any).provider_response || {} 
+        }).eq("id", job.id);
+
+        return { result: aiResult.result, usage: aiResult.usage, actualUsdCost: aiResult.cost, url: aiResult.result.url };
       }
     );
 
-    // Save to storage_files...
-    // But since the stub previously didn't save, we just return url
-    // If the system requires saving, we can implement it here.
-    return { success: true, ...(result as any) }
+    return { success: true, url: result.url }
   } catch (error: any) {
     console.error("AI Image Generation Error:", error)
     return { error: error.message || "Failed to generate image" }

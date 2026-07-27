@@ -106,9 +106,19 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
                 className="text-sm h-20 resize-none w-full p-2 border rounded-md"
               />
             ) : (
-              <p className="text-sm text-slate-600 dark:text-slate-400 italic">
-                "{section.visual_description}"
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm text-slate-600 dark:text-slate-400 italic">
+                  "{section.visual_description}"
+                </p>
+                {section.image_prompt && (
+                  <div>
+                    <h5 className="text-xs font-semibold text-slate-500 mb-1 mt-2">AI Image Prompt (English)</h5>
+                    <p className="text-xs text-slate-500 dark:text-slate-500 bg-slate-50 dark:bg-slate-900 p-2 rounded-md border">
+                      {section.image_prompt}
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 

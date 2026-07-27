@@ -46,18 +46,18 @@ Return ONLY valid JSON matching this schema:
 {
   "title": "Video Title",
   "total_duration_seconds": ${targetDuration},
-  "sections": [
-    {
-      "section_index": 1,
-      "title": "Section Title",
-      "narration": "Spoken text that naturally fits the duration. Ensure reading speed matches normal Vietnamese pace (~2-3 words per second).",
-      "duration_seconds": 8,
-      "visual_description": "Description of the visuals needed",
-      "image_prompt": "Image generation/search prompt",
-      "recommended_image_count": 2,
-      "keywords": ["tag1", "tag2"]
-    }
-  ]
+    "sections": [
+      {
+        "section_index": 1,
+        "title": "Section Title",
+        "narration": "Spoken text that naturally fits the duration. Ensure reading speed matches normal Vietnamese pace (~2-3 words per second).",
+        "duration_seconds": 8,
+        "visual_description": "Visual Story (Vietnamese, describing camera angle, subjects, actions).",
+        "image_prompt": "Original Cinematic Prompt (English, highly detailed, photographic terms, lighting, 8k). DO NOT simply translate the visual_description. Act as a Professional Prompt Engineer to create a stunning image prompt.",
+        "recommended_image_count": 2,
+        "keywords": ["tag1", "tag2"]
+      }
+    ]
 }
 
 Important:

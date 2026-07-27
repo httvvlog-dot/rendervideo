@@ -29,25 +29,13 @@ export class ProviderRuntime {
     return config.defaultModel || config.default_model || null;
   }
 
-  async execute<TArgs, TResult>(adapter: ProviderAdapter<TArgs, TResult>, params: ExecuteParams<TArgs>): Promise<ProviderExecutionResult<TResult>> {
+  async invoke<TResult>(
+    operation: (credential: any) => Promise<ProviderExecutionResult<TResult>>,
+    params: { step: PipelineStep; projectId?: string; }
+  ): Promise<ProviderExecutionResult<TResult> & { credentialId?: string }> {
     const credentials = await this.selector.getActiveCredentials();
     
     if (!credentials || credentials.length === 0) {
-      console.error("ProviderRuntime Debug Log:");
-      console.error(`providerKey: ${this.selector['providerKey']}`);
-      // credentials empty so no count except 0
-      console.error("credentials found: 0");
-      
-      // Let's manually check what is in the provider_credentials table
-      const adminClient = require('@/utils/supabase/admin').createAdminClient();
-      const { data: pData } = await adminClient.from("providers").select("id").eq("provider_key", this.selector['providerKey']).single();
-      console.error(`providerId: ${pData?.id}`);
-      
-      if (pData?.id) {
-        const { data: allCreds } = await adminClient.from("provider_credentials").select("id, credential_name, is_active, health_status").eq("provider_id", pData.id);
-        console.error("All credentials for this provider:", JSON.stringify(allCreds));
-      }
-      
       throw new Error(`ProviderRuntime: No active credentials found for this provider. Key used: ${this.selector['providerKey']}`);
     }
 
@@ -59,12 +47,12 @@ export class ProviderRuntime {
         step: params.step,
         projectId: params.projectId,
         operation: async (credential) => {
-          return await adapter.execute(credential, params.args);
+          return await operation(credential);
         }
       });
       
       if (result.success) {
-        return result.data as ProviderExecutionResult<TResult>;
+        return { ...result.data, credentialId: cred.id } as ProviderExecutionResult<TResult> & { credentialId?: string };
       } else {
         lastGlobalError = result.error;
         console.warn(`ProviderRuntime: Credential ${cred.credential_name} failed. Failing over...`);
@@ -72,5 +60,9 @@ export class ProviderRuntime {
     }
 
     throw lastGlobalError || new Error("All provider credentials failed during execution.");
+  }
+
+  async execute<TArgs, TResult>(adapter: ProviderAdapter<TArgs, TResult>, params: ExecuteParams<TArgs>): Promise<ProviderExecutionResult<TResult> & { credentialId?: string }> {
+    return this.invoke((credential) => adapter.execute(credential, params.args), params);
   }
 }
