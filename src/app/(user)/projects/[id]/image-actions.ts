@@ -54,11 +54,19 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         // Retrieve prompt from database
         const runtime = new ProviderRuntime(provider, { retryCount: 2, retryDelay: 1000, failureThreshold: 3 });
 
-        const { data: section, error: sectionError } = await supabase.from("script_sections").select("image_prompt, visual_description, negative_prompt").eq("id", sectionId).single();
+        const { data: section, error: sectionError } = await supabase.from("script_sections").select("id, image_prompt, visual_description, negative_prompt").eq("id", sectionId).single();
+        
         if (sectionError) {
           console.error("[generateAIImage] Error fetching section:", sectionError);
+          if (sectionError.code === "42703") {
+            throw new Error("Database schema is outdated. Please run the latest migration.");
+          }
+          throw sectionError;
         }
-        if (!section) throw new Error("Không tìm thấy phân cảnh (Section is null). Nếu bạn vừa tạo Migration, hãy thử Refresh lại trang hoặc gõ npx supabase db push.");
+
+        if (!section) {
+          throw new Error("Section not found.");
+        }
         const originalPrompt = section.image_prompt?.trim() || "";
         const visualDescription = section.visual_description?.trim() || "";
         const negativePrompt = section.negative_prompt || undefined;
