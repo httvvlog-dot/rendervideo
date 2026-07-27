@@ -71,6 +71,15 @@ Rules:
 7. Never invent subjects that are not mentioned.
 8. If uncertain, stay conservative instead of hallucinating.
 
+GOLDEN RULE FOR AI IMAGE PROMPT GENERATION:
+- One Section = One Scene.
+- One Scene = One Frozen Moment.
+- One Frozen Moment = One Image.
+- Never describe a sequence of actions in a single Visual Description.
+- Never use words like "sau đó", "tiếp theo", "chuyển sang", "rồi", "then", "next", "followed by", "transition".
+- If multiple actions exist in the narration, choose the single most representative visual moment for that Section.
+- Imagine pressing the PAUSE button on a movie. Describe exactly what appears in that one frame.
+
 Topic: ${project.topic}
 Language: ${project.language}
 Target Duration: ${targetDuration} seconds
