@@ -54,12 +54,14 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         // Retrieve prompt from database
         const runtime = new ProviderRuntime(provider, { retryCount: 2, retryDelay: 1000, failureThreshold: 3 });
 
-        const { data: section } = await supabase.from("script_sections").select("image_prompt, visual_description, negative_prompt").eq("id", sectionId).single();
-        if (!section) throw new Error("Không tìm thấy phân cảnh.");
-        
+        const { data: section, error: sectionError } = await supabase.from("script_sections").select("image_prompt, visual_description, negative_prompt").eq("id", sectionId).single();
+        if (sectionError) {
+          console.error("[generateAIImage] Error fetching section:", sectionError);
+        }
+        if (!section) throw new Error("Không tìm thấy phân cảnh (Section is null). Nếu bạn vừa tạo Migration, hãy thử Refresh lại trang hoặc gõ npx supabase db push.");
         const originalPrompt = section.image_prompt?.trim() || "";
         const visualDescription = section.visual_description?.trim() || "";
-        const negativePrompt = section.negative_prompt?.trim() || undefined;
+        const negativePrompt = section.negative_prompt || undefined;
         
         if (!originalPrompt && !visualDescription) throw new Error(`Section ${sectionId} không có dữ liệu hình ảnh.`);
 
