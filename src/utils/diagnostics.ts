@@ -103,15 +103,12 @@ export class HealthService {
     const now = Date.now();
     try {
       const supabase = await createClient();
-      // Query supabase_migrations.schema_migrations
-      const { data, error } = await supabase
-        .schema('supabase_migrations')
-        .from('schema_migrations')
-        .select('version');
+      // Query via RPC since supabase_migrations is not exposed to PostgREST
+      const { data, error } = await supabase.rpc('get_applied_migrations');
         
       if (error) {
-        // If the table doesn't exist or permissions fail, we fallback to OK or Warning if we can't be sure
-        return { name: "Schema", status: "ERROR", severity: "Critical", lastChecked: now, message: "Could not read migrations: " + error.message };
+        // If the RPC doesn't exist, we know the schema is outdated
+        return { name: "Schema", status: "ERROR", severity: "Critical", lastChecked: now, message: "Could not read migrations (RPC missing?): " + error.message };
       }
 
       const appliedVersions = (data || []).map(row => row.version);
