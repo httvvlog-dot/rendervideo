@@ -22,7 +22,7 @@ export function ImageTierForm({
     const res = await updateUserImageTier(formData)
     setIsSubmitting(false)
     if (res.success) {
-      toast.success("Image Tier updated successfully")
+      toast.success(`Image Tier successfully updated to ${res.imageTier}`)
     } else {
       toast.error(res.error || "Failed to update Image Tier")
     }

@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/utils/supabase/server"
+import { createAdminClient } from "@/utils/supabase/admin"
 import { requireAdmin } from "@/utils/roles"
 import { revalidatePath } from "next/cache"
 
@@ -83,14 +84,15 @@ export async function updateUserStatusAction(
   newStatus: 'active' | 'suspended' | 'deleted'
 ) {
   await requireAdmin()
-  const supabase = await createClient()
+  const supabaseServer = await createClient()
+  const adminClient = createAdminClient()
 
-  const { error } = await supabase.from('profiles').update({ status: newStatus }).eq('id', userId)
+  const { error } = await adminClient.from('profiles').update({ status: newStatus }).eq('id', userId)
   if (error) throw new Error(error.message)
 
-  const admin = await supabase.auth.getUser()
+  const admin = await supabaseServer.auth.getUser()
   if (admin.data.user) {
-    await supabase.from('admin_audit_logs').insert({
+    await adminClient.from('admin_audit_logs').insert({
       admin_id: admin.data.user.id,
       target_user_id: userId,
       action: 'CHANGE_STATUS',
