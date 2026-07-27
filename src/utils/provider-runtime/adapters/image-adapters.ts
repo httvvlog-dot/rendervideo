@@ -131,6 +131,10 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
     return ["IMAGE_GENERATION"];
   }
 
+  async generate(credential: any, args: ImageGenerationArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
+    return this.execute(credential, args);
+  }
+
   async edit(credential: any, args: ImageEditArgs): Promise<ProviderExecutionResult<ImageGenerationResult>> {
     throw new Error("OpenAI Adapter does not implement edit yet.");
   }

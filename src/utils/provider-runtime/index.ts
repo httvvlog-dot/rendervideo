@@ -1,4 +1,4 @@
-import { ProviderRuntimeOptions, ExecuteParams, ProviderAdapter, ProviderExecutionResult } from "./types"
+import { ProviderRuntimeOptions, ExecuteParams, ProviderAdapter, ProviderExecutionResult, PipelineStep } from "./types"
 import { CredentialSelector } from "./credential-selector"
 import { RetryEngine } from "./retry-engine"
 
