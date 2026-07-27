@@ -78,10 +78,9 @@ export default async function UsersPage({
                 <tr>
                   <th className="px-4 py-3 font-medium">User</th>
                   <th className="px-4 py-3 font-medium">Role</th>
-                  <th className="px-4 py-3 font-medium">Plan</th>
+                  <th className="px-4 py-3 font-medium">Image Tier</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Wallet</th>
-                  <th className="px-4 py-3 font-medium">AI Credits</th>
                   <th className="px-4 py-3 font-medium">Projects</th>
                   <th className="px-4 py-3 font-medium">Joined</th>
                   <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -105,18 +104,13 @@ export default async function UsersPage({
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1">
-                          <span className={`text-xs font-semibold px-2 py-1 w-fit rounded-full ${
-                            u.plan_code === 'VIP' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' :
-                            u.plan_code === 'PRO' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300' :
-                            u.plan_code ? 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300' : 'bg-gray-100 text-gray-500'
-                          }`}>
-                            {u.plan_code || 'NONE'}
-                          </span>
-                          {u.plan_status && u.plan_status !== 'ACTIVE' && (
-                            <span className="text-[10px] text-red-500">{u.plan_status}</span>
-                          )}
-                        </div>
+                        <span className={`text-xs font-semibold px-2 py-1 w-fit rounded-full ${
+                          u.image_tier === 'VIP' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300' :
+                          u.image_tier === 'PRO' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300' :
+                          'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+                        }`}>
+                          {u.image_tier || 'FREE'}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
@@ -132,9 +126,6 @@ export default async function UsersPage({
                       </td>
                       <td className="px-4 py-3 font-medium text-emerald-600 dark:text-emerald-400">
                         {Number(u.balance_credits).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-indigo-600 dark:text-indigo-400 font-medium">
-                        {Number(u.ai_credits || 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {u.total_projects}

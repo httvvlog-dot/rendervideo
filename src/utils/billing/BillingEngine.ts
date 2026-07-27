@@ -103,12 +103,12 @@ export class BillingEngine {
   static async getChargeInfo(feature: BillingFeature, requestedProvider?: string, requestedModel?: string, userId?: string): Promise<ChargeResult> {
     const supabase = await createClient();
     
-    if (userId) {
-      // 1. Fetch User Plan
+    if (userId && feature === BillingFeature.IMAGE_GENERATION) {
+      // 1. Fetch User Image Tier
       let planKey = 'FREE';
-      const { data: sub } = await supabase.from('subscriptions').select('plan_id').eq('user_id', userId).single();
-      if (sub && sub.plan_id) {
-        planKey = sub.plan_id.toUpperCase();
+      const { data: profileData } = await supabase.from('profiles').select('image_tier').eq('id', userId).single();
+      if (profileData && profileData.image_tier) {
+        planKey = profileData.image_tier.toUpperCase();
       }
 
       const { data: profile } = await supabase.from('ai_plan_profiles')

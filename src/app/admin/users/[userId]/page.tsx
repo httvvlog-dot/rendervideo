@@ -8,8 +8,7 @@ import { GrantCreditsModal, AdjustCreditsModal } from "./credit-modals"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { InfoPopover } from "@/components/ui/info-popover"
-import { SubscriptionTab } from "./subscription-tab"
-
+import { ImageTierForm } from "./image-tier-form"
 export default async function UserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
   await requireAdmin()
   const supabase = await createClient()
@@ -50,27 +49,13 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
     .order('created_at', { ascending: false })
     .limit(20)
 
-  // 7. Fetch Active Subscription
-  const { data: activeSub } = await supabase.from('subscriptions')
-    .select('*, plans(code, name)')
-    .eq('user_id', userId)
-    .eq('status', 'ACTIVE')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-
-  // 8. Fetch Subscription History
-  const { data: subHistory } = await supabase.from('subscriptions')
-    .select('*, plans(code, name)')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(10)
-
-  // 9. Fetch Available Plans (for Dropdown)
-  const { data: availablePlans } = await supabase.from('plans')
-    .select('*')
+  // 7. Fetch Available Image Tiers
+  const { data: imageTiersData } = await supabase.from('ai_plan_profiles')
+    .select('plan_key')
+    .eq('capability', 'IMAGE_GENERATION')
     .eq('is_active', true)
-    .order('priority', { ascending: true })
+  
+  const availableTiers = Array.from(new Set(imageTiersData?.map((t: any) => t.plan_key) || []))
 
   return (
     <div className="space-y-6">
@@ -105,9 +90,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
             <Wallet className="h-4 w-4 mr-2"/> Wallet
             <InfoPopover description="Hiển thị chi tiết cấu trúc tiền trong ví (các Bucket). Bạn sẽ thấy danh sách các khoản tín dụng đang còn hiệu lực và hạn sử dụng của chúng." />
           </TabsTrigger>
-          <TabsTrigger value="subscription">
-            <Activity className="h-4 w-4 mr-2"/> Subscription
-          </TabsTrigger>
+
           <TabsTrigger value="projects">
             <FolderKanban className="h-4 w-4 mr-2"/> Projects
             <InfoPopover description="Liệt kê các video/script mà user này đã và đang làm. Giúp theo dõi trạng thái tiến độ các project (Draft, Rendering, Completed, Failed)." />
@@ -146,15 +129,20 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="subscription" className="space-y-4">
-          <SubscriptionTab 
-            userId={userId} 
-            activeSub={activeSub} 
-            subHistory={subHistory || []} 
-            availablePlans={availablePlans || []} 
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Image Generation Tier</CardTitle>
+              <CardDescription>Select the image generation capability tier for this user.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ImageTierForm 
+                userId={userId} 
+                currentTier={profile.image_tier || 'FREE'} 
+                availableTiers={availableTiers} 
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="wallet" className="space-y-4">
