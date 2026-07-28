@@ -47,6 +47,75 @@ export async function generateAIImage(projectId: string, sectionId: string) {
       console.warn(`[WARNING] Exception creating image_job: ${e.message}. Proceeding without tracking.`);
     }
 
+    // --- PRE-FLIGHT: Database Fetch & Validation ---
+    const { data: section, error: sectionError } = await supabase.from("script_sections").select("id, image_prompt, visual_description, negative_prompt").eq("id", sectionId).single();
+    
+    if (sectionError) {
+      console.error("[generateAIImage] Error fetching section:", sectionError);
+      if (sectionError.code === "42703") {
+        throw new AppError({
+          code: "SCHEMA_OUTDATED",
+          category: "DATABASE",
+          severity: "CRITICAL",
+          message: "Database schema validation failed: Column 'negative_prompt' does not exist in 'script_sections'. Please run the latest migration.",
+          retryable: false,
+          correlationId
+        });
+      }
+      throw new AppError({
+        code: "DATABASE_ERROR",
+        category: "DATABASE",
+        severity: "ERROR",
+        message: `Failed to fetch section: ${sectionError.message}`,
+        retryable: true,
+        correlationId,
+        originalError: sectionError
+      });
+    }
+
+    if (!section) {
+      throw new AppError({ code: "NOT_FOUND", category: "DATABASE", severity: "ERROR", message: "Section not found.", retryable: false, correlationId });
+    }
+    
+    const originalPrompt = section.image_prompt?.trim() || "";
+    const visualDescription = section.visual_description?.trim() || "";
+    const negativePrompt = section.negative_prompt || undefined;
+    
+    if (!originalPrompt && !visualDescription) throw new AppError({ code: "INVALID_DATA", category: "VALIDATION", severity: "ERROR", message: `Section ${sectionId} không có dữ liệu hình ảnh.`, retryable: false, correlationId });
+
+    let finalPrompt = originalPrompt;
+    let validationStatus = "PASS";
+    
+    // 1. Prompt Validation Step
+    if (originalPrompt && visualDescription) {
+       const validator = new PromptValidator();
+       const validationResult = await validator.validate(visualDescription, originalPrompt, projectId);
+       
+       if (validationResult.status === "FAILED" && validationResult.confidence < 0.5) {
+         throw new AppError({ code: "PROMPT_REJECTED", category: "VALIDATION", severity: "WARNING", message: `AI Validator rejected the prompt (hallucination detected). Reason: ${validationResult.reason}`, retryable: false, correlationId });
+       } else if (validationResult.status === "CORRECTED") {
+         finalPrompt = validationResult.validatedPrompt;
+         validationStatus = "CORRECTED";
+         // Auto-update the DB so UI sees the correction
+         await supabase.from("script_sections").update({ image_prompt: finalPrompt }).eq("id", sectionId);
+       }
+    } else if (!originalPrompt && visualDescription) {
+       finalPrompt = visualDescription; // fallback in worst case
+    }
+
+    // Determine resolution
+    let width = 1080;
+    let height = 1920;
+    const { data: project } = await supabase.from("projects").select("export_preset_id").eq("id", projectId).single()
+    if (project?.export_preset_id) {
+      const { data: preset } = await supabase.from("export_presets").select("width, height").eq("id", project.export_preset_id).single()
+      if (preset) {
+        width = preset.width || 1080;
+        height = preset.height || 1920;
+      }
+    }
+    // --- END PRE-FLIGHT ---
+
     const result = await BillingEngine.executeAndCharge(
       context,
       { correlationId }, 
@@ -54,59 +123,9 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         const adapter = AdapterRegistry.get(provider) as unknown as ImageProviderAdapter;
         if (!adapter || !adapter.generate) throw new Error(`Image Adapter for provider ${provider} not found`);
 
-        // Retrieve prompt from database
         const runtime = new ProviderRuntime(provider, { retryCount: 2, retryDelay: 1000, failureThreshold: 3 });
 
-        const { data: section, error: sectionError } = await supabase.from("script_sections").select("id, image_prompt, visual_description, negative_prompt").eq("id", sectionId).single();
-        
-        if (sectionError) {
-          console.error("[generateAIImage] Error fetching section:", sectionError);
-          if (sectionError.code === "42703") {
-            throw new Error("Database schema is outdated. Please run the latest migration.");
-          }
-          throw sectionError;
-        }
 
-        if (!section) {
-          throw new Error("Section not found.");
-        }
-        const originalPrompt = section.image_prompt?.trim() || "";
-        const visualDescription = section.visual_description?.trim() || "";
-        const negativePrompt = section.negative_prompt || undefined;
-        
-        if (!originalPrompt && !visualDescription) throw new Error(`Section ${sectionId} không có dữ liệu hình ảnh.`);
-
-        let finalPrompt = originalPrompt;
-        let validationStatus = "PASS";
-        
-        // 1. Prompt Validation Step
-        if (originalPrompt && visualDescription) {
-           const validator = new PromptValidator();
-           const validationResult = await validator.validate(visualDescription, originalPrompt, projectId);
-           
-           if (validationResult.status === "FAILED" && validationResult.confidence < 0.5) {
-             throw new Error(`AI Validator rejected the prompt (hallucination detected). Reason: ${validationResult.reason}`);
-           } else if (validationResult.status === "CORRECTED") {
-             finalPrompt = validationResult.validatedPrompt;
-             validationStatus = "CORRECTED";
-             // Auto-update the DB so UI sees the correction
-             await supabase.from("script_sections").update({ image_prompt: finalPrompt }).eq("id", sectionId);
-           }
-        } else if (!originalPrompt && visualDescription) {
-           finalPrompt = visualDescription; // fallback in worst case, though Prompt Engineer should have populated it
-        }
-
-        // Determine resolution
-        let width = 1080;
-        let height = 1920;
-        const { data: project } = await supabase.from("projects").select("export_preset_id").eq("id", projectId).single()
-        if (project?.export_preset_id) {
-          const { data: preset } = await supabase.from("export_presets").select("width, height").eq("id", project.export_preset_id).single()
-          if (preset) {
-            width = preset.width || 1080;
-            height = preset.height || 1920;
-          }
-        }
 
         // Update Job state to PROCESSING
         if (jobId) {
