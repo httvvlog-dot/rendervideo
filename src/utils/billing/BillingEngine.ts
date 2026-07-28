@@ -2,6 +2,8 @@ import { createClient } from "@/utils/supabase/server";
 import { ChargeResult, EngineContext, BillingFeature, TransactionStatus } from "./types";
 import { WalletEngine } from "./WalletEngine";
 import { ProviderCostCalculator } from "./ProviderCostCalculator";
+import { AppError } from "../errors";
+import { Logger } from "../logger";
 
 export class BillingEngine {
   private static capabilityCache = new Map<string, any[]>();
@@ -149,16 +151,13 @@ export class BillingEngine {
       } else {
         console.warn("-> Missing profile, providers, or ai_models in ai_plan_profiles. Falling back to legacy...");
         if (feature === BillingFeature.IMAGE_GENERATION) {
-          console.error(JSON.stringify({
-            event: "AI_PLAN_MISCONFIGURED",
-            plan: planKey,
-            capability: feature,
-            provider: null,
-            model: null,
-            fallbackBlocked: true,
-            message: "Missing ai_model_id. Expected AI Model mapped in ai_plan_profiles."
-          }, null, 2));
-          throw new Error(`AI Plan misconfigured.\nPlan: ${planKey}\nCapability: ${feature}\nMissing: ai_model_id\nExpected: AI Model mapped in ai_plan_profiles\nCannot fallback to legacy provider.`);
+          throw new AppError({
+            code: "BILLING_PLAN_MISCONFIGURED",
+            category: "BILLING",
+            severity: "CRITICAL",
+            message: `AI Plan misconfigured.\nPlan: ${planKey}\nCapability: ${feature}\nMissing: ai_model_id\nExpected: AI Model mapped in ai_plan_profiles\nCannot fallback to legacy provider.`,
+            retryable: false
+          });
         }
       }
     }
@@ -199,9 +198,13 @@ export class BillingEngine {
       referenceType?: string;
       referenceId?: string;
       description?: string;
+      correlationId?: string;
     },
     executeAI: (provider: string, model: string) => Promise<{ result: T; usage?: any; actualUsdCost?: number }>
   ): Promise<T> {
+    const correlationId = options.correlationId;
+    Logger.info(`Starting BillingEngine.executeAndCharge`, correlationId, { feature: context.feature, userId: context.userId });
+    
     const chargeResult = await this.getChargeInfo(context.feature, options.provider, options.model, context.userId);
     const { provider, model } = chargeResult;
 
@@ -215,7 +218,14 @@ export class BillingEngine {
     );
 
     if (!reserve.success || !reserve.transactionId) {
-      throw new Error("Insufficient credits or wallet locked.");
+      throw new AppError({
+        code: "BILLING_RESERVE_FAILED",
+        category: "BILLING",
+        severity: "WARNING",
+        message: "Insufficient credits or wallet locked.",
+        retryable: false,
+        correlationId
+      });
     }
 
     const startTime = Date.now();
@@ -241,11 +251,20 @@ export class BillingEngine {
       
       auditStatus = TransactionStatus.COMPLETED;
     } catch (e: any) {
+      Logger.error(`AI Execution Failed`, correlationId, e);
       // 4. Rollback
       await WalletEngine.releaseCredits(reserve.transactionId, `AI Execution Failed: ${e.message}`);
       auditStatus = TransactionStatus.FAILED;
       errorMessage = e.message;
-      throw e;
+      throw new AppError({
+        code: "PROVIDER_EXECUTION_FAILED",
+        category: "PROVIDER",
+        severity: "ERROR",
+        message: `Provider execution failed: ${e.message}`,
+        retryable: true,
+        correlationId,
+        originalError: e
+      });
     } finally {
       // 5. Audit Log (Fire and forget)
       this.logAudit({
@@ -259,8 +278,9 @@ export class BillingEngine {
         latency_ms: Date.now() - startTime,
         status: auditStatus,
         error_message: errorMessage,
-        reference_id: options.referenceId
-      }).catch(console.error);
+        reference_id: options.referenceId,
+        correlation_id: correlationId // Assuming DB column exists or will ignore if not strict
+      }).catch(err => Logger.error(`Audit log failed`, correlationId, err));
     }
 
     return aiResponse.result;

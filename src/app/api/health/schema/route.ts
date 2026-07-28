@@ -5,14 +5,13 @@ export async function GET() {
   try {
     const health = await HealthService.getHealth();
     
+    // Convert to pure Monitoring JSON
     const responseData = { 
-      status: health.status,
-      schemaStatus: health.components.schema?.status || "UNKNOWN",
-      dbStatus: health.components.database?.status || "UNKNOWN",
+      status: health.infrastructure.schema === "OK" && health.infrastructure.database === "OK" ? "OK" : "ERROR",
+      schemaStatus: health.infrastructure.schema,
+      dbStatus: health.infrastructure.database,
       fullHealth: health // Added for debugging
     };
-    
-    console.log("Health Check Response:", JSON.stringify(responseData, null, 2));
     
     return NextResponse.json(responseData);
   } catch (error: any) {
@@ -20,4 +19,3 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

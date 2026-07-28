@@ -7,8 +7,12 @@ import { AdapterRegistry } from "@/utils/provider-runtime/adapters/factory"
 
 import { PromptValidator } from "@/utils/prompt-validator"
 import { ImageProviderAdapter } from "@/utils/provider-runtime/adapters/image-adapters"
+import { generateCorrelationId, Logger } from "@/utils/logger"
+import { AppError } from "@/utils/errors"
 
 export async function generateAIImage(projectId: string, sectionId: string) {
+  const correlationId = generateCorrelationId('img');
+  Logger.info(`Starting generateAIImage`, correlationId, { projectId, sectionId });
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Unauthorized" }
@@ -43,10 +47,9 @@ export async function generateAIImage(projectId: string, sectionId: string) {
       console.warn(`[WARNING] Exception creating image_job: ${e.message}. Proceeding without tracking.`);
     }
 
-    // Pass empty requestedProviderModel to force BillingEngine to use default capability
     const result = await BillingEngine.executeAndCharge(
       context,
-      {}, 
+      { correlationId }, 
       async (provider, model) => {
         const adapter = AdapterRegistry.get(provider) as unknown as ImageProviderAdapter;
         if (!adapter || !adapter.generate) throw new Error(`Image Adapter for provider ${provider} not found`);
@@ -169,12 +172,13 @@ export async function generateAIImage(projectId: string, sectionId: string) {
     );
 
     const finalState = { success: true, url: result.url, width: result.width, height: result.height };
-    console.log(`[Trace] 11. React State Payload:`, JSON.stringify(finalState));
+    Logger.info(`React State Payload`, correlationId, finalState);
     console.log("=== RUNTIME TRACE END ===\n");
     return finalState;
   } catch (error: any) {
-    console.error("AI Image Generation Error:", error)
-    const finalState = { error: error.message || "Failed to generate image" };
+    Logger.error("AI Image Generation Error", correlationId, error);
+    const errorMessage = error instanceof AppError ? error.message : (error.message || "Failed to generate image");
+    const finalState = { error: errorMessage };
     console.log(`[Trace] 11. React State Payload (Error):`, JSON.stringify(finalState));
     console.log("=== RUNTIME TRACE END ===\n");
     return finalState;

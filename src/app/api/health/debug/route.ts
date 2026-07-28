@@ -63,25 +63,25 @@ export async function GET() {
     // 4. Runtime Info
     let runtimeInfo = { provider: billingInfo.resolved_provider, endpoint: `https://queue.fal.run/${billingInfo.resolved_model}`, healthy: false };
     try {
-       if (health.components.fal?.status === "OK") {
+       if (health.providers.fal === "OK") {
          runtimeInfo.healthy = true;
        }
     } catch(e) {}
 
     const debugResponse = {
-      overall_status: health.status,
+      overall_status: health.infrastructure.schema === "OK" ? "OK" : "ERROR",
       timestamp: new Date(health.lastChecked).toISOString(),
       database: {
         project_ref: process.env.NEXT_PUBLIC_SUPABASE_URL ? process.env.NEXT_PUBLIC_SUPABASE_URL.replace("https://", "").split(".")[0] : "UNKNOWN",
         migration_count: migrationCount,
         latest_migration: latestMigration,
-        status: health.components.database?.status || "UNKNOWN",
-        message: health.components.database?.message || "OK"
+        status: health.infrastructure.database || "UNKNOWN",
+        message: health.infrastructure.databaseDetails?.message || "OK"
       },
       schema: {
-        status: health.components.schema?.status || "UNKNOWN",
-        message: health.components.schema?.message || "OK",
-        details: health.components.schema?.details || null
+        status: health.infrastructure.schema || "UNKNOWN",
+        message: health.infrastructure.schemaDetails?.message || "OK",
+        details: health.infrastructure.schemaDetails?.missing || null
       },
       providers: providersList,
       billing: billingInfo,

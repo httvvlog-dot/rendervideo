@@ -19,27 +19,28 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
   const [isGenerating, setIsGenerating] = useState(false)
   const [aiPreviewUrl, setAiPreviewUrl] = useState<string | null>(null)
   const [isSavingAI, setIsSavingAI] = useState(false)
-  const [systemHealth, setSystemHealth] = useState<"OK" | "MAINTENANCE" | "CHECKING">("CHECKING")
+  const [featureEnabled, setFeatureEnabled] = useState(false)
+  const [featureReason, setFeatureReason] = useState<string | null>(null)
+  const [checkingFeature, setCheckingFeature] = useState(true)
 
   useEffect(() => {
     loadMedia()
     
-    // Boot check for Schema health
-    fetch("/api/health/schema")
+    // Boot check for Feature Capability
+    fetch("/api/capabilities")
       .then(r => {
         if (!r.ok) throw new Error("API not ok");
         return r.json();
       })
       .then(d => {
-        if (d.schemaStatus === "ERROR" || d.dbStatus === "ERROR" || d.status === "UPGRADE_REQUIRED") {
-          setSystemHealth("MAINTENANCE");
-        } else {
-          setSystemHealth("OK");
-        }
+        setFeatureEnabled(d.image_generation?.available ?? false);
+        setFeatureReason(d.image_generation?.reason || "System error");
+        setCheckingFeature(false);
       })
       .catch((err) => {
-        console.error("Health check failed", err);
-        setSystemHealth("OK"); // Fallback to OK if we can't check
+        console.error("Capability check failed", err);
+        setFeatureEnabled(true); // Fallback to let the backend block it instead
+        setCheckingFeature(false);
       });
   }, [sectionId])
 
@@ -221,11 +222,17 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
                 <div className="flex flex-col gap-2 w-full max-w-[200px]">
                   <button 
                     onClick={handleGenerateAI}
-                    disabled={isGenerating || isUploading || systemHealth !== "OK"}
-                    className="flex items-center justify-center gap-2 py-2 px-4 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-md border border-indigo-500/30 transition-all text-sm font-medium disabled:opacity-50"
+                    disabled={isGenerating || isUploading || !featureEnabled}
+                    title={featureReason || ""}
+                    className="flex flex-col items-center justify-center py-2 px-4 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-md border border-indigo-500/30 transition-all text-sm font-medium disabled:opacity-50"
                   >
-                    {systemHealth === "CHECKING" ? <Loader2 className="w-4 h-4 animate-spin" /> : isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    {systemHealth === "CHECKING" ? "Checking System..." : systemHealth === "MAINTENANCE" ? "System Maintenance" : "Generate AI Image"}
+                    <div className="flex items-center gap-2">
+                      {checkingFeature ? <Loader2 className="w-4 h-4 animate-spin" /> : isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      {checkingFeature ? "Checking..." : featureEnabled ? "✨ Generate AI Image" : "Unavailable"}
+                    </div>
+                    {!featureEnabled && !checkingFeature && featureReason && (
+                      <div className="text-[10px] text-red-400 mt-1 max-w-full truncate">{featureReason}</div>
+                    )}
                   </button>
                   <button 
                     onClick={handleUploadClick}
@@ -264,12 +271,12 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
                       <Maximize2 className="w-3.5 h-3.5" />
                     </button>
                     <button 
-                      title={systemHealth === "CHECKING" ? "Checking System..." : systemHealth === "MAINTENANCE" ? "System Maintenance" : "Generate More"}
+                      title={checkingFeature ? "Checking..." : !featureEnabled ? featureReason || "Unavailable" : "Generate More"}
                       onClick={handleGenerateAI}
-                      disabled={systemHealth !== "OK"}
+                      disabled={!featureEnabled}
                       className="p-1.5 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-md transition-colors ml-1 disabled:opacity-50"
                     >
-                      {systemHealth === "CHECKING" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                      {checkingFeature ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                     </button>
                     <button 
                       title="Replace/Upload"

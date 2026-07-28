@@ -1,121 +1,123 @@
 import { createClient } from "./supabase/server";
 import requiredMigrations from "../../config/required-migrations.json";
 
-export type Severity = "Critical" | "Warning" | "Info";
-export type Status = "OK" | "ERROR" | "UNKNOWN";
+export type Status = "OK" | "ERROR" | "WARNING" | "UNKNOWN";
 
-export interface HealthComponent {
-  name: string;
-  status: Status;
-  severity: Severity;
-  lastChecked: number;
-  latencyMs?: number;
-  message?: string;
-  details?: any;
+export interface InfrastructureHealth {
+  database: Status;
+  schema: Status;
+  storage: Status;
+  databaseDetails?: any;
+  schemaDetails?: any;
+  storageDetails?: any;
 }
 
-export interface HealthState {
+export interface ProviderHealth {
+  fal: Status;
+  openrouter: Status;
+  elevenlabs: Status;
+  falDetails?: any;
+  openrouterDetails?: any;
+  elevenlabsDetails?: any;
+}
+
+export interface HealthStateV2 {
   appVersion: string;
-  status: "OK" | "UPGRADE_REQUIRED" | "ERROR" | "WARNING";
-  components: Record<string, HealthComponent>;
   lastChecked: number;
+  infrastructure: InfrastructureHealth;
+  providers: ProviderHealth;
 }
 
-let healthCache: HealthState | null = null;
-const CACHE_TTL_MS = 300 * 1000; // 5 minutes
+let healthCacheV2: HealthStateV2 | null = null;
+const CACHE_TTL_MS = 60 * 1000; // 1 minute for health check
 
 export class HealthService {
   
-  static async getHealth(force: boolean = false): Promise<HealthState> {
+  static async getHealth(force: boolean = false): Promise<HealthStateV2> {
     const now = Date.now();
-    if (!force && healthCache && (now - healthCache.lastChecked) < CACHE_TTL_MS) {
-      return healthCache;
+    if (!force && healthCacheV2 && (now - healthCacheV2.lastChecked) < CACHE_TTL_MS) {
+      return healthCacheV2;
     }
 
-    const state: HealthState = {
+    const state: HealthStateV2 = {
       appVersion: "2.3.0",
-      status: "OK",
-      components: {},
-      lastChecked: now
+      lastChecked: now,
+      infrastructure: { database: "UNKNOWN", schema: "UNKNOWN", storage: "UNKNOWN" },
+      providers: { fal: "UNKNOWN", openrouter: "UNKNOWN", elevenlabs: "UNKNOWN" }
     };
 
-    // Run basic startup checks (DB, Schema, Storage Configuration)
-    // We do NOT ping providers here to avoid timeout blocking.
-    state.components.database = await this.testDatabase();
-    state.components.schema = await this.testSchema();
-    state.components.storage = await this.testStorageConfig();
-    state.components.fal = await this.testProviderConfig("fal");
-    state.components.openrouter = await this.testProviderConfig("openrouter");
+    // Infrastructure checks
+    const dbRes = await this.testDatabase();
+    state.infrastructure.database = dbRes.status;
+    state.infrastructure.databaseDetails = dbRes;
 
-    // Determine overall status
-    const criticals = Object.values(state.components).filter(c => c.severity === "Critical" && c.status !== "OK");
-    const warnings = Object.values(state.components).filter(c => c.severity === "Warning" && c.status !== "OK");
+    const schemaRes = await this.testSchema();
+    state.infrastructure.schema = schemaRes.status;
+    state.infrastructure.schemaDetails = schemaRes;
 
-    if (criticals.length > 0) {
-      state.status = criticals.some(c => c.name === "Schema") ? "UPGRADE_REQUIRED" : "ERROR";
-    } else if (warnings.length > 0) {
-      state.status = "WARNING";
-    }
+    const storageRes = await this.testStorageConfig();
+    state.infrastructure.storage = storageRes.status;
+    state.infrastructure.storageDetails = storageRes;
 
-    healthCache = state;
+    // Provider checks (Config only for fast health check)
+    const falRes = await this.testProviderConfig("fal");
+    state.providers.fal = falRes.status;
+    state.providers.falDetails = falRes;
+
+    const orRes = await this.testProviderConfig("openrouter");
+    state.providers.openrouter = orRes.status;
+    state.providers.openrouterDetails = orRes;
+
+    // TODO: elevenlabs
+    state.providers.elevenlabs = "UNKNOWN";
+
+    healthCacheV2 = state;
     return state;
   }
 
-  static async runAllTests(): Promise<HealthState> {
+  static async runAllTests(): Promise<HealthStateV2> {
     const state = await this.getHealth(true);
-    // Add runtime pings
-    state.components.fal = await this.testProviderPing("fal");
-    state.components.openrouter = await this.testProviderPing("openrouter");
     
-    const now = Date.now();
-    state.lastChecked = now;
-    
-    const criticals = Object.values(state.components).filter(c => c.severity === "Critical" && c.status !== "OK");
-    const warnings = Object.values(state.components).filter(c => c.severity === "Warning" && c.status !== "OK");
+    // Deep ping providers
+    const falPing = await this.testProviderPing("fal");
+    state.providers.fal = falPing.status;
+    state.providers.falDetails = falPing;
 
-    if (criticals.length > 0) {
-      state.status = criticals.some(c => c.name === "Schema") ? "UPGRADE_REQUIRED" : "ERROR";
-    } else if (warnings.length > 0) {
-      state.status = "WARNING";
-    } else {
-      state.status = "OK";
-    }
+    const orPing = await this.testProviderPing("openrouter");
+    state.providers.openrouter = orPing.status;
+    state.providers.openrouterDetails = orPing;
 
-    healthCache = state;
+    state.lastChecked = Date.now();
+    healthCacheV2 = state;
     return state;
   }
 
-  static async testDatabase(): Promise<HealthComponent> {
+  static async testDatabase(): Promise<{ status: Status, latencyMs?: number, message?: string }> {
     const now = Date.now();
     try {
       const supabase = await createClient();
-      // Simple query to verify connection
       const { error } = await supabase.from("projects").select("id").limit(1);
       const latency = Date.now() - now;
       if (error) throw error;
-      return { name: "Database", status: "OK", severity: "Critical", lastChecked: now, latencyMs: latency };
+      return { status: "OK", latencyMs: latency };
     } catch (e: any) {
-      return { name: "Database", status: "ERROR", severity: "Critical", lastChecked: now, message: e.message };
+      return { status: "ERROR", message: e.message };
     }
   }
 
-  static async testSchema(): Promise<HealthComponent> {
-    const now = Date.now();
+  static async testSchema(): Promise<{ status: Status, message?: string, missing?: string[] }> {
     try {
       const supabase = await createClient();
-      // Query via RPC since supabase_migrations is not exposed to PostgREST
       const { data, error } = await supabase.rpc('get_applied_migrations');
         
       if (error) {
-        // If the RPC doesn't exist, we know the schema is outdated
-        return { name: "Schema", status: "ERROR", severity: "Critical", lastChecked: now, message: "Could not read migrations (RPC missing?): " + error.message };
+        return { status: "ERROR", message: "Could not read migrations (RPC missing?): " + error.message };
       }
 
       const appliedVersions = (data || []).map((row: any) => row.version);
       
       const missing = [];
       for (const req of requiredMigrations.required) {
-        // Required version is just the leading numbers
         const verNumber = req.split('_')[0];
         if (!appliedVersions.includes(verNumber)) {
           missing.push(req);
@@ -123,59 +125,47 @@ export class HealthService {
       }
 
       if (missing.length > 0) {
-        return { 
-          name: "Schema", 
-          status: "ERROR", 
-          severity: "Critical", 
-          lastChecked: now, 
-          message: "Missing migrations", 
-          details: { missing } 
-        };
+        return { status: "ERROR", message: "Missing migrations", missing };
       }
 
-      return { name: "Schema", status: "OK", severity: "Critical", lastChecked: now };
+      return { status: "OK" };
     } catch (e: any) {
-      return { name: "Schema", status: "ERROR", severity: "Critical", lastChecked: now, message: e.message };
+      return { status: "ERROR", message: e.message };
     }
   }
 
-  static async testStorageConfig(): Promise<HealthComponent> {
-    const now = Date.now();
+  static async testStorageConfig(): Promise<{ status: Status, message?: string }> {
     try {
-      // Just check if bucket is accessible or config is set
       const supabase = await createClient();
-      const { data, error } = await supabase.storage.getBucket("project-media");
+      const { error } = await supabase.storage.getBucket("project-media");
       if (error && error.message.includes("Invalid bucket")) {
-         return { name: "Storage", status: "ERROR", severity: "Critical", lastChecked: now, message: "Bucket project-media not found" };
+         return { status: "ERROR", message: "Bucket project-media not found" };
       }
-      return { name: "Storage", status: "OK", severity: "Critical", lastChecked: now };
+      return { status: "OK" };
     } catch (e: any) {
-      return { name: "Storage", status: "ERROR", severity: "Critical", lastChecked: now, message: e.message };
+      return { status: "ERROR", message: e.message };
     }
   }
 
-  static async testProviderConfig(provider: string): Promise<HealthComponent> {
-    const now = Date.now();
+  static async testProviderConfig(provider: string): Promise<{ status: Status, message?: string }> {
     const isFal = provider === "fal";
     const key = isFal ? process.env.FAL_KEY : process.env.OPENROUTER_API_KEY;
     if (!key) {
-      return { name: provider === "fal" ? "Fal.ai" : "OpenRouter", status: "ERROR", severity: "Warning", lastChecked: now, message: "Missing API Key" };
+      return { status: "ERROR", message: "Missing API Key" };
     }
-    return { name: provider === "fal" ? "Fal.ai" : "OpenRouter", status: "OK", severity: "Warning", lastChecked: now, message: "Configured" };
+    return { status: "OK", message: "Configured" };
   }
 
-  static async testProviderPing(provider: string): Promise<HealthComponent> {
+  static async testProviderPing(provider: string): Promise<{ status: Status, latencyMs?: number, message?: string }> {
     const now = Date.now();
-    const compName = provider === "fal" ? "Fal.ai" : "OpenRouter";
     const key = provider === "fal" ? process.env.FAL_KEY : process.env.OPENROUTER_API_KEY;
     if (!key) {
-      return { name: compName, status: "ERROR", severity: "Warning", lastChecked: now, message: "Missing API Key" };
+      return { status: "ERROR", message: "Missing API Key" };
     }
     
     try {
       let res;
       if (provider === "fal") {
-        // Simple ping to Fal API endpoint
         res = await fetch("https://queue.fal.run/fal-ai/flux-pro", { method: "OPTIONS" });
       } else {
         res = await fetch("https://openrouter.ai/api/v1/auth/key", { 
@@ -185,11 +175,11 @@ export class HealthService {
       
       const latency = Date.now() - now;
       if (!res.ok) {
-         return { name: compName, status: "ERROR", severity: "Warning", lastChecked: now, latencyMs: latency, message: `HTTP ${res.status}` };
+         return { status: "ERROR", latencyMs: latency, message: `HTTP ${res.status}` };
       }
-      return { name: compName, status: "OK", severity: "Warning", lastChecked: now, latencyMs: latency };
+      return { status: "OK", latencyMs: latency };
     } catch (e: any) {
-      return { name: compName, status: "ERROR", severity: "Warning", lastChecked: now, message: e.message };
+      return { status: "ERROR", message: e.message };
     }
   }
 }

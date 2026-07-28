@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { HealthState, HealthComponent } from "@/utils/diagnostics";
+import { HealthStateV2 } from "@/utils/diagnostics";
 
 export default function HealthPage() {
-  const [health, setHealth] = useState<HealthState | null>(null);
+  const [health, setHealth] = useState<HealthStateV2 | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
 
@@ -26,14 +26,6 @@ export default function HealthPage() {
     fetchHealth();
   }, []);
 
-  const getSeverityColor = (sev: string) => {
-    switch(sev) {
-      case "Critical": return "text-red-500 font-bold";
-      case "Warning": return "text-yellow-500";
-      default: return "text-blue-500";
-    }
-  };
-
   const getStatusIcon = (status: string) => {
     switch(status) {
       case "OK": return "🟢";
@@ -53,13 +45,50 @@ export default function HealthPage() {
   if (loading) return <div className="p-8 text-center text-slate-500">Loading Diagnostics...</div>;
   if (!health) return <div className="p-8 text-center text-red-500">Failed to load diagnostics</div>;
 
+  const renderTable = (title: string, data: any, detailsKeySuffix: string) => (
+    <div className="border rounded-lg overflow-hidden bg-white mb-6">
+      <div className="bg-slate-100 px-4 py-3 font-semibold border-b">{title}</div>
+      <table className="w-full text-left text-sm">
+        <thead className="bg-slate-50 border-b">
+          <tr>
+            <th className="px-4 py-3 font-medium">Component</th>
+            <th className="px-4 py-3 font-medium">Status</th>
+            <th className="px-4 py-3 font-medium">Details / Latency</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {Object.entries(data).filter(([k]) => !k.endsWith('Details')).map(([key, status]) => {
+            const details = data[`${key}${detailsKeySuffix}`] || {};
+            return (
+              <tr key={key} className="hover:bg-slate-50">
+                <td className="px-4 py-3 font-medium capitalize">{key}</td>
+                <td className="px-4 py-3">
+                  {getStatusIcon(status as string)} {status as string}
+                </td>
+                <td className="px-4 py-3 text-slate-600">
+                  {details.message || "OK"} 
+                  {details.latencyMs ? ` (${details.latencyMs}ms)` : ""}
+                  {details.missing && (
+                    <div className="text-xs text-red-500 mt-1">
+                      Missing: {details.missing.join(", ")}
+                    </div>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">System Diagnostics</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Application Version: {health.appVersion} | Overall Status: <span className="font-semibold">{health.status}</span>
+            Application Version: {health.appVersion} | Last Checked: {timeAgo(health.lastChecked)}
           </p>
         </div>
         <button 
@@ -71,44 +100,9 @@ export default function HealthPage() {
         </button>
       </div>
 
-      <div className="border rounded-lg overflow-hidden bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 border-b">
-            <tr>
-              <th className="px-4 py-3 font-medium">Component</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Severity</th>
-              <th className="px-4 py-3 font-medium">Details / Latency</th>
-              <th className="px-4 py-3 font-medium text-right">Last Checked</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {Object.entries(health.components).map(([key, comp]) => (
-              <tr key={key} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium capitalize">{comp.name}</td>
-                <td className="px-4 py-3">
-                  {getStatusIcon(comp.status)} {comp.status}
-                </td>
-                <td className={`px-4 py-3 ${getSeverityColor(comp.severity)}`}>
-                  {comp.severity}
-                </td>
-                <td className="px-4 py-3 text-slate-600">
-                  {comp.message || "OK"} 
-                  {comp.latencyMs ? ` (${comp.latencyMs}ms)` : ""}
-                  {comp.details?.missing && (
-                    <div className="text-xs text-red-500 mt-1">
-                      Missing: {comp.details.missing.join(", ")}
-                    </div>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right text-slate-500">
-                  {timeAgo(comp.lastChecked)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {renderTable("Infrastructure Health", health.infrastructure, "Details")}
+      {renderTable("Provider Health", health.providers, "Details")}
+
     </div>
   );
 }
