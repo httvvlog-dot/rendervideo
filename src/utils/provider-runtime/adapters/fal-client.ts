@@ -55,11 +55,11 @@ export class FalClient {
       
       console.log("\n=== IMAGE GENERATION DEBUG ===");
       console.log(`Model: ${options.model}`);
-      console.log(`Endpoint: ${endpoint}`);
+      console.log(`[Trace] 6. HTTP Endpoint: ${endpoint}`);
       console.log(`API Key (masked): ${this.apiKey.substring(0, 6)}...`);
-      console.log("Request Body:", JSON.stringify(payload, null, 2));
-      console.log(`HTTP Status: ${res.status}`);
-      console.log(`Response: ${responseText}`);
+      console.log(`[Trace] 7. Request Payload:`, JSON.stringify(payload, null, 2));
+      console.log(`[Trace] 8. HTTP Status: ${res.status}`);
+      console.log(`[Trace] 9. Provider Response: ${responseText}`);
       console.log("==============================\n");
 
       let data;

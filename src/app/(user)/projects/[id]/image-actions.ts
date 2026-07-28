@@ -148,7 +148,6 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         }
         
         // Finalize Job
-        if (jobId) {
           try {
             await supabase.from("image_jobs").update({
               status: 'COMPLETED',
@@ -157,8 +156,10 @@ export async function generateAIImage(projectId: string, sectionId: string) {
               provider_request: (aiResult as any).provider_request || {}, // if adapter passed it
               provider_response: (aiResult as any).provider_response || {} 
             }).eq("id", jobId);
+            console.log(`[Trace] 10. Database Save (image_jobs): SUCCESS`);
           } catch (e) {
             console.warn("[WARNING] Failed to finalize image_job");
+            console.log(`[Trace] 10. Database Save (image_jobs): FAILED`);
           }
         }
 
@@ -166,10 +167,16 @@ export async function generateAIImage(projectId: string, sectionId: string) {
       }
     );
 
-    return { success: true, url: result.url, width: result.width, height: result.height }
+    const finalState = { success: true, url: result.url, width: result.width, height: result.height };
+    console.log(`[Trace] 11. React State Payload:`, JSON.stringify(finalState));
+    console.log("=== RUNTIME TRACE END ===\n");
+    return finalState;
   } catch (error: any) {
     console.error("AI Image Generation Error:", error)
-    return { error: error.message || "Failed to generate image" }
+    const finalState = { error: error.message || "Failed to generate image" };
+    console.log(`[Trace] 11. React State Payload (Error):`, JSON.stringify(finalState));
+    console.log("=== RUNTIME TRACE END ===\n");
+    return finalState;
   }
 }
 

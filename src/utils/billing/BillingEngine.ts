@@ -131,6 +131,12 @@ export class BillingEngine {
         console.log("providerKey:", providerKey);
         console.log("apiSlug:", apiSlug);
         
+        console.log("\n=== RUNTIME TRACE START ===");
+        console.log(`[Trace] 1. Request ID: ${userId || "N/A"}_${Date.now()}`);
+        console.log(`[Trace] 2. Resolved Plan: ${planKey}`);
+        console.log(`[Trace] 3. Resolved Provider: ${providerKey}`);
+        console.log(`[Trace] 4. Resolved Model: ${apiSlug}`);
+
         return {
           credits: profile.credits_per_unit,
           apiCost: 0, // Calculated post-execution

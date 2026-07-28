@@ -43,6 +43,7 @@ export class ProviderRuntime {
 
     // Failover loop
     for (const cred of credentials) {
+      console.log(`[Trace] 5. Selected Credential ID: ${cred.id}`);
       const result = await this.engine.executeWithRetry<ProviderExecutionResult<TResult>>(cred, {
         step: params.step,
         projectId: params.projectId,
