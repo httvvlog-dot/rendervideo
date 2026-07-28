@@ -13,7 +13,7 @@ CREATE INDEX IF NOT EXISTS idx_storage_files_status ON public.storage_files(stat
 
 -- 2. Create asset_references table (Single Source of Truth)
 CREATE TABLE IF NOT EXISTS public.asset_references (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     asset_id UUID NOT NULL REFERENCES public.storage_files(id) ON DELETE CASCADE,
     entity_type TEXT NOT NULL,
     entity_id UUID NOT NULL,
