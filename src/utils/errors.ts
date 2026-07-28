@@ -4,6 +4,7 @@ export type ErrorCategory =
   | "AUTH"
   | "VALIDATION"
   | "BILLING"
+  | "DATABASE"
   | "RATE_LIMIT";
 
 export type ErrorSeverity =
