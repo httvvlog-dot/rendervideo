@@ -28,8 +28,5 @@ CREATE INDEX IF NOT EXISTS idx_asset_references_entity ON public.asset_reference
 ALTER TABLE public.asset_references ENABLE ROW LEVEL SECURITY;
 
 -- 3. Add policies for asset_references (Admin only for now, or service role)
--- Service Role can do everything
-CREATE POLICY "Enable read for service role" ON public.asset_references FOR SELECT USING (true);
-CREATE POLICY "Enable insert for service role" ON public.asset_references FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update for service role" ON public.asset_references FOR UPDATE USING (true) WITH CHECK (true);
-CREATE POLICY "Enable delete for service role" ON public.asset_references FOR DELETE USING (true);
+-- Note: Service Role bypasses RLS natively, so explicit policies are not needed.
+-- We will add user-level policies later if users need direct read/write access.
