@@ -148,6 +148,7 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         }
         
         // Finalize Job
+        if (jobId) {
           try {
             await supabase.from("image_jobs").update({
               status: 'COMPLETED',
