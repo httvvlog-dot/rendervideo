@@ -1,5 +1,7 @@
 import { createClient } from "./supabase/server";
+import { createAdminClient } from "./supabase/admin";
 import requiredMigrations from "../../config/required-migrations.json";
+import { CredentialSelector } from "./provider-runtime/credential-selector";
 
 export type Status = "OK" | "ERROR" | "WARNING" | "UNKNOWN";
 
@@ -147,29 +149,39 @@ export class HealthService {
     }
   }
 
-  static async testProviderConfig(provider: string): Promise<{ status: Status, message?: string }> {
-    const isFal = provider === "fal";
-    const key = isFal ? process.env.FAL_KEY : process.env.OPENROUTER_API_KEY;
-    if (!key) {
-      return { status: "ERROR", message: "Missing API Key" };
+  static async testProviderConfig(providerKey: string): Promise<{ status: Status, message?: string }> {
+    try {
+      const selector = new CredentialSelector(providerKey);
+      const credentials = await selector.getActiveCredentials();
+      if (!credentials || credentials.length === 0) {
+        return { status: "ERROR", message: "No active credentials in database" };
+      }
+      return { status: "OK", message: "Configured" };
+    } catch (e: any) {
+      return { status: "ERROR", message: e.message };
     }
-    return { status: "OK", message: "Configured" };
   }
 
-  static async testProviderPing(provider: string): Promise<{ status: Status, latencyMs?: number, message?: string }> {
+  static async testProviderPing(providerKey: string): Promise<{ status: Status, latencyMs?: number, message?: string }> {
     const now = Date.now();
-    const key = provider === "fal" ? process.env.FAL_KEY : process.env.OPENROUTER_API_KEY;
-    if (!key) {
-      return { status: "ERROR", message: "Missing API Key" };
-    }
-    
     try {
+      const selector = new CredentialSelector(providerKey);
+      const credentials = await selector.getActiveCredentials();
+      if (!credentials || credentials.length === 0) {
+        return { status: "ERROR", message: "No active credentials" };
+      }
+      
+      const cred = credentials[0];
       let res;
-      if (provider === "fal") {
+      if (providerKey === "fal") {
         res = await fetch("https://queue.fal.run/fal-ai/flux-pro", { method: "OPTIONS" });
       } else {
+        const secret = typeof cred.secret_json === 'string' ? JSON.parse(cred.secret_json) : cred.secret_json;
+        const apiKey = secret?.api_key || secret?.apiKey;
+        if (!apiKey) return { status: "ERROR", message: "Missing apiKey in secret_json" };
+        
         res = await fetch("https://openrouter.ai/api/v1/auth/key", { 
-          headers: { "Authorization": `Bearer ${key}` }
+          headers: { "Authorization": `Bearer ${apiKey}` }
         });
       }
       
