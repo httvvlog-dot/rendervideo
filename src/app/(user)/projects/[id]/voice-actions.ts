@@ -3,7 +3,8 @@
 import { createClient } from "@/utils/supabase/server"
 import { createAdminClient } from "@/utils/supabase/admin"
 import { ProviderRuntime } from "@/utils/provider-runtime"
-import { CloudflareR2Adapter } from "@/utils/provider-runtime/adapters/cloudflare-r2-adapter"
+import { MediaService } from "@/utils/media/MediaService"
+import { ReferenceManager } from "@/utils/media/ReferenceManager"
 import { ElevenLabsAdapter } from "@/utils/provider-runtime/adapters/elevenlabs-adapter"
 import * as mm from 'music-metadata'
 import crypto from 'crypto'
@@ -236,48 +237,34 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
       }
       console.log(`[VOICE] AUDIO_DURATION_PARSED durationMs=${durationMs}`);
 
-      // c. Upload to R2
+      // c. Calculate Content Hash
+      const contentHash = crypto.createHash("sha256").update(audioBuffer).digest("hex");
+
+      // d. Upload via MediaService (Asset Manager)
       console.log(`[VOICE] R2_UPLOAD_START section_index=${section.section_index}`);
-      const fileName = `voice/${projectId}/section_${section.section_index}/${resolvedVoiceId}/${resolvedSettings.model_id || 'default'}/${Date.now()}.mp3`;
-      const uploadResult = await storageRuntime.execute(new CloudflareR2Adapter(), {
-        step: "UPLOAD",
-        projectId: projectId,
-        args: {
-          action: "UPLOAD",
-          fileBuffer: Buffer.from(audioBuffer),
-          fileName,
-          mimeType: "audio/mpeg",
-          projectId: projectId
-        }
-      });
-      console.log("[VOICE] R2_UPLOAD_SUCCESS publicUrl=", uploadResult.result.publicUrl);
-
-      // d. Save to storage_files (Global Asset Rule)
-      const { data: storageFile, error: storageErr } = await adminClient.from("storage_files").insert({
-        provider: "cloudflare_r2",
-        bucket: uploadResult.result.bucket,
-        path: uploadResult.result.objectKey,
-        mime_type: "audio/mpeg",
-        size: audioBuffer.byteLength,
-        public_url: uploadResult.result.publicUrl
-      }).select("id").single();
-
-      if (storageErr) {
-        await storageRuntime.execute(new CloudflareR2Adapter(), {
-            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.result.objectKey }
-        });
-        throw new Error("Failed to save storage_files record");
-      }
+      const fileName = `voice_${projectId}_${section.section_index}_${Date.now()}.mp3`;
+      
+      const asset = await MediaService.upload(
+        audioBuffer,
+        fileName,
+        "audio/mpeg",
+        contentHash,
+        userId,
+        projectId,
+        'AI' // Generation Type
+      );
+      
+      console.log("[VOICE] ASSET_UPLOAD_SUCCESS asset_id=", asset.id);
 
       // e. Insert project_media
       const { data: mediaInsert, error: mediaErr } = await supabase.from("project_media").insert({
         project_id: projectId,
         user_id: project.user_id,
         file_name: fileName,
-        storage_key: uploadResult.result.objectKey,
-        public_url: uploadResult.result.publicUrl,
-        mime_type: "audio/mpeg",
-        file_size: audioBuffer.byteLength,
+        storage_key: asset.path,
+        public_url: asset.public_url,
+        mime_type: asset.mime_type,
+        file_size: asset.size,
         asset_type: "voice",
         duration_ms: durationMs > 0 ? durationMs : null,
         section_id: section.id,
@@ -285,15 +272,14 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
       }).select("id").single();
 
       if (mediaErr) {
-        await storageRuntime.execute(new CloudflareR2Adapter(), {
-            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.result.objectKey }
-        });
-        await adminClient.from("storage_files").delete().eq("id", storageFile.id);
         throw new Error("Failed to insert project_media record");
       }
       console.log("[VOICE] PROJECT_MEDIA_INSERT_SUCCESS media_id=", mediaInsert.id);
 
-      // f. Update script_sections
+      // f. Attach Reference (Single Source of Truth)
+      await ReferenceManager.attach(asset.id, "project_media", mediaInsert.id);
+
+      // g. Update script_sections
       const { error: sectionUpdateErr } = await supabase.from("script_sections").update({
         voice_media_id: mediaInsert.id,
         voice_duration_ms: durationMs > 0 ? durationMs : null,
@@ -301,24 +287,31 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
       }).eq("id", section.id);
 
       if (sectionUpdateErr) {
-        await storageRuntime.execute(new CloudflareR2Adapter(), {
-            step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: uploadResult.result.objectKey }
-        });
-        await adminClient.from("storage_files").delete().eq("id", storageFile.id);
-        await supabase.from("project_media").delete().eq("id", mediaInsert.id);
+        // We do NOT rollback here, we let the user or system undo later. 
+        // Or we could detach, but this is a critical failure.
         throw new Error("Failed to update script_sections");
       }
-      console.log(`[VOICE] GENERATE_END durationMs=${durationMs} audioBytes=${audioBuffer.byteLength} r2Key=${uploadResult.result.objectKey} mediaId=${mediaInsert.id} storageId=${storageFile.id}`);
       
-      // g. Cleanup old media asynchronously if overwriting
+      console.log(`[VOICE] GENERATE_END durationMs=${durationMs} audioBytes=${audioBuffer.byteLength} assetId=${asset.id}`);
+      
+      // h. Cleanup old media asynchronously if overwriting
       if (forceRegenerate && section.voice_media_id) {
-        const { data: oldMedia } = await supabase.from("project_media").select("storage_key").eq("id", section.voice_media_id).single();
+        const { data: oldMedia } = await supabase.from("project_media").select("id, storage_key").eq("id", section.voice_media_id).single();
         if (oldMedia) {
-          Promise.all([
-             storageRuntime.execute(new CloudflareR2Adapter(), { step: "UPLOAD", projectId, args: { action: "DELETE", objectKey: oldMedia.storage_key } }).catch(e => console.error("R2 cleanup fail:", e)),
-             adminClient.from("storage_files").delete().eq("path", oldMedia.storage_key).then(({ error }) => error && console.error("storage cleanup fail:", error)),
-             supabase.from("project_media").delete().eq("id", section.voice_media_id).then(({ error }) => error && console.error("media cleanup fail:", error))
-          ]);
+          // Instead of hard deleting R2 and storage_files, we just delete project_media and Detach
+          supabase.from("project_media").delete().eq("id", section.voice_media_id).then(async ({ error }) => {
+            if (!error) {
+               // We need to look up the asset ID that was attached to oldMedia
+               // For now, we can just look it up via asset_references
+               const adminClient = createAdminClient();
+               const { data: ref } = await adminClient.from("asset_references").select("asset_id").eq("entity_id", oldMedia.id).single();
+               if (ref) {
+                 await ReferenceManager.detach(ref.asset_id, "project_media", oldMedia.id);
+               }
+            } else {
+               console.error("media cleanup fail:", error);
+            }
+          });
         }
       }
 

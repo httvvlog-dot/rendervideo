@@ -4,6 +4,9 @@ import { createClient } from "@/utils/supabase/server"
 import { BillingEngine, BillingFeature, EngineContext } from "@/utils/billing"
 import { ProviderRuntime } from "@/utils/provider-runtime"
 import { AdapterRegistry } from "@/utils/provider-runtime/adapters/factory"
+import { MediaService } from "@/utils/media/MediaService"
+import { ReferenceManager } from "@/utils/media/ReferenceManager"
+import * as crypto from "crypto";
 
 import { PromptValidator } from "@/utils/prompt-validator"
 import { ImageProviderAdapter } from "@/utils/provider-runtime/adapters/image-adapters"
@@ -212,35 +215,48 @@ export async function saveAIImage(projectId: string, sectionId: string, url: str
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error("Failed to fetch image");
-    const buffer = await res.arrayBuffer();
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
     const contentType = res.headers.get("content-type") || "image/png";
-    const extension = contentType.split("/")[1] || "png";
-    const path = `${user.id}/${projectId}/${sectionId}/${Date.now()}_${filename.replace(/\s+/g, '_')}.${extension}`;
     
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("project-media")
-      .upload(path, buffer, { contentType });
-      
-    if (uploadError) throw uploadError;
+    // 1. Calculate Content Hash
+    const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
     
-    const { data: { publicUrl } } = supabase.storage.from("project-media").getPublicUrl(path);
+    // 2. Upload via MediaService (Asset Manager)
+    const asset = await MediaService.upload(
+      buffer,
+      filename,
+      contentType,
+      contentHash,
+      user.id,
+      projectId,
+      'AI' // Generation Type
+    );
     
-    // Insert into project_media
+    // 3. Business Attachment: Insert into project_media for UI Timeline
     const { data: mediaData, error: dbError } = await supabase
       .from("project_media")
       .insert({
         project_id: projectId,
         section_id: sectionId,
+        user_id: user.id,
         asset_type: "image",
-        file_path: path,
-        public_url: publicUrl,
-        size_bytes: buffer.byteLength,
-        content_type: contentType
+        file_name: filename,
+        storage_key: asset.path,
+        public_url: asset.public_url,
+        file_size: asset.size,
+        mime_type: asset.mime_type,
+        content_type: asset.mime_type
       })
       .select()
       .single();
       
-    if (dbError) throw dbError;
+    if (dbError) {
+      throw dbError;
+    }
+    
+    // 4. Update Reference Count (Single Source of Truth)
+    await ReferenceManager.attach(asset.id, "project_media", mediaData.id);
     
     return { success: true, data: mediaData };
   } catch (error: any) {

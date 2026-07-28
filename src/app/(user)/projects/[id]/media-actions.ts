@@ -4,6 +4,9 @@ import { createClient } from "@/utils/supabase/server"
 import { createAdminClient } from "@/utils/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { ProviderRuntime, CloudflareR2Adapter } from "@/utils/provider-runtime"
+import { MediaService } from "@/utils/media/MediaService"
+import { ReferenceManager } from "@/utils/media/ReferenceManager"
+import * as crypto from "crypto";
 
 export async function uploadProjectMedia(projectId: string, formData: FormData, sectionId?: string) {
   const supabase = await createClient()
@@ -40,41 +43,19 @@ export async function uploadProjectMedia(projectId: string, formData: FormData, 
   });
 
   try {
-    const uploadResult = await runtime.execute(new CloudflareR2Adapter(), {
-      step: "UPLOAD",
-      projectId: projectId,
-      args: {
-        action: "UPLOAD",
-        fileBuffer: buffer,
-        fileName: fileName,
-        mimeType: file.type,
-        projectId: projectId
-      }
-    });
-
-    // 5. Save to database (storage_files for global asset rule)
-    const adminClient = createAdminClient();
-    const { data: storageFile, error: storageErr } = await adminClient.from("storage_files").insert({
-      provider: "cloudflare_r2",
-      bucket: uploadResult.result.bucket,
-      path: uploadResult.result.objectKey,
-      mime_type: file.type,
-      size: file.size,
-      public_url: uploadResult.result.publicUrl,
-      created_by: user.id
-    }).select().single()
-
-    if (storageErr) {
-      // Rollback R2 upload
-      try {
-        await runtime.execute(new CloudflareR2Adapter(), {
-          step: "UPLOAD", projectId: projectId, args: { action: "DELETE", objectKey: uploadResult.result.objectKey }
-        });
-      } catch (e) {
-        console.error("Failed to rollback R2 upload:", e);
-      }
-      return { error: "Failed to record file in storage_files: " + storageErr.message, uploadSucceeded: true, rollbackAttempted: true, databasePersisted: false }
-    }
+    // Calculate hash
+    const contentHash = crypto.createHash("sha256").update(buffer).digest("hex");
+    
+    // Upload via MediaService (Asset Manager)
+    const asset = await MediaService.upload(
+      buffer,
+      fileName,
+      file.type,
+      contentHash,
+      user.id,
+      projectId,
+      'UPLOAD' // Generation Type
+    );
 
     // Calculate sort order if assigning to section
     let sortOrder = 0;
@@ -91,38 +72,31 @@ export async function uploadProjectMedia(projectId: string, formData: FormData, 
     }
 
     // Save to project_media (for UI timeline)
-    const { error: dbErr } = await supabase.from("project_media").insert({
+    const { data: mediaData, error: dbErr } = await supabase.from("project_media").insert({
       project_id: projectId,
       user_id: user.id,
       file_name: file.name,
-      storage_key: uploadResult.result.objectKey,
-      public_url: uploadResult.result.publicUrl,
-      mime_type: file.type,
-      file_size: file.size,
+      storage_key: asset.path,
+      public_url: asset.public_url,
+      mime_type: asset.mime_type,
+      file_size: asset.size,
       asset_type: "image",
       section_id: sectionId || null,
       section_sort_order: sectionId ? sortOrder : null
-    })
+    }).select("id").single();
 
     if (dbErr) {
-      // Rollback storage_files
-      await adminClient.from("storage_files").delete().eq("id", storageFile.id);
-      // Rollback R2 upload
-      try {
-        await runtime.execute(new CloudflareR2Adapter(), {
-          step: "UPLOAD", projectId: projectId, args: { action: "DELETE", objectKey: uploadResult.result.objectKey }
-        });
-      } catch (e) {
-        console.error("Failed to rollback R2 upload:", e);
-      }
-      return { error: "Failed to record file in project_media: " + dbErr.message, uploadSucceeded: true, rollbackAttempted: true, databasePersisted: false }
+      throw new Error("Failed to record file in project_media: " + dbErr.message);
     }
+    
+    // Attach to ReferenceManager
+    await ReferenceManager.attach(asset.id, "project_media", mediaData.id);
 
     revalidatePath(`/projects/${projectId}`)
-    return { success: true, url: uploadResult.result.publicUrl }
+    return { success: true, url: asset.public_url }
 
   } catch (error: any) {
-    return { error: `Upload failed after exhausting all buckets: ${error.message}` }
+    return { error: `Upload failed: ${error.message}` }
   }
 }
 
@@ -158,25 +132,24 @@ export async function deleteProjectMedia(fileId: string, projectId: string) {
   const storageKey = targetMedia.storage_key
   const publicUrl = targetMedia.public_url
 
-  // 5. Count other project_media references
-  const { count: otherReferenceCount, error: countErr } = await supabase
-    .from("project_media")
-    .select("*", { count: "exact", head: true })
-    .eq("storage_key", storageKey)
-    .neq("id", mediaId)
-
-  if (countErr) return { error: "Failed to check media references" }
-
-  // 6. Delete dependent project_scenes
+  // 5. Delete dependent project_scenes
   const { error: sceneDeleteErr } = await supabase
     .from("project_scenes")
     .delete()
     .eq("media_id", mediaId)
     
-  // 7. Verify scene deletion succeeded
   if (sceneDeleteErr) return { error: "Failed to delete dependent project scenes" }
 
-  // 8. Delete target project_media row
+  // 6. Look up Asset ID before deleting project_media
+  const adminClient = createAdminClient();
+  const { data: refData } = await adminClient
+    .from("asset_references")
+    .select("asset_id")
+    .eq("entity_type", "project_media")
+    .eq("entity_id", mediaId)
+    .single();
+
+  // 7. Delete target project_media row
   const { error: mediaDeleteErr } = await supabase
     .from("project_media")
     .delete()
@@ -184,56 +157,22 @@ export async function deleteProjectMedia(fileId: string, projectId: string) {
 
   if (mediaDeleteErr) return { error: "Failed to delete project_media row" }
 
-  // Revalidate path here since the db part is done
+  // 8. Detach Reference (Garbage Collection is handled async by ReferenceManager)
+  if (refData) {
+    try {
+      await ReferenceManager.detach(refData.asset_id, "project_media", mediaId);
+    } catch (err) {
+      console.error("Failed to detach reference:", err);
+    }
+  }
+
   revalidatePath(`/projects/${projectId}`)
 
-  // 9. Physical Deletion
-  if (otherReferenceCount === 0) {
-    try {
-      const runtime = new ProviderRuntime("cloudflare_r2", {
-        retryCount: 1,
-        retryDelay: 500,
-        failureThreshold: 2
-      });
-
-      // Attempt physical R2 object deletion
-      await runtime.execute(new CloudflareR2Adapter(), {
-        step: "UPLOAD", // We use UPLOAD step type generically, but pass action: DELETE
-        projectId: projectId,
-        args: {
-          action: "DELETE",
-          objectKey: storageKey
-        }
-      });
-      
-      // 10. We DO NOT delete storage_files metadata unless exact row identity is proven.
-      // Since it cannot be proven, we leave it temporarily orphaned.
-      return { 
-        success: true, 
-        mediaDeleted: true,
-        physicalObjectDeleted: true,
-        orphanedStorageRisk: true // Metadata remains
-      };
-
-    } catch (r2Err: any) {
-      // R2 deletion fails
-      console.error("R2 Physical Deletion Error:", r2Err);
-      return { 
-        success: true, // Partial success
-        mediaDeleted: true, 
-        physicalObjectDeleted: false, 
-        orphanedStorageRisk: true 
-      };
-    }
-  } else {
-    // otherReferenceCount > 0
-    return {
-      success: true,
-      mediaDeleted: true,
-      physicalObjectDeleted: false,
-      sharedObjectPreserved: true
-    };
-  }
+  return { 
+    success: true, 
+    mediaDeleted: true,
+    detached: !!refData
+  };
 }
 
 export async function getSectionImages(sectionId: string) {

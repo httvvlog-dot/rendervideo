@@ -3,6 +3,8 @@ import { FFmpegAdapter } from "../utils/render/ffmpeg";
 import { RENDER_JOB_STATUS } from "../utils/render/core";
 import dotenv from "dotenv";
 import os from "os";
+import * as crypto from "crypto";
+import * as fs from "fs";
 
 // Load environment variables for local testing
 dotenv.config({ path: ".env.local" });
@@ -179,6 +181,38 @@ async function processJob(job: any) {
     const stat = await import("fs/promises").then(fs => fs.stat(outputPath));
     const fileSize = stat.size;
 
+    // Calculate content hash for DAM
+    const fileBuffer = await import("fs/promises").then(fs => fs.readFile(outputPath));
+    const contentHash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
+
+    // Call Backend API to register asset
+    const registerApiUrl = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/media/register` : "http://localhost:3000/api/media/register";
+    const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret-123";
+    
+    const regRes = await fetch(registerApiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${WORKER_SECRET}`
+      },
+      body: JSON.stringify({
+        objectKey: outputKey,
+        publicUrl: outputUrl,
+        mimeType: "video/mp4",
+        size: fileSize,
+        contentHash: contentHash,
+        userId: job.user_id, // We need user_id, it should be in job
+        generationType: "RENDER"
+      })
+    });
+    
+    if (!regRes.ok) {
+      throw new Error(`Failed to register media asset: ${await regRes.text()}`);
+    }
+    
+    const regData = await regRes.json();
+    const assetId = regData.asset.id;
+
     await supabase.from("project_outputs").update({ is_current: false }).eq("project_id", job.project_id).eq("is_current", true);
 
     const { data: latestOutput } = await supabase.from("project_outputs")
@@ -212,7 +246,7 @@ async function processJob(job: any) {
     }
 
     try {
-      await supabase.from("project_outputs").insert({
+      const { data: outputData, error: outputErr } = await supabase.from("project_outputs").insert({
         project_id: job.project_id,
         render_job_id: job.id,
         version: nextVersion,
@@ -228,7 +262,17 @@ async function processJob(job: any) {
         video_codec: "h264",
         audio_codec: "aac",
         status: "completed"
+      }).select("id").single();
+      
+      if (outputErr) throw outputErr;
+      
+      // Attach reference (Single Source of Truth)
+      await supabase.from("asset_references").insert({
+        asset_id: assetId,
+        entity_type: "project_outputs",
+        entity_id: outputData.id
       });
+      
     } catch (dbErr) {
       console.error(`[Worker ${WORKER_NAME}] Exception inserting into project_outputs:`, dbErr);
     }
