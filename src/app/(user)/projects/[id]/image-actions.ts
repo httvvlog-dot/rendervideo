@@ -245,8 +245,7 @@ export async function saveAIImage(projectId: string, sectionId: string, url: str
         storage_key: asset.path,
         public_url: asset.public_url,
         file_size: asset.size,
-        mime_type: asset.mime_type,
-        content_type: asset.mime_type
+        mime_type: asset.mime_type
       })
       .select()
       .single();
