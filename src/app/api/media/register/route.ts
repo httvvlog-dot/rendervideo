@@ -12,21 +12,35 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    console.log("[Media Register API] Request Body:", body);
+    
     const { objectKey, publicUrl, mimeType, size, contentHash, userId, generationType } = body;
+    console.log("[Media Register API] Target UserId:", userId);
 
     if (!objectKey || !publicUrl || !mimeType || !size || !contentHash || !userId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Call Idempotent Register
-    const asset = await MediaService.register(
+    const regInput = {
       objectKey,
       publicUrl,
       mimeType,
       size,
       contentHash,
       userId,
-      generationType || 'RENDER'
+      generationType: generationType || 'RENDER'
+    };
+    console.log("[Media Register API] MediaService.register() Input:", regInput);
+
+    // Call Idempotent Register
+    const asset = await MediaService.register(
+      regInput.objectKey,
+      regInput.publicUrl,
+      regInput.mimeType,
+      regInput.size,
+      regInput.contentHash,
+      regInput.userId,
+      regInput.generationType
     );
 
     return NextResponse.json({
@@ -36,6 +50,11 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("API /media/register Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Stack Trace:", error.stack);
+    return NextResponse.json({ 
+      error: error.message,
+      details: error.toString(),
+      code: error.code || "UNKNOWN_ERROR"
+    }, { status: 500 });
   }
 }

@@ -207,7 +207,24 @@ async function processJob(job: any) {
     });
     
     if (!regRes.ok) {
-      throw new Error(`Failed to register media asset: ${await regRes.text()}`);
+      const status = regRes.status;
+      const headers = Object.fromEntries(regRes.headers.entries());
+      const bodyText = await regRes.text();
+      
+      console.error("[Media Register] Failed!");
+      console.error("HTTP Status:", status);
+      console.error("Response Headers:", headers);
+      console.error("Response Body:", bodyText);
+      
+      let errorJson = null;
+      try {
+        errorJson = JSON.parse(bodyText);
+        console.error("Parsed Error Object:", errorJson);
+      } catch(e) {
+        // Not a JSON
+      }
+
+      throw new Error(`Media register failed (${status}): ${bodyText}`);
     }
     
     const regData = await regRes.json();

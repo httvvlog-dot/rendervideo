@@ -135,8 +135,23 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
     }
   }
   
-  const handleDownload = (url: string) => {
-    window.open(url, "_blank")
+  const handleDownload = async (url: string) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = blobUrl
+      const filename = url.split("/").pop()?.split("?")[0] || "download.jpg"
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(blobUrl)
+    } catch (error) {
+      console.error("Download failed:", error)
+      window.open(url, "_blank")
+    }
   }
   
   const handleFullscreen = (url: string) => {
