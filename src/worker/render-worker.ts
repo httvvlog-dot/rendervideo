@@ -132,6 +132,7 @@ async function claimNextJob() {
 }
 
 async function processJob(job: any) {
+  console.log("=== WORKER BUILD 2026-07-29 v2 ===");
   activeJobIds.push(job.id);
   console.log(`[Worker ${WORKER_NAME}] Claimed Job: ${job.id}`);
   const adapter = new FFmpegAdapter();
