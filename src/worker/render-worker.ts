@@ -207,12 +207,12 @@ async function processJob(job: any) {
         "X-Correlation-ID": correlationId
       },
       body: JSON.stringify({
+        projectId: job.project_id,
         objectKey: outputKey,
         publicUrl: outputUrl,
         mimeType: "video/mp4",
         size: fileSize,
         contentHash: contentHash,
-        userId: job.user_id, // We need user_id, it should be in job
         generationType: "RENDER"
       })
     });
