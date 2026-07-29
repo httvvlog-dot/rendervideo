@@ -1,7 +1,21 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { verifyWorkerToken } from '@/utils/worker-auth'
+
 export async function updateSession(request: NextRequest) {
+  // Service-to-service authentication (Worker bypass)
+  const authHeader = request.headers.get("authorization");
+  if (verifyWorkerToken(authHeader)) {
+    const correlationId = request.headers.get("x-correlation-id");
+    console.log({
+      correlationId,
+      path: request.nextUrl.pathname,
+      worker: true
+    });
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MediaService } from "@/utils/media/MediaService";
-
-// Security: Verify worker secret
-const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret-123";
+import { verifyWorkerToken } from "@/utils/worker-auth";
 
 export async function POST(req: NextRequest) {
+  console.log("POST /api/media/register HIT");
   try {
     const authHeader = req.headers.get("authorization");
-    if (!authHeader || authHeader !== `Bearer ${WORKER_SECRET}`) {
+    if (!verifyWorkerToken(authHeader)) {
       return NextResponse.json({ error: "Unauthorized worker access" }, { status: 401 });
     }
 
