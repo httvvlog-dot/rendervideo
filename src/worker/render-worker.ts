@@ -186,14 +186,24 @@ async function processJob(job: any) {
     const contentHash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
 
     // Call Backend API to register asset
-    const registerApiUrl = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/media/register` : "http://localhost:3000/api/media/register";
+    const backendUrl = process.env.BACKEND_API_URL;
+    if (!backendUrl) {
+      throw new Error("BACKEND_API_URL environment variable is missing");
+    }
+    const registerApiUrl = `${backendUrl}/api/media/register`;
     const WORKER_SECRET = process.env.WORKER_SECRET || "dev-worker-secret-123";
     
+    const correlationId = crypto.randomUUID();
+    console.log("[Media Register]");
+    console.log("Backend URL:", backendUrl);
+    console.log("Register URL:", registerApiUrl);
+
     const regRes = await fetch(registerApiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${WORKER_SECRET}`
+        "Authorization": `Bearer ${WORKER_SECRET}`,
+        "X-Correlation-ID": correlationId
       },
       body: JSON.stringify({
         objectKey: outputKey,
@@ -220,8 +230,12 @@ async function processJob(job: any) {
       try {
         errorJson = JSON.parse(bodyText);
         console.error("Parsed Error Object:", errorJson);
+        if (errorJson && errorJson.error) {
+          throw new Error(`[${errorJson.error.code || 'UNKNOWN'}] ${errorJson.error.message || bodyText}`);
+        }
       } catch(e) {
-        // Not a JSON
+        if (e instanceof Error && e.message.startsWith('[')) throw e;
+        // Not a JSON or other parsing error, just throw below
       }
 
       throw new Error(`Media register failed (${status}): ${bodyText}`);
@@ -299,9 +313,10 @@ async function processJob(job: any) {
     console.log(`[Worker ${WORKER_NAME}] Render complete in ${totalTime.toFixed(2)}s. Job ID: ${job.id}`);
   } catch (err: any) {
     console.error(`[${WORKER_NAME}] Job ${job.id} failed:`, err);
+    console.error(err.cause);
     errorMessage = err.message || "Unknown error";
     await supabase.from("render_jobs").update({
-      status: RENDER_JOB_STATUS.PENDING,
+      status: RENDER_JOB_STATUS.FAILED,
       error_message: errorMessage,
       finished_at: new Date().toISOString(),
     }).eq("id", job.id).eq("worker_id", workerId);
