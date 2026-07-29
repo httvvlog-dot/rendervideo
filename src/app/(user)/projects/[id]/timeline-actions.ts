@@ -3,6 +3,8 @@
 import { createClient } from "@/utils/supabase/server"
 import { getCurrentUser } from "@/utils/auth-service"
 import { revalidatePath } from "next/cache"
+import { TransitionService } from "@/utils/timeline/TransitionService"
+import { TransitionEngine } from "@/utils/timeline/TransitionEngine"
 
 export type TimelineActionResult =
   | { success: true; code: "TIMELINE_CREATED"; sceneCount: number; totalDurationMs: number }
@@ -123,25 +125,13 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
       const startTimeMs = globalCursorMs
       const endTimeMs = startTimeMs + durationMs
 
-      let transitionType = section.transition_type || 'fade'
-      let transitionDuration = section.transition_duration || 0.5
-
-      // If it's the last media in the section, and there is a next section, use next section's transition
-      if (isLastMedia && sIdx < sections.length - 1) {
-        const nextSection = sections[sIdx + 1]
-        transitionType = nextSection.transition_type || 'fade'
-        transitionDuration = nextSection.transition_duration || 0.5
-      }
-
       newScenes.push({
         media_id: media.id,
         section_id: section.id,
         duration: durationMs / 1000.0,
         start_time: startTimeMs / 1000.0,
         end_time: endTimeMs / 1000.0,
-        sort_order: globalSortOrder,
-        transition_type: transitionType,
-        transition_duration: transitionDuration
+        sort_order: globalSortOrder
       })
 
       actualSectionAccumulatorMs += durationMs
@@ -164,11 +154,15 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
     return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: `Math invariant violation: Global timeline total (${globalCursorMs}ms) does not match target (${expectedGlobalTotalMs}ms)` }
   }
 
-  // 5. Atomic RPC execution
+  // 5. Inject Dynamic Transitions
+  const activeTransitions = await TransitionService.getActiveTransitions()
+  const scenesWithTransitions = TransitionEngine.injectTransitions(newScenes, activeTransitions)
+
+  // 6. Atomic RPC execution
   const { error: rpcErr } = await supabase.rpc("replace_project_timeline", {
     p_project_id: projectId,
     p_script_id: project.active_script_id,
-    p_scenes: newScenes,
+    p_scenes: scenesWithTransitions,
     p_replace_existing: isRebuild
   })
 
