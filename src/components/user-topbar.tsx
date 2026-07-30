@@ -77,7 +77,7 @@ export function UserTopbar() {
                 <div className="mt-2 text-xs rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 w-fit">{profile?.role || "user"}</div>
               </div>
             </div>
-            <DropdownMenuItem onSelect={() => {
+            <DropdownMenuItem onClick={() => {
               console.log("Change Password Click")
               setIsPasswordModalOpen(true)
             }}>
