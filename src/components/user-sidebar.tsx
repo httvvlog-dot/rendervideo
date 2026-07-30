@@ -3,12 +3,11 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { LayoutDashboard, FolderKanban, User, Video, Wallet } from "lucide-react"
+import { LayoutDashboard, FolderKanban, Video, Wallet } from "lucide-react"
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Projects", href: "/projects", icon: FolderKanban },
-  { name: "Profile", href: "/profile", icon: User },
   { name: "Wallet & Credits", href: "/wallet", icon: Wallet },
 ]
 

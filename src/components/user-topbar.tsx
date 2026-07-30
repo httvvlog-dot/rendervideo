@@ -8,11 +8,12 @@ import { Avatar, AvatarFallback } from "./ui/avatar"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
-import Link from "next/link"
+import { ChangePasswordDialog } from "./change-password-dialog"
 
 export function UserTopbar() {
   const { setTheme } = useTheme()
   const [profile, setProfile] = useState<any>(null)
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
   
   useEffect(() => {
     async function loadUser() {
@@ -69,13 +70,22 @@ export function UserTopbar() {
                 <div className="mt-2 text-xs rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 w-fit">{profile?.role || "user"}</div>
               </div>
             </div>
-            <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem>
-            <DropdownMenuItem asChild><Link href="/settings">Settings</Link></DropdownMenuItem>
+            <DropdownMenuItem onSelect={(e) => {
+              e.preventDefault()
+              setIsPasswordModalOpen(true)
+            }}>
+              Change Password
+            </DropdownMenuItem>
             <DropdownMenuItem asChild className="text-red-500 cursor-pointer">
               <a href="/api/logout">Sign out</a>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <ChangePasswordDialog 
+          isOpen={isPasswordModalOpen} 
+          onOpenChange={setIsPasswordModalOpen} 
+        />
       </div>
     </header>
   )
