@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
@@ -66,7 +67,12 @@ export function Modal({
     }
   }, [open, onClose]);
 
-  if (!render) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!render || !mounted) return null;
 
   const sizeClasses = {
     sm: "max-w-sm",
@@ -76,7 +82,7 @@ export function Modal({
     full: "max-w-[calc(100%-2rem)]",
   };
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center isolate">
       {/* Backdrop */}
       <div 
@@ -136,4 +142,6 @@ export function Modal({
       </div>
     </div>
   );
+
+  return document.body ? createPortal(modalContent, document.body) : null;
 }
