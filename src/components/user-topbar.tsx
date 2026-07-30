@@ -27,6 +27,13 @@ export function UserTopbar() {
     loadUser()
   }, [])
 
+  console.log("Build v20260730-2010")
+  console.log("UserTopbar Render")
+
+  useEffect(() => {
+    console.log("Password Dialog =", isPasswordModalOpen)
+  }, [isPasswordModalOpen])
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:bg-slate-950/80">
       <div className="flex items-center lg:hidden">
@@ -70,7 +77,10 @@ export function UserTopbar() {
                 <div className="mt-2 text-xs rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 w-fit">{profile?.role || "user"}</div>
               </div>
             </div>
-            <DropdownMenuItem onSelect={() => setIsPasswordModalOpen(true)}>
+            <DropdownMenuItem onSelect={() => {
+              console.log("Change Password Click")
+              setIsPasswordModalOpen(true)
+            }}>
               Change Password
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="text-red-500 cursor-pointer">
