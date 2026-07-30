@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -81,6 +81,17 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: { isOpen: boolean
     }
   }
 
+  console.log("ChangePasswordDialog rendered, isOpen =", isOpen);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <div className="p-8 text-2xl font-bold text-center">TEST</div>
+      </DialogContent>
+    </Dialog>
+  )
+
+  /* Original Return
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -155,4 +166,5 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: { isOpen: boolean
       </DialogContent>
     </Dialog>
   )
+  */
 }

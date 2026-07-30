@@ -70,9 +70,7 @@ export function UserTopbar() {
                 <div className="mt-2 text-xs rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 w-fit">{profile?.role || "user"}</div>
               </div>
             </div>
-            <DropdownMenuItem onSelect={() => {
-              setTimeout(() => setIsPasswordModalOpen(true), 0)
-            }}>
+            <DropdownMenuItem onSelect={() => setIsPasswordModalOpen(true)}>
               Change Password
             </DropdownMenuItem>
             <DropdownMenuItem asChild className="text-red-500 cursor-pointer">
