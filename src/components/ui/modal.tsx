@@ -28,6 +28,11 @@ export function Modal({
   const modalRef = useRef<HTMLDivElement>(null);
   const [render, setRender] = useState(open);
 
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   // Handle ESC key, body scroll lock, and initial focus
   useEffect(() => {
     if (open) {
@@ -39,7 +44,7 @@ export function Modal({
       
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape") {
-          onClose();
+          onCloseRef.current();
         }
       };
       document.addEventListener("keydown", handleKeyDown);
@@ -47,7 +52,8 @@ export function Modal({
       // Auto-focus first input
       setTimeout(() => {
         if (modalRef.current) {
-          const firstInput = modalRef.current.querySelector('input:not([type="hidden"]), textarea, button') as HTMLElement;
+          // Find the first actual input, ignoring buttons in the header
+          const firstInput = modalRef.current.querySelector('input:not([type="hidden"]), textarea') as HTMLElement;
           if (firstInput) {
             firstInput.focus();
           }
@@ -65,7 +71,7 @@ export function Modal({
       }, 200); 
       return () => clearTimeout(timeout);
     }
-  }, [open, onClose]);
+  }, [open]);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
