@@ -78,6 +78,9 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: { isOpen: boolean
       setError(err.message || "Failed to change password.")
     } finally {
       setLoading(false)
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
