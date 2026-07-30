@@ -78,20 +78,6 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: { isOpen: boolean
       setError(err.message || "Failed to change password.")
     } finally {
       setLoading(false)
-    }
-  }
-
-  console.log("ChangePasswordDialog rendered, isOpen =", isOpen);
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <div className="p-8 text-2xl font-bold text-center">TEST</div>
-      </DialogContent>
-    </Dialog>
-  )
-
-  /* Original Return
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -166,5 +152,4 @@ export function ChangePasswordDialog({ isOpen, onOpenChange }: { isOpen: boolean
       </DialogContent>
     </Dialog>
   )
-  */
 }
