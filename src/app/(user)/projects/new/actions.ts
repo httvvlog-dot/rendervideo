@@ -2,6 +2,8 @@
 
 import { createClient } from "@/utils/supabase/server"
 import { getCurrentUser } from "@/utils/auth-service"
+import { getFormatConfig, VideoFormat } from "@/config/video-formats"
+
 export async function createProject(formData: any) {
   const user = await getCurrentUser()
   if (!user) {
@@ -15,6 +17,13 @@ export async function createProject(formData: any) {
     throw new Error("Invalid duration. Must be between 10 and 3600 seconds.");
   }
 
+  // Validate format enum
+  const formatEnum = Object.values(VideoFormat).includes(formData.format as VideoFormat) 
+    ? (formData.format as VideoFormat) 
+    : VideoFormat.VERTICAL;
+    
+  const formatConfig = getFormatConfig(formatEnum);
+
   const { data, error } = await supabase
     .from("projects")
     .insert({
@@ -23,6 +32,9 @@ export async function createProject(formData: any) {
       topic: formData.name, // keep for backwards compatibility if needed
       video_length: parsedDuration,
       target_duration: parsedDuration,
+      aspect_ratio: formatConfig.aspectRatio,
+      canvas_width: formatConfig.width,
+      canvas_height: formatConfig.height,
       status: "draft",
       workflow_state: {
         render: "pending"
