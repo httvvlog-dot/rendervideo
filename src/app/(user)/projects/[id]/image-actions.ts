@@ -12,6 +12,7 @@ import { PromptValidator } from "@/utils/prompt-validator"
 import { ImageProviderAdapter } from "@/utils/provider-runtime/adapters/image-adapters"
 import { generateCorrelationId, Logger } from "@/utils/logger"
 import { AppError } from "@/utils/errors"
+import { getProjectCanvas } from "@/lib/project-canvas"
 
 export async function generateAIImage(projectId: string, sectionId: string) {
   const correlationId = generateCorrelationId('img');
@@ -107,16 +108,10 @@ export async function generateAIImage(projectId: string, sectionId: string) {
     }
 
     // Determine resolution
-    let width = 1080;
-    let height = 1920;
-    const { data: project } = await supabase.from("projects").select("export_preset_id").eq("id", projectId).single()
-    if (project?.export_preset_id) {
-      const { data: preset } = await supabase.from("export_presets").select("width, height").eq("id", project.export_preset_id).single()
-      if (preset) {
-        width = preset.width || 1080;
-        height = preset.height || 1920;
-      }
-    }
+    const { data: project } = await supabase.from("projects").select("aspect_ratio, canvas_width, canvas_height").eq("id", projectId).single()
+    const canvasConfig = getProjectCanvas(project || undefined);
+    const width = canvasConfig.width;
+    const height = canvasConfig.height;
     // --- END PRE-FLIGHT ---
 
     const result = await BillingEngine.executeAndCharge(

@@ -98,7 +98,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <div className="flex items-center space-x-4 text-xs text-slate-400 mt-1 font-mono">
               <span>Duration: {project.video_length}s</span>
               <span>•</span>
-              <span>Aspect: 9:16</span>
+              <span>Aspect: {project.aspect_ratio || '9:16'}</span>
             </div>
           </div>
         </div>
@@ -153,15 +153,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {hasExistingScenes ? (
-                <TimelineEditor 
-                  initialScenes={scenes || []} 
-                  media={projectMedia || []} 
-                  voiceMedia={voiceMedia} 
-                  projectId={project.id} 
-                  sections={activeSections}
-                  exportPresets={exportPresets || []}
-                  activePresetId={project.export_preset_id || null}
-                />
+              <TimelineEditor 
+                projectId={project.id}
+                initialScenes={scenes || []}
+                media={projectMedia}
+                voiceMedia={voiceMedia}
+                sections={activeSections}
+                aspectRatio={project.aspect_ratio}
+                exportPresets={exportPresets || []}
+                activePresetId={project.render_preset_id}
+              />
             ) : (
               <div className="p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-800 text-slate-500">
                 No timeline generated yet. Upload media to your script sections and click "Generate Timeline".

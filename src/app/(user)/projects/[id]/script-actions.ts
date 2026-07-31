@@ -7,6 +7,7 @@ import { ProviderRuntime, OpenRouterAdapter } from "@/utils/provider-runtime"
 import { extractJSONObject } from "@/utils/extract-json-object"
 import { z } from "zod"
 import { normalizeDurations } from "./duration-normalization"
+import { getProjectCanvas } from "@/lib/project-canvas"
 
 const ScriptSectionSchema = z.object({
   section_index: z.number(),
@@ -41,6 +42,7 @@ export async function generateScript(projectId: string): Promise<{ success?: boo
   if (!project) throw new Error("Project not found")
 
   const targetDuration = project.target_duration || (project.video_length * 60) || 60;
+  const canvasConfig = getProjectCanvas(project);
 
   // Fetch domain config dynamically
   let domainQuery = supabase.from("image_prompt_domains").select("*").eq("is_active", true);
@@ -64,7 +66,7 @@ ${domain.system_prompt}
 Rules:
 1. Always generate PHOTOREALISTIC images.
 2. Produce prompts suitable for Flux Dev.
-3. Target Full HD (1920x1080), not 8K.
+3. Target ${canvasConfig.width}x${canvasConfig.height} (${canvasConfig.orientation}), not 8K.
 4. Focus on realism instead of fantasy.
 5. Every object must exist in the real world.
 6. Camera language must resemble professional DSLR or cinema photography.
@@ -95,7 +97,7 @@ Return ONLY valid JSON matching this schema:
       "narration": "Spoken text that naturally fits the duration.",
       "duration_seconds": 8,
       "visual_description": "Visual Story (Vietnamese, describing camera angle, subjects, actions).",
-      "image_prompt": "Template Format:\\nSubject: ...\\nScene: ...\\nCamera: ${domain.camera_style}\\nLighting: ${domain.lighting_style}\\nComposition: ${domain.composition_style}\\nPhotorealistic commercial photography.\\n1920x1080\\nNatural color grading.",
+      "image_prompt": "Template Format:\\nSubject: ...\\nScene: ...\\nCamera: ${domain.camera_style}\\nLighting: ${domain.lighting_style}\\nComposition: ${domain.composition_style}\\nPhotorealistic commercial photography.\\n${canvasConfig.width}x${canvasConfig.height} ${canvasConfig.orientation}\\nNatural color grading.",
       "negative_prompt": {
         "style": ["cartoon", "anime"],
         "objects": ["watermark", "text"],

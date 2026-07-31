@@ -12,6 +12,7 @@ export interface VideoFormatConfig {
   aspectRatio: string;
   width: number;
   height: number;
+  orientation: string;
 }
 
 export const VIDEO_FORMATS: VideoFormatConfig[] = [
@@ -23,6 +24,7 @@ export const VIDEO_FORMATS: VideoFormatConfig[] = [
     aspectRatio: '9:16',
     width: 1080,
     height: 1920,
+    orientation: 'portrait',
   },
   {
     value: VideoFormat.LANDSCAPE,
@@ -32,6 +34,7 @@ export const VIDEO_FORMATS: VideoFormatConfig[] = [
     aspectRatio: '16:9',
     width: 1920,
     height: 1080,
+    orientation: 'landscape',
   },
   {
     value: VideoFormat.SQUARE,
@@ -41,6 +44,7 @@ export const VIDEO_FORMATS: VideoFormatConfig[] = [
     aspectRatio: '1:1',
     width: 1080,
     height: 1080,
+    orientation: 'square',
   },
   
   // Reserved for future formats:
@@ -52,6 +56,7 @@ export const VIDEO_FORMATS: VideoFormatConfig[] = [
   //   aspectRatio: '4:5',
   //   width: 1080,
   //   height: 1350,
+  //   orientation: 'portrait',
   // },
   // {
   //   value: 'CINEMATIC', // 21:9
@@ -61,6 +66,7 @@ export const VIDEO_FORMATS: VideoFormatConfig[] = [
   //   aspectRatio: '21:9',
   //   width: 2560,
   //   height: 1080,
+  //   orientation: 'landscape',
   // },
   // {
   //   value: 'CLASSIC', // 3:2
@@ -70,6 +76,7 @@ export const VIDEO_FORMATS: VideoFormatConfig[] = [
   //   aspectRatio: '3:2',
   //   width: 1080,
   //   height: 720,
+  //   orientation: 'landscape',
   // }
 ];
 

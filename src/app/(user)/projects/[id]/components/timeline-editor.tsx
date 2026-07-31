@@ -58,6 +58,7 @@ export function TimelineEditor({
   voiceMedia = [], 
   projectId, 
   sections = [],
+  aspectRatio,
   exportPresets = [],
   activePresetId = null
 }: { 
@@ -66,6 +67,7 @@ export function TimelineEditor({
   voiceMedia?: any[], 
   projectId: string, 
   sections?: any[],
+  aspectRatio?: string,
   exportPresets?: any[],
   activePresetId?: string | null
 }) {
@@ -516,8 +518,8 @@ export function TimelineEditor({
       <div className="flex flex-col lg:flex-row min-h-[400px]">
         {/* Left side: Client Preview Player */}
         <div className="lg:w-1/3 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800 bg-slate-950 p-4 flex items-center justify-center">
-          <div className="w-full max-w-[280px] aspect-[9/16] relative">
-            <ClientPreviewPlayer scenes={previewScenes} currentTimeMs={currentTimeMs} />
+          <div className="w-full max-w-[280px] relative">
+            <ClientPreviewPlayer scenes={previewScenes} currentTimeMs={currentTimeMs} aspectRatio={aspectRatio} />
           </div>
         </div>
 

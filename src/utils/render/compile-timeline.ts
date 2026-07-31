@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 import { TimelineJSON, RenderScene, RenderAudioTrack } from "./core"
+import { getProjectCanvas } from "@/lib/project-canvas"
 
 export async function compileTimeline(supabase: SupabaseClient, projectId: string, bypassAuth: boolean = false): Promise<TimelineJSON> {
   // 1. Authenticate user
@@ -21,10 +22,12 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
   if (!bypassAuth && project.user_id !== userId) throw new Error("Forbidden")
 
   // 2b. Fetch Export Preset
+  const canvasConfig = getProjectCanvas(project);
+  
   let exportPreset = {
-    aspectRatio: "9:16",
-    width: 1080,
-    height: 1920,
+    aspectRatio: canvasConfig.aspectRatio,
+    width: canvasConfig.width,
+    height: canvasConfig.height,
     fps: 30,
     codec: "h264"
   };

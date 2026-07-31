@@ -10,7 +10,9 @@ interface ClientPreviewPlayerProps {
   aspectRatio?: string // e.g. "9/16"
 }
 
-export function ClientPreviewPlayer({ scenes, currentTimeMs, aspectRatio = "9/16" }: ClientPreviewPlayerProps) {
+export function ClientPreviewPlayer({ scenes, currentTimeMs, aspectRatio = "9:16" }: ClientPreviewPlayerProps) {
+  // Convert "16:9" to "16/9" for CSS
+  const cssAspectRatio = aspectRatio.replace(':', '/');
   
   // Find the active scene(s). We might need 2 scenes if crossfading.
   // We use linear search since timelines are small in this sprint.
@@ -35,7 +37,7 @@ export function ClientPreviewPlayer({ scenes, currentTimeMs, aspectRatio = "9/16
     return (
       <div 
         className="bg-black flex items-center justify-center rounded-xl overflow-hidden shadow-lg border border-slate-800"
-        style={{ aspectRatio }}
+        style={{ aspectRatio: cssAspectRatio }}
       >
         <div className="text-slate-600 flex flex-col items-center">
           <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
@@ -48,7 +50,7 @@ export function ClientPreviewPlayer({ scenes, currentTimeMs, aspectRatio = "9/16
   return (
     <div 
       className="bg-black relative rounded-xl overflow-hidden shadow-lg border border-slate-800"
-      style={{ aspectRatio }}
+      style={{ aspectRatio: cssAspectRatio }}
     >
       {displayScenes.length === 0 ? (
         <div className="absolute inset-0 bg-black flex items-center justify-center text-white">
