@@ -4,6 +4,8 @@ import { useState } from "react";
 import { CreditCard, Wallet, Star, FileText, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const CREDIT_TO_VND = 1000;
+
 export function WalletClientPage({ 
   wallet, 
   packages, 
@@ -26,6 +28,7 @@ export function WalletClientPage({
   };
 
   const balance = wallet.balance_credits || 0;
+  const balanceVnd = balance * CREDIT_TO_VND;
   const lifetimeUsage = wallet.total_consumed_credits || wallet.lifetime_used || 0;
 
   // Helpers
@@ -45,6 +48,13 @@ export function WalletClientPage({
     return "bg-slate-500/10 text-slate-400 border-slate-500/20";
   };
 
+  const scrollToBuyCredits = () => {
+    const buySection = document.getElementById("buy-credits-section");
+    if (buySection) {
+      buySection.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <div className="p-4 sm:p-8 max-w-5xl mx-auto space-y-8">
       <div>
@@ -59,12 +69,21 @@ export function WalletClientPage({
           <div>
             <div className="flex items-center text-indigo-300 mb-2 font-medium">
               <Wallet className="w-5 h-5 mr-2" />
-              Available AI Credits
+              AI Wallet Balance
             </div>
-            <div className="text-5xl font-extrabold text-white">{balance.toLocaleString()}</div>
+            <div className="flex items-baseline gap-3">
+              <div className="text-5xl font-extrabold text-white">{balance.toLocaleString()}</div>
+              <div className="text-xl font-medium text-indigo-300/80">≈ {balanceVnd.toLocaleString('vi-VN')} VNĐ</div>
+            </div>
+            <Button 
+              onClick={scrollToBuyCredits}
+              className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 py-2 shadow-lg shadow-indigo-500/20 border-0"
+            >
+              + Buy Credits
+            </Button>
           </div>
           
-          <div className="flex gap-4 w-full md:w-auto">
+          <div className="flex gap-4 w-full md:w-auto mt-6 md:mt-0">
             <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 flex-1 md:w-40 backdrop-blur-sm">
               <div className="text-slate-400 text-sm mb-1 flex items-center gap-1.5"><Zap className="w-4 h-4" /> Current Plan</div>
               <div className="text-lg font-bold text-white">{userPlan}</div>
@@ -78,8 +97,11 @@ export function WalletClientPage({
       </div>
 
       {/* 2. Buy Credits */}
-      <div>
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><CreditCard className="w-5 h-5 text-indigo-400" /> Buy Credits</h2>
+      <div id="buy-credits-section">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold flex items-center gap-2"><CreditCard className="w-5 h-5 text-indigo-400" /> Buy Credits</h2>
+          <p className="text-slate-400 text-sm mt-1">1 Credit = 1.000 VNĐ</p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {packages.length === 0 ? (
             <div className="col-span-3 text-slate-500 py-10 text-center border border-slate-800 rounded-xl border-dashed">
@@ -101,7 +123,7 @@ export function WalletClientPage({
                 
                 <div className="text-center mt-4 mb-4">
                   <h3 className="text-slate-400 font-medium mb-1">{pkg.name}</h3>
-                  <div className="text-3xl font-bold text-white">{(pkg.price_vnd / 1000).toLocaleString()}k ₫</div>
+                  <div className="text-3xl font-bold text-white">{pkg.price_vnd.toLocaleString('vi-VN')} VNĐ</div>
                 </div>
                 
                 <div className="bg-slate-950 rounded-xl p-4 mb-4 text-center border border-slate-800/50">
@@ -120,8 +142,11 @@ export function WalletClientPage({
                     disabled={isProcessing}
                     className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm h-10 border border-slate-700"
                   >
-                    Payment Coming Soon
+                    Coming Soon
                   </Button>
+                  <div className="text-[10px] text-slate-500 text-center mt-2 font-medium tracking-wide">
+                    QR • MoMo • VNPay • Stripe
+                  </div>
                 </div>
               </div>
             ))
@@ -138,7 +163,7 @@ export function WalletClientPage({
               <tr>
                 <th className="px-6 py-4 font-medium">Date</th>
                 <th className="px-6 py-4 font-medium">Description</th>
-                <th className="px-6 py-4 font-medium">Credits</th>
+                <th className="px-6 py-4 font-medium">Credits / VNĐ</th>
                 <th className="px-6 py-4 font-medium">Status</th>
               </tr>
             </thead>
@@ -155,17 +180,18 @@ export function WalletClientPage({
               ) : (
                 transactions.map(t => (
                   <tr key={t.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500 whitespace-nowrap">
+                    <td className="px-6 py-4 font-mono text-xs text-slate-500 whitespace-nowrap align-top pt-5">
                       {new Date(t.created_at).toLocaleString('vi-VN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="px-6 py-4 font-medium text-slate-200">
+                    <td className="px-6 py-4 font-medium text-slate-200 align-top pt-5">
                       {getFeatureIcon(t.feature)}
                       {t.transaction_type === "REFUND" && <span className="ml-2 text-xs text-purple-400">(Refund)</span>}
                     </td>
-                    <td className={`px-6 py-4 font-bold whitespace-nowrap ${t.amount < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                      {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()}
+                    <td className={`px-6 py-4 font-bold whitespace-nowrap align-top ${t.amount < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      <div>{t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()} Credits</div>
+                      <div className="text-xs font-medium opacity-70 mt-1">≈ {t.amount > 0 ? '+' : ''}{Math.abs(t.amount * CREDIT_TO_VND).toLocaleString('vi-VN')} VNĐ</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-top pt-5">
                       <span className={`px-2.5 py-1 border rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(t.status || t.transaction_type)}`}>
                         {t.status || t.transaction_type}
                       </span>
