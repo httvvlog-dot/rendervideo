@@ -1,8 +1,8 @@
 -- Add aspect_ratio, canvas_width, canvas_height to projects table
 ALTER TABLE public.projects 
-  ADD COLUMN IF NOT EXISTS aspect_ratio text DEFAULT '9:16',
-  ADD COLUMN IF NOT EXISTS canvas_width integer DEFAULT 1080,
-  ADD COLUMN IF NOT EXISTS canvas_height integer DEFAULT 1920;
+  ADD COLUMN IF NOT EXISTS aspect_ratio text NOT NULL DEFAULT '9:16',
+  ADD COLUMN IF NOT EXISTS canvas_width integer NOT NULL DEFAULT 1080,
+  ADD COLUMN IF NOT EXISTS canvas_height integer NOT NULL DEFAULT 1920;
 
 -- Optional: Update existing records explicitly (though DEFAULT handles future reads)
 UPDATE public.projects 
