@@ -103,10 +103,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="secondary" size="sm" className="hidden sm:flex bg-slate-800 hover:bg-slate-700 text-white border-slate-700" onClick={() => alert("Format settings coming soon")}>
+          <Button variant="secondary" size="sm" className="hidden sm:flex bg-slate-800 hover:bg-slate-700 text-white border-slate-700">
             <Settings className="w-4 h-4 mr-2" /> Format
           </Button>
-          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white" onClick={() => alert("Draft saved!")}>
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white">
             <Save className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Save Draft</span>
           </Button>
         </div>
