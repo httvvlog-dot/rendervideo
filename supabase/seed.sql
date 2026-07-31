@@ -43,6 +43,13 @@ values
   ('YouTube Shorts', 1080, 1920, 30, 'fade')
 on conflict do nothing;
 
+-- 7. Credit Packages Seed
+DELETE FROM public.credit_packages;
+INSERT INTO public.credit_packages (name, price_vnd, credits, bonus_credits, is_featured, display_order)
+VALUES
+  ('Starter', 100000, 100, 0, false, 1),
+  ('Popular', 200000, 210, 10, true, 2),
+  ('Best Value', 500000, 550, 50, false, 3);
 
 
 -- 8. Provider Model Pricing & Credit Rules Seed

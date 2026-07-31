@@ -17,14 +17,21 @@ export default async function UserWalletPage() {
     .eq("user_id", user.id)
     .single();
 
-  // 2. Fetch Packages
+  // 2. Fetch User Profile for Plan
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("image_tier")
+    .eq("id", user.id)
+    .single();
+
+  // 3. Fetch Packages
   const { data: packages } = await supabase
     .from("credit_packages")
     .select("*")
     .eq("is_active", true)
     .order("display_order", { ascending: true });
 
-  // 3. Fetch Transactions
+  // 4. Fetch Transactions for History (limit to 20 for UI)
   const { data: transactions } = await supabase
     .from("wallet_transactions")
     .select("*")
@@ -37,7 +44,9 @@ export default async function UserWalletPage() {
       wallet={wallet || {}} 
       packages={packages || []} 
       transactions={transactions || []} 
+      userPlan={profile?.image_tier || "FREE"}
     />
   );
 }
+
 
