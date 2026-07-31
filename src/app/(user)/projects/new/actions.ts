@@ -44,6 +44,9 @@ export async function createProject(formData: any) {
     .single()
 
   if (error) {
+    if (error.message?.includes("does not exist") && (error.message?.includes("aspect_ratio") || error.message?.includes("canvas_width"))) {
+      throw new Error("Database schema is outdated. Please run migration: 20260731210000_add_project_canvas_dimensions.sql on your Supabase project.");
+    }
     throw new Error(error.message)
   }
 
