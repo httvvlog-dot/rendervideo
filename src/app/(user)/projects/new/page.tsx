@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Activity, Plus, Play } from "lucide-react"
 import { createProject } from "./actions"
 import { useRouter } from "next/navigation"
+import { VIDEO_FORMATS, VideoFormat } from "@/config/video-formats"
 
 export default function NewProject() {
   const [isGenerating, setIsGenerating] = useState(false)
@@ -15,7 +16,8 @@ export default function NewProject() {
   
   const [projectData, setProjectData] = useState({
     name: "",
-    duration: "60"
+    duration: "60",
+    format: VideoFormat.VERTICAL // Dùng Enum, không dùng chuỗi
   })
 
   const handleCreate = async () => {
@@ -40,8 +42,11 @@ export default function NewProject() {
     { value: "600", label: "10m", desc: "Full YouTube" }
   ]
 
+  // Đọc từ cấu hình, không hardcode.
+  const ENABLE_MULTI_ASPECT = process.env.NEXT_PUBLIC_ENABLE_MULTI_ASPECT === "true"
+
   return (
-    <div className="mx-auto max-w-2xl space-y-8 mt-10">
+    <div className="mx-auto max-w-2xl space-y-8 mt-10 pb-20">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Create New Project</h1>
         <p className="text-muted-foreground mt-2">Initialize your video workspace to start editing.</p>
@@ -121,6 +126,40 @@ export default function NewProject() {
               </div>
             </div>
           </div>
+
+          {ENABLE_MULTI_ASPECT && (
+            <div className="space-y-3 pt-2">
+              <Label className="text-sm font-semibold">Video Format</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {VIDEO_FORMATS.map(opt => (
+                  <div 
+                    key={opt.value}
+                    onClick={() => setProjectData({...projectData, format: opt.value})}
+                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                      projectData.format === opt.value 
+                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-600" 
+                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-lg flex items-center gap-2">
+                        <span className="text-2xl">{opt.icon}</span> 
+                        <div className="flex flex-col">
+                          <span>{opt.label}</span>
+                        </div>
+                      </span>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                        projectData.format === opt.value ? "border-indigo-600" : "border-slate-300"
+                      }`}>
+                        {projectData.format === opt.value && <div className="w-2 h-2 bg-indigo-600 rounded-full" />}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-tight">{opt.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </CardContent>
         <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t p-6">
