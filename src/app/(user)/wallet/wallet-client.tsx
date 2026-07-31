@@ -58,8 +58,8 @@ export function WalletClientPage({
   return (
     <div className="p-4 sm:p-8 max-w-5xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-slate-100">Wallet & Credits</h1>
-        <p className="text-slate-400 mt-2">Manage your balance and upgrade your plan.</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Wallet & Credits</h1>
+        <p className="text-slate-600 dark:text-slate-400 mt-2">Manage your balance and upgrade your plan.</p>
       </div>
 
       {/* 1. Wallet Summary */}
@@ -156,43 +156,43 @@ export function WalletClientPage({
 
       {/* 3. Transaction History */}
       <div>
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 mt-8"><FileText className="w-5 h-5 text-indigo-400" /> Transaction History</h2>
-        <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900 shadow-sm">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-800/50 text-slate-400 border-b border-slate-800">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 mt-8 text-slate-900 dark:text-white"><FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Transaction History</h2>
+        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto bg-white dark:bg-slate-900 shadow-sm">
+          <table className="w-full text-left text-xs sm:text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap min-w-[500px]">
+            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="px-6 py-4 font-medium">Date</th>
-                <th className="px-6 py-4 font-medium">Description</th>
-                <th className="px-6 py-4 font-medium">Credits / VNĐ</th>
-                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Date</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Description</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Credits / VNĐ</th>
+                <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/80">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {transactions.length === 0 ? (
                 <tr>
                   <td colSpan={4}>
                     <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <FileText className="h-10 w-10 mb-3 text-slate-700" />
-                      <p className="text-slate-400 font-medium">No transactions yet</p>
+                      <FileText className="h-10 w-10 mb-3 text-slate-400 dark:text-slate-700" />
+                      <p className="text-slate-500 dark:text-slate-400 font-medium">No transactions yet</p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 transactions.map(t => (
-                  <tr key={t.id} className="hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500 whitespace-nowrap align-top pt-5">
+                  <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-4 sm:px-6 py-4 font-mono text-[10px] sm:text-xs text-slate-500 align-top pt-5">
                       {new Date(t.created_at).toLocaleString('vi-VN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="px-6 py-4 font-medium text-slate-200 align-top pt-5">
+                    <td className="px-4 sm:px-6 py-4 font-medium text-slate-800 dark:text-slate-200 align-top pt-5">
                       {getFeatureIcon(t.feature)}
-                      {t.transaction_type === "REFUND" && <span className="ml-2 text-xs text-purple-400">(Refund)</span>}
+                      {t.transaction_type === "REFUND" && <span className="ml-1 sm:ml-2 text-[10px] sm:text-xs text-purple-500 dark:text-purple-400">(Refund)</span>}
                     </td>
-                    <td className={`px-6 py-4 font-bold whitespace-nowrap align-top ${t.amount < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    <td className={`px-4 sm:px-6 py-4 font-bold align-top ${t.amount < 0 ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
                       <div>{t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()} Credits</div>
-                      <div className="text-xs font-medium opacity-70 mt-1">≈ {t.amount > 0 ? '+' : ''}{Math.abs(t.amount * CREDIT_TO_VND).toLocaleString('vi-VN')} VNĐ</div>
+                      <div className="text-[10px] sm:text-xs font-medium opacity-70 mt-1">≈ {t.amount > 0 ? '+' : ''}{Math.abs(t.amount * CREDIT_TO_VND).toLocaleString('vi-VN')} VNĐ</div>
                     </td>
-                    <td className="px-6 py-4 align-top pt-5">
-                      <span className={`px-2.5 py-1 border rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(t.status || t.transaction_type)}`}>
+                    <td className="px-4 sm:px-6 py-4 align-top pt-5">
+                      <span className={`px-2 sm:px-2.5 py-1 border rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${getStatusColor(t.status || t.transaction_type)}`}>
                         {t.status || t.transaction_type}
                       </span>
                     </td>
