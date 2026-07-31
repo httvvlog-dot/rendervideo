@@ -93,12 +93,12 @@ export function VoiceGeneratorButtons({
   }
 
   return (
-    <div className="flex space-x-2">
+    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
       <Button 
         variant="secondary" 
         onClick={() => handleGenerateVoice(false)} 
         disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections || allVoicesGenerated || !hasVoiceAssigned}
-        className={`transition-all ${
+        className={`transition-all w-full sm:w-auto ${
           activeStep === 1 && !allVoicesGenerated 
           ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 shadow-md ring-2 ring-emerald-400" 
           : "bg-slate-100 text-slate-500 opacity-60 hover:opacity-100 dark:bg-slate-800 dark:text-slate-400"
@@ -116,7 +116,7 @@ export function VoiceGeneratorButtons({
           }
         }} 
         disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections || !hasVoiceAssigned}
-        className={`transition-all ${
+        className={`transition-all w-full sm:w-auto ${
           activeStep === 1 
           ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 border-orange-300 dark:border-orange-700 shadow-md ring-1 ring-orange-400" 
           : "text-slate-500 border-slate-200 opacity-60 hover:opacity-100 dark:border-slate-800 dark:text-slate-400"
@@ -129,7 +129,7 @@ export function VoiceGeneratorButtons({
         variant="outline" 
         onClick={handleSyncTimeline} 
         disabled={isGenerating || isSyncing || !allVoicesGenerated}
-        className={`transition-all ${
+        className={`transition-all w-full sm:w-auto ${
           activeStep === 2 
           ? "border-blue-400 text-blue-700 dark:border-blue-500 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 shadow-md ring-2 ring-blue-400" 
           : "text-slate-500 border-slate-200 opacity-60 hover:opacity-100 dark:border-slate-800 dark:text-slate-400"

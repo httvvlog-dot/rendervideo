@@ -102,12 +102,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button variant="secondary" size="sm" className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700">
+        <div className="flex items-center space-x-2">
+          <Button variant="secondary" size="sm" className="hidden sm:flex bg-slate-800 hover:bg-slate-700 text-white border-slate-700" onClick={() => alert("Format settings coming soon")}>
             <Settings className="w-4 h-4 mr-2" /> Format
           </Button>
-          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white">
-            <Save className="w-4 h-4 mr-2" /> Save Draft
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white" onClick={() => alert("Draft saved!")}>
+            <Save className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Save Draft</span>
           </Button>
         </div>
       </div>
@@ -125,9 +125,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           {/* Timeline Generation & Editor */}
           <div className="mt-8">
             <div className="flex flex-col mb-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between mb-2 gap-3">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">Timeline Editor</h2>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <VoiceSelector 
                     projectId={project.id}
                     voices={activeVoices || []} 

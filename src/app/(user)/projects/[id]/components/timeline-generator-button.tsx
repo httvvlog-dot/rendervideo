@@ -102,7 +102,7 @@ export function TimelineGeneratorButton({
     <Button 
       onClick={() => hasExistingScenes ? setShowConfirm(true) : handleGenerate()} 
       disabled={isGenerating || (allVoicesGenerated === false)}
-      className={`transition-all ${
+      className={`transition-all w-full sm:w-auto ${
         (allVoicesGenerated !== false && activeStep === 3) 
         ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md ring-2 ring-blue-400" 
         : (allVoicesGenerated !== false)
