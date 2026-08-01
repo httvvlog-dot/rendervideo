@@ -144,7 +144,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
                Regenerate
             </Button>
-            <Button onClick={handleDelete} variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0">
+            <Button onClick={handleDelete} variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0 hidden sm:flex">
                <Trash className="h-4 w-4" />
             </Button>
           </div>
@@ -152,15 +152,15 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
       </div>
 
       {activeScript && (
-        <Card>
-          <div className="border-b bg-slate-50 dark:bg-slate-900 px-4 py-2 flex flex-wrap gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
-            <span className="flex items-center"><Zap className="h-3.5 w-3.5 mr-1" /> {activeScript.model}</span>
-            <span className="flex items-center"><Clock className="h-3.5 w-3.5 mr-1" /> {activeScript.latency_ms}ms</span>
-            <span>Tokens: {activeScript.tokens_input} in / {activeScript.tokens_output} out</span>
-            <span className="flex items-center"><DollarSign className="h-3.5 w-3.5 mr-0.5" /> {activeScript.cost || 0}</span>
-            <span>{activeScript.word_count} words</span>
+        <Card className="border-0 shadow-none sm:border sm:shadow-sm">
+          <div className="border-b bg-slate-50 dark:bg-slate-900 px-4 py-2 flex items-center overflow-x-auto hide-scrollbar whitespace-nowrap gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <span className="flex items-center shrink-0"><Zap className="h-3.5 w-3.5 mr-1" /> {activeScript.model}</span>
+            <span className="flex items-center shrink-0"><Clock className="h-3.5 w-3.5 mr-1" /> {activeScript.latency_ms}ms</span>
+            <span className="shrink-0">Tokens: {activeScript.tokens_input} in / {activeScript.tokens_output} out</span>
+            <span className="flex items-center shrink-0"><DollarSign className="h-3.5 w-3.5 mr-0.5" /> {activeScript.cost || 0}</span>
+            <span className="shrink-0">{activeScript.word_count} words</span>
           </div>
-          <CardContent className="p-4 bg-slate-100/50 dark:bg-slate-900/20">
+          <CardContent className="p-0 sm:p-4 bg-slate-100/50 dark:bg-slate-900/20">
             {isLoadingSections ? (
               <div className="flex items-center justify-center h-40">
                 <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />

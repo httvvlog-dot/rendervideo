@@ -1,16 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Image as ImageIcon, Check, X, Edit2, AlertTriangle } from "lucide-react"
+import { Image as ImageIcon, Check, X, Edit2, AlertTriangle, ChevronDown } from "lucide-react"
 import { updateScriptSection } from "../script-actions"
 import { toast } from "sonner"
 import { SectionMediaUploader } from "./section-media-uploader"
 
 export function ScriptSectionCard({ section, projectId, startTime }: { section: any, projectId: string, startTime: number }) {
+  const [isOpen, setIsOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  
+  useEffect(() => {
+    if (isEditing) {
+      setIsOpen(true)
+    }
+  }, [isEditing])
+
   const [formData, setFormData] = useState({
     title: section.title || "",
     narration: section.narration || "",
@@ -45,8 +53,11 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
   const isNarrationTooLong = estimatedSeconds > section.duration_seconds + 1 // +1s grace period
 
   return (
-    <Card className="mb-4 overflow-hidden border-slate-200 dark:border-slate-800">
-      <CardHeader className="bg-slate-50 dark:bg-slate-900/50 py-3 px-4 border-b flex flex-row items-center justify-between">
+    <Card className="mb-4 overflow-hidden border-slate-200 dark:border-slate-800 border-0 shadow-none sm:border sm:shadow-sm">
+      <CardHeader 
+        className="bg-slate-50 dark:bg-slate-900/50 py-3 px-4 border-b flex flex-row items-center justify-between cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        onClick={() => !isEditing && setIsOpen(!isOpen)}
+      >
         <div className="flex items-center space-x-4">
           <div className="flex flex-col">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Section {section.section_index}</span>
@@ -54,22 +65,30 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          <div className="text-sm font-mono bg-white dark:bg-slate-800 px-2 py-1 rounded border">
+          <div className="text-sm font-mono bg-white dark:bg-slate-800 px-2 py-1 rounded border hidden sm:block">
             {formatTime(startTime)} - {formatTime(startTime + section.duration_seconds)}
             <span className="ml-2 text-indigo-500 font-semibold">{section.duration_seconds}s</span>
           </div>
+          <div className="text-sm font-mono bg-white dark:bg-slate-800 px-2 py-1 rounded border sm:hidden">
+            <span className="text-indigo-500 font-semibold">{section.duration_seconds}s</span>
+          </div>
           {!isEditing ? (
-            <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}><Edit2 className="h-4 w-4" /></Button>
+            <div className="flex space-x-1 sm:space-x-2">
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setIsEditing(true) }}><Edit2 className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="sm" className="xl:hidden">
+                <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </div>
           ) : (
             <div className="flex space-x-2">
-              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} disabled={isSaving}><X className="h-4 w-4 text-red-500" /></Button>
-              <Button variant="ghost" size="sm" onClick={handleSave} disabled={isSaving}><Check className="h-4 w-4 text-green-500" /></Button>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setIsEditing(false) }} disabled={isSaving}><X className="h-4 w-4 text-red-500" /></Button>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleSave() }} disabled={isSaving}><Check className="h-4 w-4 text-green-500" /></Button>
             </div>
           )}
         </div>
       </CardHeader>
       
-      <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <CardContent className={`p-0 sm:p-4 gap-6 ${isOpen ? "grid grid-cols-1 md:grid-cols-2 pt-4 sm:pt-4" : "hidden xl:grid xl:grid-cols-2"}`}>
         {/* Left Column: Narration */}
         <div className="space-y-3">
           <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Narration</h4>
