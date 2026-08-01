@@ -10,7 +10,7 @@ import { toast } from "sonner"
 import { SectionMediaUploader } from "./section-media-uploader"
 
 export function ScriptSectionCard({ section, projectId, startTime }: { section: any, projectId: string, startTime: number }) {
-  const headerRef = useRef<HTMLDivElement>(null)
+  const sectionHeaderRef = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   
@@ -53,10 +53,24 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
   const estimatedSeconds = wordCount / 2.5
   const isNarrationTooLong = estimatedSeconds > section.duration_seconds + 1 // +1s grace period
 
+  const handleCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsOpen(false)
+    
+    requestAnimationFrame(() => {
+      sectionHeaderRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      })
+    })
+  }
+
   return (
-    <Card className="mb-4 overflow-hidden border-slate-200 dark:border-slate-800 border-0 shadow-none sm:border sm:shadow-sm">
+    <Card 
+      ref={sectionHeaderRef}
+      className="mb-4 overflow-hidden border-slate-200 dark:border-slate-800 border-0 shadow-none sm:border sm:shadow-sm scroll-mt-24"
+    >
       <CardHeader 
-        ref={headerRef}
         className={`py-3 px-4 border-b flex flex-row items-center justify-between cursor-pointer transition-colors ${
           isOpen 
             ? "bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900" 
@@ -228,13 +242,10 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
         {/* Collapse Button (Mobile Only) */}
         <div className="pt-2 mt-4 border-t border-slate-100 dark:border-slate-800 xl:hidden">
           <Button 
-            variant="ghost" 
+            type="button"
+            variant="outline" 
             className="w-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(false);
-              headerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }}
+            onClick={handleCollapse}
           >
             <ChevronUp className="h-4 w-4 mr-2" />
             Thu gọn Section
