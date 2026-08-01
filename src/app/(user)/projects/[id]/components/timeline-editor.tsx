@@ -618,8 +618,9 @@ export function TimelineEditor({
                         onClick={(e) => { e.stopPropagation(); setSelectedId(scene.id); }}
                         onDoubleClick={(e) => { e.stopPropagation(); handleDoubleClick(scene.id); }}
                         onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); handleReset(scene.id); }}
-                        className={`absolute top-0 bottom-0 bg-transparent flex flex-col items-center justify-center cursor-pointer
-                          ${isSelected ? "z-20" : "z-10"}
+                        className={`absolute top-0 bottom-0 bg-indigo-900 border-r border-indigo-950 flex flex-col items-center justify-center text-[10px] text-white transition-colors hover:bg-indigo-800 overflow-hidden cursor-pointer
+                          ${isSelected ? "bg-indigo-600 shadow-inner z-20" : "z-10"}
+                          ${warningClass}
                         `}
                         style={{ 
                           left: `${(scene.startTimeMs / 1000) * 20}px`,
@@ -627,26 +628,25 @@ export function TimelineEditor({
                         }}
                         title={`Scene: ${(scene.durationMs/1000).toFixed(1)}s ${warningClass ? '(Video ends before narration)' : ''}`}
                       >
-                        <div className={`absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-indigo-900 border-r border-indigo-950 text-[10px] text-white transition-colors hover:bg-indigo-800 ${isSelected ? "bg-indigo-600 shadow-inner" : ""} ${warningClass}`}>
-                          {scene.mediaId ? (
-                            <img src={scene.publicUrl || ""} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay pointer-events-none" />
-                          ) : null}
-                          <span className="relative z-10 drop-shadow-md truncate w-full text-center px-4 font-mono font-bold">
-                            {(scene.durationMs/1000).toFixed(1)}s
-                          </span>
-                        </div>
+                        {scene.mediaId ? (
+                           
+                          <img src={scene.publicUrl || ""} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay pointer-events-none" />
+                        ) : null}
+                        <span className="relative z-10 drop-shadow-md truncate w-full text-center px-4 font-mono font-bold">
+                          {(scene.durationMs/1000).toFixed(1)}s
+                        </span>
                         
                         {/* DRAG HANDLES */}
                         {isSelected && (
                           <>
                             <div 
-                              className="absolute -left-2 top-0 bottom-0 w-8 cursor-ew-resize hover:bg-white/30 z-30 flex items-center justify-center touch-none"
+                              className="absolute left-0 top-0 bottom-0 w-4 cursor-ew-resize hover:bg-white/30 z-30 flex items-center justify-center touch-none"
                               onPointerDown={(e) => handlePointerDown(e, scene.id, 'left')}
                             >
                               <div className="w-1 h-4 bg-white rounded-full pointer-events-none opacity-50" />
                             </div>
                             <div 
-                              className="absolute -right-2 top-0 bottom-0 w-8 cursor-ew-resize hover:bg-white/30 z-30 flex items-center justify-center touch-none"
+                              className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize hover:bg-white/30 z-30 flex items-center justify-center touch-none"
                               onPointerDown={(e) => handlePointerDown(e, scene.id, 'right')}
                             >
                               <div className="w-1 h-4 bg-white rounded-full pointer-events-none opacity-50" />
