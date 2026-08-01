@@ -319,7 +319,7 @@ export function TimelineEditor({
   const handlePointerDown = useCallback((e: React.PointerEvent, id: string, edge: 'left' | 'right') => {
     e.stopPropagation();
     e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const scene = doc.scenes.find(s => s.id === id);
     if (!scene) return;
     setDragState({
@@ -368,7 +368,9 @@ export function TimelineEditor({
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!dragState) return;
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch(err) {}
     
     // Find the scene in current doc to see if it actually changed
     const currentScene = doc.scenes.find(s => s.id === dragState.id);
@@ -587,6 +589,7 @@ export function TimelineEditor({
                 onPointerMove={dragState ? handlePointerMove : undefined}
                 onPointerUp={dragState ? handlePointerUp : undefined}
                 onPointerLeave={dragState ? handlePointerUp : undefined}
+                onPointerCancel={dragState ? handlePointerUp : undefined}
               >
                 <div className="w-24 shrink-0 sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-y border-slate-300 dark:border-slate-800 px-2 rounded-r-md shadow-sm h-20">
                   <ImageIcon className="w-3 h-3 mr-1" /> Video
@@ -635,13 +638,13 @@ export function TimelineEditor({
                         {isSelected && (
                           <>
                             <div 
-                              className="absolute left-0 top-0 bottom-0 w-4 cursor-ew-resize hover:bg-white/30 z-30 flex items-center justify-center"
+                              className="absolute -left-2 top-0 bottom-0 w-8 cursor-ew-resize hover:bg-white/30 z-30 flex items-center justify-center touch-none"
                               onPointerDown={(e) => handlePointerDown(e, scene.id, 'left')}
                             >
                               <div className="w-1 h-4 bg-white rounded-full pointer-events-none opacity-50" />
                             </div>
                             <div 
-                              className="absolute right-0 top-0 bottom-0 w-4 cursor-ew-resize hover:bg-white/30 z-30 flex items-center justify-center"
+                              className="absolute -right-2 top-0 bottom-0 w-8 cursor-ew-resize hover:bg-white/30 z-30 flex items-center justify-center touch-none"
                               onPointerDown={(e) => handlePointerDown(e, scene.id, 'right')}
                             >
                               <div className="w-1 h-4 bg-white rounded-full pointer-events-none opacity-50" />
