@@ -142,6 +142,9 @@ export function TimelineEditor({
   useEffect(() => {
     if (!doc.isDirty) return;
     
+    setSaveState("dirty");
+    syncSaveState("dirty");
+    
     const handler = setTimeout(() => {
       performSave();
     }, 800); // 800ms debounce

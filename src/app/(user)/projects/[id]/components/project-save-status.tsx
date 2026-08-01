@@ -6,9 +6,7 @@ import { useProjectSave } from "./project-save-context"
 export function ProjectSaveStatus() {
   const { saveState, lastSavedAt } = useProjectSave()
 
-  if (saveState === "saved" && !lastSavedAt) {
-    return null; // Not modified yet
-  }
+
 
   return (
     <div className="flex items-center space-x-2 text-sm font-medium">
@@ -33,13 +31,15 @@ export function ProjectSaveStatus() {
         </span>
       )}
       
-      {saveState === "saved" && lastSavedAt && (
+      {saveState === "saved" && (
         <span className="text-emerald-400 flex items-center">
           <span className="w-2 h-2 rounded-full bg-emerald-400 mr-2"></span>
           Saved
-          <span className="text-slate-500 text-xs ml-2 font-mono">
-            {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-          </span>
+          {lastSavedAt && (
+            <span className="text-slate-500 text-xs ml-2 font-mono">
+              {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
         </span>
       )}
     </div>

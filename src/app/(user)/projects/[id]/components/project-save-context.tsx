@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useRef, useEffect } from "react"
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from "react"
 
 export type SaveState = "saved" | "dirty" | "saving" | "failed"
 
@@ -22,14 +22,14 @@ export function ProjectSaveProvider({ children }: { children: React.ReactNode })
   const isSavingRef = useRef(false)
   const currentPromiseRef = useRef<Promise<void> | null>(null)
 
-  const syncSaveState = (state: SaveState, time?: Date) => {
+  const syncSaveState = useCallback((state: SaveState, time?: Date) => {
     setSaveState(state)
     if (time) setLastSavedAt(time)
-  }
+  }, [])
 
-  const registerFlush = (fn: () => Promise<void>) => {
+  const registerFlush = useCallback((fn: () => Promise<void>) => {
     flushFnRef.current = fn
-  }
+  }, [])
 
   const flushPendingSave = async () => {
     // Prevent overlapping saves
