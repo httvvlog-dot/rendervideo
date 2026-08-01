@@ -13,7 +13,9 @@ import { VoiceGeneratorButtons } from "./components/voice-generator-buttons"
 import { WorkflowIndicator } from "./components/workflow-indicator"
 
 import { VoiceSelector } from "./components/voice-selector"
-
+import { ProjectSaveProvider } from "./components/project-save-context"
+import { ProjectBackButton } from "./components/project-back-button"
+import { ProjectSaveStatus } from "./components/project-save-status"
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser()
@@ -86,14 +88,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const hasVoicePending = hasAnySections && !allVoicesGenerated;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-20 mt-6 px-4">
-      {/* 1. Project Settings Panel (Sticky Header) */}
-      <div className="bg-slate-900 text-slate-100 rounded-xl shadow-lg border border-slate-800 p-4 sticky top-4 z-50 flex items-center justify-between">
-        <div className="flex items-center space-x-6">
-          <Link href="/projects" className="text-slate-400 hover:text-white transition-colors">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <div>
+    <ProjectSaveProvider>
+      <div className="mx-auto max-w-7xl space-y-6 pb-20 mt-6 px-4">
+        {/* 1. Project Settings Panel (Sticky Header) */}
+        <div className="bg-slate-900 text-slate-100 rounded-xl shadow-lg border border-slate-800 p-4 sticky top-4 z-50 flex items-center justify-between">
+          <div className="flex items-center space-x-6">
+            <ProjectBackButton />
+            <div>
             <h1 className="text-lg font-bold tracking-tight">{project.title}</h1>
             <div className="flex items-center space-x-4 text-xs text-slate-400 mt-1 font-mono">
               <span>Duration: {project.video_length}s</span>
@@ -103,12 +104,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="secondary" size="sm" className="hidden sm:flex bg-slate-800 hover:bg-slate-700 text-white border-slate-700">
-            <Settings className="w-4 h-4 mr-2" /> Format
-          </Button>
-          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white">
-            <Save className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Save Draft</span>
-          </Button>
+          <ProjectSaveStatus />
         </div>
       </div>
 
@@ -181,8 +177,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </form>
           </div>
         </div>
-
       </div>
-    </div>
+    </ProjectSaveProvider>
   )
 }

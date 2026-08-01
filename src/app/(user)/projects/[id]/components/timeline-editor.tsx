@@ -13,6 +13,7 @@ import { globalAudioEngine } from "@/utils/audio/audio-engine"
 import { AudioDiagnosticsPanel } from "./audio-diagnostics-panel"
 import { updateTimelineDurations } from "../timeline-actions"
 import { ExportSettingsModal } from "./export-settings-modal"
+import { useProjectSave, SaveState } from "./project-save-context"
 
 interface Scene {
   id: string
@@ -32,8 +33,6 @@ interface Scene {
   opacity?: number
   section_id?: string
 }
-
-export type SaveState = "saved" | "dirty" | "saving"
 
 export interface TimelineDocument {
   scenes: PreviewScene[] 
@@ -86,7 +85,16 @@ export function TimelineEditor({
     }
   });
 
+  });
+
   const [saveState, setSaveState] = useState<SaveState>("saved");
+  const { syncSaveState, registerFlush } = useProjectSave();
+  const docRef = useRef(doc);
+  
+  // Keep docRef updated for flush
+  useEffect(() => {
+    docRef.current = doc;
+  }, [doc]);
 
   // History stack for Undo/Redo
   const [history, setHistory] = useState<PreviewScene[][]>([doc.scenes]);
@@ -95,34 +103,50 @@ export function TimelineEditor({
   const previewScenes = doc.scenes;
   const totalDurationMs = doc.totalDurationMs;
 
-  // Auto-Save Effect
+  // Auto-Save logic
+  const performSave = async () => {
+    const currentDoc = docRef.current;
+    if (!currentDoc.isDirty) return;
+
+    setSaveState("saving");
+    syncSaveState("saving");
+    
+    const updates = currentDoc.scenes.map(s => ({
+      id: s.id,
+      durationMs: s.durationMs,
+      startTimeMs: s.startTimeMs,
+      endTimeMs: s.endTimeMs
+    }));
+    
+    try {
+      const res = await updateTimelineDurations(projectId, updates);
+      if (res.success) {
+         setSaveState("saved");
+         syncSaveState("saved", new Date());
+         setDoc(prev => ({ ...prev, isDirty: false }));
+      } else {
+         setSaveState("dirty");
+         syncSaveState("dirty");
+         toast.error(res.message);
+      }
+    } catch (e) {
+       setSaveState("dirty");
+       syncSaveState("dirty");
+       console.error("Auto-save failed", e);
+    }
+  };
+
+  useEffect(() => {
+    registerFlush(performSave);
+  }, []);
+
+  // Auto-Save Effect (Debounce 800ms)
   useEffect(() => {
     if (!doc.isDirty) return;
     
-    const handler = setTimeout(async () => {
-      setSaveState("saving");
-      
-      const updates = doc.scenes.map(s => ({
-        id: s.id,
-        durationMs: s.durationMs,
-        startTimeMs: s.startTimeMs,
-        endTimeMs: s.endTimeMs
-      }));
-      
-      try {
-        const res = await updateTimelineDurations(projectId, updates);
-        if (res.success) {
-           setSaveState("saved");
-           setDoc(prev => ({ ...prev, isDirty: false }));
-        } else {
-           setSaveState("dirty");
-           toast.error(res.message);
-        }
-      } catch (e) {
-         setSaveState("dirty");
-         console.error("Auto-save failed", e);
-      }
-    }, 2000); // 2s debounce
+    const handler = setTimeout(() => {
+      performSave();
+    }, 800); // 800ms debounce
     
     return () => clearTimeout(handler);
   }, [doc.version, doc.isDirty, doc.scenes, projectId]);
