@@ -468,8 +468,8 @@ export function TimelineEditor({
 
   return (
     <>
-    <div className="flex flex-col w-full h-full pb-32">
-      <div className="bg-white dark:bg-[#0a0a0a] border-0 sm:border border-slate-200 dark:border-slate-800 rounded-none sm:rounded-xl shadow-none sm:shadow-sm overflow-hidden flex flex-col mb-16 -mx-4 sm:mx-0">
+    <div className="flex flex-col w-full h-full pb-0 sm:pb-32">
+      <div className="bg-white dark:bg-[#0a0a0a] border-0 sm:border border-slate-200 dark:border-slate-800 rounded-none sm:rounded-xl shadow-none sm:shadow-sm overflow-hidden flex flex-col mb-4 sm:mb-16 -mx-4 sm:mx-0">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 sm:bg-white sm:dark:bg-slate-900 rounded-none sm:rounded-t-xl gap-3">
           <div className="flex flex-wrap items-center gap-2">
           <Button 
@@ -618,8 +618,8 @@ export function TimelineEditor({
                         onClick={(e) => { e.stopPropagation(); setSelectedId(scene.id); }}
                         onDoubleClick={(e) => { e.stopPropagation(); handleDoubleClick(scene.id); }}
                         onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); handleReset(scene.id); }}
-                        className={`absolute top-0 bottom-0 bg-indigo-900 border-r border-indigo-950 flex flex-col items-center justify-center text-[10px] text-white transition-colors hover:bg-indigo-800 overflow-hidden cursor-pointer
-                          ${isSelected ? "bg-indigo-600 shadow-inner z-20" : "z-10"}
+                        className={`absolute top-0 bottom-0 bg-slate-800 border-r border-slate-900 flex flex-col items-center justify-center text-[10px] text-white transition-all overflow-hidden cursor-pointer
+                          ${isSelected ? "ring-2 ring-indigo-500 ring-inset z-20 shadow-lg" : "z-10"}
                           ${warningClass}
                         `}
                         style={{ 
@@ -630,9 +630,9 @@ export function TimelineEditor({
                       >
                         {scene.mediaId ? (
                            
-                          <img src={scene.publicUrl || ""} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay pointer-events-none" />
+                          <img src={scene.publicUrl || ""} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
                         ) : null}
-                        <span className="relative z-10 drop-shadow-md truncate w-full text-center px-4 font-mono font-bold">
+                        <span className="relative z-10 drop-shadow-[0_1px_3px_rgba(0,0,0,1)] bg-black/30 px-1 rounded truncate max-w-full text-center font-mono font-bold">
                           {(scene.durationMs/1000).toFixed(1)}s
                         </span>
                         
