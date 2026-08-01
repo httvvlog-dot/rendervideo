@@ -1,15 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Image as ImageIcon, Check, X, Edit2, AlertTriangle, ChevronDown } from "lucide-react"
+import { Image as ImageIcon, Check, X, Edit2, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react"
 import { updateScriptSection } from "../script-actions"
 import { toast } from "sonner"
 import { SectionMediaUploader } from "./section-media-uploader"
 
 export function ScriptSectionCard({ section, projectId, startTime }: { section: any, projectId: string, startTime: number }) {
+  const headerRef = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   
@@ -55,13 +56,18 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
   return (
     <Card className="mb-4 overflow-hidden border-slate-200 dark:border-slate-800 border-0 shadow-none sm:border sm:shadow-sm">
       <CardHeader 
-        className="bg-slate-50 dark:bg-slate-900/50 py-3 px-4 border-b flex flex-row items-center justify-between cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+        ref={headerRef}
+        className={`py-3 px-4 border-b flex flex-row items-center justify-between cursor-pointer transition-colors ${
+          isOpen 
+            ? "bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-900" 
+            : "bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800"
+        }`}
         onClick={() => !isEditing && setIsOpen(!isOpen)}
       >
         <div className="flex items-center space-x-4">
           <div className="flex flex-col">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Section {section.section_index}</span>
-            <CardTitle className="text-base">{isEditing ? <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="h-7 text-sm mt-1" /> : (section.title || `Section ${section.section_index}`)}</CardTitle>
+            <span className={`text-xs font-bold uppercase tracking-wider ${isOpen ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500"}`}>Section {section.section_index}</span>
+            <CardTitle className="text-base">{isEditing ? <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="h-7 text-sm mt-1" /> : <span className={isOpen ? "text-indigo-900 dark:text-indigo-100" : ""}>{section.title || `Section ${section.section_index}`}</span>}</CardTitle>
           </div>
         </div>
         <div className="flex items-center space-x-4">
@@ -88,7 +94,8 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
         </div>
       </CardHeader>
       
-      <CardContent className={`p-0 sm:p-4 gap-6 ${isOpen ? "grid grid-cols-1 md:grid-cols-2 pt-4 sm:pt-4" : "hidden xl:grid xl:grid-cols-2"}`}>
+      <CardContent className={`p-0 sm:p-4 gap-6 ${isOpen ? "flex flex-col pt-4 sm:pt-4" : "hidden xl:flex xl:flex-col xl:p-4 xl:pt-4"}`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
         {/* Left Column: Narration */}
         <div className="space-y-3">
           <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Narration</h4>
@@ -215,6 +222,23 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
               </div>
             </div>
           )}
+        </div>
+        </div>
+        
+        {/* Collapse Button (Mobile Only) */}
+        <div className="pt-2 mt-4 border-t border-slate-100 dark:border-slate-800 xl:hidden">
+          <Button 
+            variant="ghost" 
+            className="w-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+              headerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }}
+          >
+            <ChevronUp className="h-4 w-4 mr-2" />
+            Thu gọn Section
+          </Button>
         </div>
       </CardContent>
     </Card>
