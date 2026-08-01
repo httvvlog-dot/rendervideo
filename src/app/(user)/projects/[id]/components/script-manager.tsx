@@ -16,16 +16,22 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
   const [isLoadingSections, setIsLoadingSections] = useState(false)
 
   const activeScript = scripts.find(s => s.version === activeVersion)
+  const activeScriptId = activeScript?.id
   const supabase = createClient()
 
   useEffect(() => {
     async function loadSections() {
-      if (!activeScript) return
-      setIsLoadingSections(true)
+      if (!activeScriptId) return
+      
+      // Only show full-page loader if we don't have sections for this script yet
+      if (sections.length === 0 || sections[0]?.script_id !== activeScriptId) {
+        setIsLoadingSections(true)
+      }
+      
       const { data, error } = await supabase
         .from('script_sections')
         .select('*')
-        .eq('script_id', activeScript.id)
+        .eq('script_id', activeScriptId)
         .order('section_index', { ascending: true })
       
       if (!error && data) {
@@ -36,7 +42,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
       setIsLoadingSections(false)
     }
     loadSections()
-  }, [activeScript, supabase])
+  }, [activeScriptId, supabase])
 
   const handleGenerate = async () => {
     setIsGenerating(true)
