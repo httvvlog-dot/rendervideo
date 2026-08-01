@@ -89,29 +89,29 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <ProjectSaveProvider>
-      <div className="mx-auto max-w-7xl space-y-6 pb-20 mt-6 px-4">
+      <div className="mx-auto max-w-7xl w-full min-w-0 space-y-6 pb-20 mt-6 px-4">
         {/* 1. Project Settings Panel (Sticky Header) */}
-        <div className="bg-slate-900 text-slate-100 rounded-xl shadow-lg border border-slate-800 p-4 sticky top-4 z-50 flex items-center justify-between">
-          <div className="flex items-center space-x-6">
+        <div className="bg-slate-900 text-slate-100 rounded-xl shadow-lg border border-slate-800 p-4 sticky top-4 z-50 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <ProjectBackButton />
-            <div>
-            <h1 className="text-lg font-bold tracking-tight">{project.title}</h1>
-            <div className="flex items-center space-x-4 text-xs text-slate-400 mt-1 font-mono">
-              <span>Duration: {project.video_length}s</span>
-              <span>•</span>
-              <span>Aspect: {project.aspect_ratio || '9:16'}</span>
+            <div className="min-w-0">
+            <h1 className="text-lg font-bold tracking-tight truncate">{project.title}</h1>
+            <div className="flex items-center gap-2 sm:gap-4 text-xs text-slate-400 mt-1 font-mono flex-wrap">
+              <span className="whitespace-nowrap">Duration: {project.video_length}s</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="whitespace-nowrap">Aspect: {project.aspect_ratio || '9:16'}</span>
             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center shrink-0">
           <ProjectSaveStatus />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_16rem] gap-6 min-w-0">
         
         {/* Main Workspace (Assets + Timeline) */}
-        <div className="xl:col-span-3 space-y-6">
+        <div className="space-y-6 min-w-0">
           
           <ScriptManager projectId={project.id} scripts={scripts || []} project={project} />
           
