@@ -596,7 +596,7 @@ export function TimelineEditor({
                 <div className="w-full sm:w-24 shrink-0 sm:sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-transparent sm:bg-slate-100 sm:dark:bg-slate-900 border-0 sm:border-r sm:border-y border-slate-300 dark:border-slate-800 px-0 sm:px-2 sm:rounded-r-md sm:shadow-sm h-6 sm:h-20 mb-1 sm:mb-0">
                   <ImageIcon className="w-3 h-3 mr-1" /> Video
                 </div>
-                <div className="flex-1 relative h-20 w-full sm:w-auto">
+                <div className="relative h-20 w-full sm:w-auto sm:flex-1">
                   {previewScenes.map((scene) => {
                     const isSelected = selectedId === scene.id;
                     const voiceBlock = voiceBlocks.find(v => v.id === scene.sectionId);
@@ -664,7 +664,7 @@ export function TimelineEditor({
                 <div className="w-full sm:w-24 shrink-0 sm:sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-transparent sm:bg-slate-100 sm:dark:bg-slate-900 border-0 sm:border-r sm:border-y border-slate-300 dark:border-slate-800 px-0 sm:px-2 sm:rounded-r-md sm:shadow-sm h-6 sm:h-12 mb-1 sm:mb-0">
                   <Mic className="w-3 h-3 mr-1" /> Voice
                 </div>
-                <div className="flex-1 relative h-12 w-full sm:w-auto">
+                <div className="relative h-12 w-full sm:w-auto sm:flex-1">
                   {voiceBlocks.length > 0 ? voiceBlocks.map(block => (
                     <div
                       key={block.id}
@@ -690,7 +690,7 @@ export function TimelineEditor({
                 <div className="w-full sm:w-24 shrink-0 sm:sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-transparent sm:bg-slate-100 sm:dark:bg-slate-900 border-0 sm:border-r sm:border-y border-slate-300 dark:border-slate-800 px-0 sm:px-2 sm:rounded-r-md sm:shadow-sm h-6 sm:h-12 mb-1 sm:mb-0">
                   <Type className="w-3 h-3 mr-1" /> Subs
                 </div>
-                <div className="flex-1 relative h-12 flex items-center justify-center text-xs text-slate-400 w-full sm:w-auto">
+                <div className="relative h-12 flex items-center justify-center text-xs text-slate-400 w-full sm:w-auto sm:flex-1">
                   [ Coming Soon ]
                 </div>
               </div>
