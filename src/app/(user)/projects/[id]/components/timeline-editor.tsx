@@ -85,8 +85,6 @@ export function TimelineEditor({
     }
   });
 
-  });
-
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const { syncSaveState, registerFlush } = useProjectSave();
   const docRef = useRef(doc);
