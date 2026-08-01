@@ -468,11 +468,10 @@ export function TimelineEditor({
 
   return (
     <>
-    <div className="flex flex-col border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-[#0f111a] shadow-lg mt-6">
-      
-      {/* Top Toolbar */}
-      <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 flex justify-between items-center shrink-0">
-        <div className="flex space-x-2">
+    <div className="flex flex-col w-full h-full pb-32">
+      <div className="bg-white dark:bg-[#0a0a0a] border-0 sm:border border-slate-200 dark:border-slate-800 rounded-none sm:rounded-xl shadow-none sm:shadow-sm overflow-hidden flex flex-col mb-16 -mx-4 sm:mx-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 sm:bg-white sm:dark:bg-slate-900 rounded-none sm:rounded-t-xl gap-3">
+          <div className="flex flex-wrap items-center gap-2">
           <Button 
             variant="outline" 
             size="sm" 
@@ -491,7 +490,8 @@ export function TimelineEditor({
           >
             <RotateCcw className="w-4 h-4" />
           </Button>
-          <div className="flex items-center px-4 font-mono text-xs text-slate-500 bg-slate-200 dark:bg-slate-800 rounded">
+          <div className="text-[10px] sm:text-xs text-slate-500 font-mono px-2 sm:px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded flex items-center shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-1.5 animate-pulse"></span>
             {(currentTimeMs / 1000).toFixed(2)}s / {(totalDurationMs / 1000).toFixed(2)}s
           </div>
           
@@ -506,10 +506,11 @@ export function TimelineEditor({
               {saveState === "saving" && "⟳ Saving..."}
             </span>
           </div>
-        </div>
-        <Button 
-          size="sm" 
-          className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/20"
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button 
+              size="sm" 
+              className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/20 flex-1 sm:flex-none"
           onClick={async () => {
             try {
               const res = await fetch('/api/render', {
@@ -540,6 +541,7 @@ export function TimelineEditor({
           presets={exportPresets || []}
           totalDurationMs={totalDurationMs}
         />
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row min-h-[400px]">
@@ -551,7 +553,7 @@ export function TimelineEditor({
         </div>
 
         {/* Right side: Timeline Tracks Area */}
-        <div className="flex-1 flex flex-col p-4 bg-slate-50 dark:bg-[#0f111a] overflow-x-hidden">
+        <div className="flex-1 flex flex-col p-2 sm:p-4 bg-slate-50 dark:bg-[#0f111a] overflow-x-hidden">
           
           <div className="mb-6 flex items-center space-x-4">
             <span className="text-xs text-slate-400 font-mono">0s</span>
@@ -570,31 +572,31 @@ export function TimelineEditor({
           <div 
             ref={trackRef}
             onClick={handleTrackClick}
-            className="flex-1 overflow-x-auto relative rounded-md border border-slate-300 dark:border-slate-800 bg-slate-200 dark:bg-[#1a1d2d] shadow-inner select-none"
+            className="flex-1 overflow-x-auto relative rounded-none sm:rounded-md border-0 sm:border border-slate-300 dark:border-slate-800 bg-slate-200 dark:bg-[#1a1d2d] sm:shadow-inner select-none -mx-2 sm:mx-0 px-2 sm:px-0"
           >
             <div 
-              className="relative min-w-full min-h-[12rem] py-4"
-              style={{ width: `max(100%, ${totalDurationMs > 0 ? (totalDurationMs / 1000) * 20 + 96 : 0}px)` }} // 20 = pixelsPerSecond, 96 = w-24
+              className="relative min-w-full min-h-[12rem] py-4 [--track-offset:0px] sm:[--track-offset:96px]"
+              style={{ width: `max(100%, calc(${(totalDurationMs / 1000) * 20}px + var(--track-offset)))` }}
             >
               {/* Playhead Overlay */}
               <div 
                 className="absolute top-0 bottom-0 w-px bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)] z-50 pointer-events-none"
-                style={{ left: `${(currentTimeMs / 1000) * 20 + 96}px` }}
+                style={{ left: `calc(${(currentTimeMs / 1000) * 20}px + var(--track-offset))` }}
               >
                 <div className="absolute -top-2 -left-1.5 w-3 h-3 bg-red-500 rotate-45 rounded-sm"></div>
               </div>
 
               {/* VIDEO TRACK (Active) */}
-              <div className="flex relative z-10 mb-2" 
+              <div className="flex flex-col sm:flex-row relative z-10 mb-6 sm:mb-2" 
                 onPointerMove={dragState ? handlePointerMove : undefined}
                 onPointerUp={dragState ? handlePointerUp : undefined}
                 onPointerLeave={dragState ? handlePointerUp : undefined}
                 onPointerCancel={dragState ? handlePointerUp : undefined}
               >
-                <div className="w-24 shrink-0 sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-y border-slate-300 dark:border-slate-800 px-2 rounded-r-md shadow-sm h-20">
+                <div className="w-full sm:w-24 shrink-0 sm:sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-transparent sm:bg-slate-100 sm:dark:bg-slate-900 border-0 sm:border-r sm:border-y border-slate-300 dark:border-slate-800 px-0 sm:px-2 sm:rounded-r-md sm:shadow-sm h-6 sm:h-20 mb-1 sm:mb-0">
                   <ImageIcon className="w-3 h-3 mr-1" /> Video
                 </div>
-                <div className="flex-1 relative h-20">
+                <div className="flex-1 relative h-20 w-full sm:w-auto">
                   {previewScenes.map((scene) => {
                     const isSelected = selectedId === scene.id;
                     const voiceBlock = voiceBlocks.find(v => v.id === scene.sectionId);
@@ -658,11 +660,11 @@ export function TimelineEditor({
               </div>
 
               {/* VOICE TRACK (Read-Only) */}
-              <div className="flex relative z-0 mb-2">
-                <div className="w-24 shrink-0 sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-y border-slate-300 dark:border-slate-800 px-2 rounded-r-md shadow-sm h-12">
+              <div className="flex flex-col sm:flex-row relative z-0 mb-6 sm:mb-2">
+                <div className="w-full sm:w-24 shrink-0 sm:sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-transparent sm:bg-slate-100 sm:dark:bg-slate-900 border-0 sm:border-r sm:border-y border-slate-300 dark:border-slate-800 px-0 sm:px-2 sm:rounded-r-md sm:shadow-sm h-6 sm:h-12 mb-1 sm:mb-0">
                   <Mic className="w-3 h-3 mr-1" /> Voice
                 </div>
-                <div className="flex-1 relative h-12">
+                <div className="flex-1 relative h-12 w-full sm:w-auto">
                   {voiceBlocks.length > 0 ? voiceBlocks.map(block => (
                     <div
                       key={block.id}
@@ -684,11 +686,11 @@ export function TimelineEditor({
               </div>
 
               {/* SUBTITLE TRACK (Disabled) */}
-              <div className="flex relative z-0 opacity-50 grayscale pointer-events-none">
-                <div className="w-24 shrink-0 sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-slate-900 border-r border-y border-slate-300 dark:border-slate-800 px-2 rounded-r-md shadow-sm h-12">
+              <div className="flex flex-col sm:flex-row relative z-0 opacity-50 grayscale pointer-events-none mb-6 sm:mb-2">
+                <div className="w-full sm:w-24 shrink-0 sm:sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-transparent sm:bg-slate-100 sm:dark:bg-slate-900 border-0 sm:border-r sm:border-y border-slate-300 dark:border-slate-800 px-0 sm:px-2 sm:rounded-r-md sm:shadow-sm h-6 sm:h-12 mb-1 sm:mb-0">
                   <Type className="w-3 h-3 mr-1" /> Subs
                 </div>
-                <div className="flex-1 relative h-12 flex items-center justify-center text-xs text-slate-400">
+                <div className="flex-1 relative h-12 flex items-center justify-center text-xs text-slate-400 w-full sm:w-auto">
                   [ Coming Soon ]
                 </div>
               </div>
@@ -698,6 +700,7 @@ export function TimelineEditor({
         </div>
 
       </div>
+    </div>
     </div>
         {/* AUDIO ENGINE */}
       <AudioPlaybackManager 
