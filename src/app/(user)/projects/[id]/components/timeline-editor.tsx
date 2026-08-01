@@ -588,10 +588,10 @@ export function TimelineEditor({
 
               {/* VIDEO TRACK (Active) */}
               <div className="flex flex-col sm:flex-row relative z-10 mb-6 sm:mb-2" 
-                onPointerMove={dragState ? handlePointerMove : undefined}
-                onPointerUp={dragState ? handlePointerUp : undefined}
-                onPointerLeave={dragState ? handlePointerUp : undefined}
-                onPointerCancel={dragState ? handlePointerUp : undefined}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
+                onPointerCancel={handlePointerUp}
               >
                 <div className="w-full sm:w-24 shrink-0 sm:sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-transparent sm:bg-slate-100 sm:dark:bg-slate-900 border-0 sm:border-r sm:border-y border-slate-300 dark:border-slate-800 px-0 sm:px-2 sm:rounded-r-md sm:shadow-sm h-6 sm:h-20 mb-1 sm:mb-0">
                   <ImageIcon className="w-3 h-3 mr-1" /> Video
@@ -618,9 +618,8 @@ export function TimelineEditor({
                         onClick={(e) => { e.stopPropagation(); setSelectedId(scene.id); }}
                         onDoubleClick={(e) => { e.stopPropagation(); handleDoubleClick(scene.id); }}
                         onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); handleReset(scene.id); }}
-                        className={`absolute top-0 bottom-0 bg-indigo-900 border-r border-indigo-950 flex flex-col items-center justify-center text-[10px] text-white transition-colors hover:bg-indigo-800 overflow-hidden cursor-pointer
-                          ${isSelected ? "bg-indigo-600 shadow-inner z-20" : "z-10"}
-                          ${warningClass}
+                        className={`absolute top-0 bottom-0 bg-transparent flex flex-col items-center justify-center cursor-pointer
+                          ${isSelected ? "z-20" : "z-10"}
                         `}
                         style={{ 
                           left: `${(scene.startTimeMs / 1000) * 20}px`,
@@ -628,13 +627,14 @@ export function TimelineEditor({
                         }}
                         title={`Scene: ${(scene.durationMs/1000).toFixed(1)}s ${warningClass ? '(Video ends before narration)' : ''}`}
                       >
-                        {scene.mediaId ? (
-                           
-                          <img src={scene.publicUrl || ""} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay pointer-events-none" />
-                        ) : null}
-                        <span className="relative z-10 drop-shadow-md truncate w-full text-center px-4 font-mono font-bold">
-                          {(scene.durationMs/1000).toFixed(1)}s
-                        </span>
+                        <div className={`absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-indigo-900 border-r border-indigo-950 text-[10px] text-white transition-colors hover:bg-indigo-800 ${isSelected ? "bg-indigo-600 shadow-inner" : ""} ${warningClass}`}>
+                          {scene.mediaId ? (
+                            <img src={scene.publicUrl || ""} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay pointer-events-none" />
+                          ) : null}
+                          <span className="relative z-10 drop-shadow-md truncate w-full text-center px-4 font-mono font-bold">
+                            {(scene.durationMs/1000).toFixed(1)}s
+                          </span>
+                        </div>
                         
                         {/* DRAG HANDLES */}
                         {isSelected && (
