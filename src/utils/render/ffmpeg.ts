@@ -130,32 +130,94 @@ export class FFmpegAdapter implements RenderAdapter {
     const scenes = this.timeline.scenes;
     const { width, height, fps, codec } = this.timeline.preset;
 
-    // Hard cuts MVP architecture
+    // Transition Mapping and Fallback
+    const mapTransition = (type: string) => {
+      const validXfade = ["fade", "fadeblack", "fadeout", "slideleft", "slideright", "slideup", "slidedown", "pushleft", "pushright", "pushup", "pushdown", "zoomin", "zoomout", "wipeleft", "wiperight", "wipeup", "wipedown", "squeezeh", "squeezev", "pixelize", "rectcrop", "circlecrop", "circleclose", "circleopen", "horzclose", "horzopen", "vertclose", "vertopen", "diagbl", "diagbr", "diagtl", "diagtr"];
+      
+      let mapped = (type || 'none').toLowerCase();
+      if (mapped === "crossfade" || mapped === "blur") mapped = "fade";
+      if (mapped === "slide-left") mapped = "slideleft";
+      if (mapped === "slide-right") mapped = "slideright";
+      if (mapped === "push-left") mapped = "pushleft";
+      if (mapped === "push-right") mapped = "pushright";
+      if (mapped === "zoom-in") mapped = "zoomin";
+      if (mapped === "zoom-out") mapped = "zoomout";
+
+      return validXfade.includes(mapped) ? mapped : "fade";
+    };
+
     const inputs: string[] = [];
     const filterComplex: string[] = [];
+    const inputDurationSecs: number[] = [];
+    const safeTransDurations: number[] = []; // Stores the clamped transition duration FROM scene i to i+1
     
+    // Pass 0: Calculate safe transitions
+    for (let i = 0; i < scenes.length - 1; i++) {
+      let rawTrans = scenes[i].transition?.type !== 'none' ? (scenes[i].transition?.durationMs || 0) : 0;
+      if (rawTrans > 0) {
+        // Clamp to min of both scenes minus 100ms safety margin
+        let maxTrans = Math.min(scenes[i].durationMs, scenes[i+1].durationMs) - 100;
+        if (maxTrans < 0) maxTrans = 0;
+        if (rawTrans > maxTrans) rawTrans = maxTrans;
+      }
+      safeTransDurations.push(rawTrans);
+    }
+    safeTransDurations.push(0); // The last scene has no transition to a next scene
+    
+    // Pass 1: Prepare inputs with Pre-padding (Center Cut)
     for (let i = 0; i < scenes.length; i++) {
       const scene = scenes[i];
+      const prevTrans = i > 0 ? safeTransDurations[i - 1] : 0;
+      const nextTrans = safeTransDurations[i];
+
+      const padStart = prevTrans / 2;
+      const padEnd = nextTrans / 2;
+      
+      const inputDurationMs = scene.durationMs + padStart + padEnd;
+      const inputDurationSec = inputDurationMs / 1000;
+      inputDurationSecs.push(inputDurationSec);
       
       if (scene.sourceUrl) {
         const safeFilename = `media_${scene.id.replace(/[^a-zA-Z0-9]/g, '')}.jpg`;
         const localPath = path.join(this.workDir, safeFilename);
         
-        inputs.push("-loop", "1", "-t", (scene.durationMs / 1000).toString(), "-i", localPath);
+        inputs.push("-loop", "1", "-t", inputDurationSec.toString(), "-i", localPath);
         
-        // Scale and crop to output canvas (e.g. 1080x1920)
-        // Using standard scale, crop, setsar to ensure uniformity
-        filterComplex.push(`[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1[v${i}]`);
+        // Ensure same framerate, pixel format, and timebase for xfade/concat
+        filterComplex.push(`[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,fps=${fps},format=yuv420p[v${i}_norm]`);
       } else {
         // Luxury black-gold placeholder with vignette
-        inputs.push("-f", "lavfi", "-t", (scene.durationMs / 1000).toString(), "-i", `color=c=#1c160a:s=${width}x${height}:r=${fps}`);
-        filterComplex.push(`[${i}:v]vignette=a=PI/2,setsar=1[v${i}]`);
+        inputs.push("-f", "lavfi", "-t", inputDurationSec.toString(), "-i", `color=c=#1c160a:s=${width}x${height}:r=${fps}`);
+        filterComplex.push(`[${i}:v]vignette=a=PI/2,setsar=1,fps=${fps},format=yuv420p[v${i}_norm]`);
       }
     }
 
-    // Concat the video streams
-    const concatInput = scenes.map((_, i) => `[v${i}]`).join('');
-    filterComplex.push(`${concatInput}concat=n=${scenes.length}:v=1:a=0[outv]`);
+    // Pass 2: Build Filter Graph (Mixed chain of xfade and concat)
+    let currentOut = `[v0_norm]`;
+    let accumulatedDurationSec = inputDurationSecs[0];
+
+    for (let i = 1; i < scenes.length; i++) {
+      const transDur = safeTransDurations[i - 1];
+      const transType = scenes[i - 1].transition?.type || 'none';
+      const transDurSec = transDur / 1000;
+      
+      const nextIn = `[v${i}_norm]`;
+      const nextOut = `[stream_${i}]`;
+
+      if (transDurSec > 0 && transType !== 'none') {
+        const offset = accumulatedDurationSec - transDurSec;
+        const xfadeType = mapTransition(transType);
+        
+        filterComplex.push(`${currentOut}${nextIn}xfade=transition=${xfadeType}:duration=${transDurSec}:offset=${offset.toFixed(3)}${nextOut}`);
+        accumulatedDurationSec = offset + inputDurationSecs[i];
+      } else {
+        filterComplex.push(`${currentOut}${nextIn}concat=n=2:v=1:a=0${nextOut}`);
+        accumulatedDurationSec += inputDurationSecs[i];
+      }
+      currentOut = nextOut;
+    }
+
+    filterComplex.push(`${currentOut}null[outv]`);
 
     // Process audio tracks
     const audioTracks = this.timeline.audioTracks || [];
