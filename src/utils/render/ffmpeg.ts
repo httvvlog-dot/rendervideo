@@ -4,8 +4,8 @@ import fs from "fs/promises";
 import os from "os";
 import { spawn } from "child_process";
 
-// @ffmpeg-installer/ffmpeg resolves to the absolute path of the ffmpeg binary
-import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+// ffmpeg-static resolves to the absolute path of the ffmpeg binary
+import ffmpegStatic from "ffmpeg-static";
 
 export interface RenderAdapter {
   prepare(jobId: string, timeline: TimelineJSON): Promise<void>;
@@ -21,7 +21,11 @@ export class FFmpegAdapter implements RenderAdapter {
   private ffmpegPath: string;
 
   constructor() {
-    this.ffmpegPath = process.env.FFMPEG_PATH || ffmpegInstaller.path;
+    const resolvedPath = process.env.FFMPEG_PATH || ffmpegStatic;
+    if (!resolvedPath) {
+      throw new Error("Failed to resolve FFmpeg path from ffmpeg-static or FFMPEG_PATH");
+    }
+    this.ffmpegPath = resolvedPath;
   }
 
   async prepare(jobId: string, timeline: TimelineJSON): Promise<void> {
@@ -132,14 +136,14 @@ export class FFmpegAdapter implements RenderAdapter {
 
     // Transition Mapping and Fallback
     const mapTransition = (type: string) => {
-      const validXfade = ["fade", "fadeblack", "fadeout", "slideleft", "slideright", "slideup", "slidedown", "pushleft", "pushright", "pushup", "pushdown", "zoomin", "zoomout", "wipeleft", "wiperight", "wipeup", "wipedown", "squeezeh", "squeezev", "pixelize", "rectcrop", "circlecrop", "circleclose", "circleopen", "horzclose", "horzopen", "vertclose", "vertopen", "diagbl", "diagbr", "diagtl", "diagtr"];
+      const validXfade = ["fade", "fadeblack", "fadeout", "slideleft", "slideright", "slideup", "slidedown", "zoomin", "zoomout", "wipeleft", "wiperight", "wipeup", "wipedown", "squeezeh", "squeezev", "pixelize", "rectcrop", "circlecrop", "circleclose", "circleopen", "horzclose", "horzopen", "vertclose", "vertopen", "diagbl", "diagbr", "diagtl", "diagtr"];
       
       let mapped = (type || 'none').toLowerCase();
       if (mapped === "crossfade" || mapped === "blur") mapped = "fade";
       if (mapped === "slide-left") mapped = "slideleft";
       if (mapped === "slide-right") mapped = "slideright";
-      if (mapped === "push-left") mapped = "pushleft";
-      if (mapped === "push-right") mapped = "pushright";
+      if (mapped === "push-left") mapped = "fade"; // fallback since pushleft is unsupported
+      if (mapped === "push-right") mapped = "fade"; // fallback since pushright is unsupported
       if (mapped === "zoom-in") mapped = "zoomin";
       if (mapped === "zoom-out") mapped = "zoomout";
 

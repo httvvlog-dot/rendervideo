@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/utils/supabase/admin";
 import { CredentialSelector } from "@/utils/provider-runtime/credential-selector";
-import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+import ffmpegStatic from "ffmpeg-static";
 
 async function runCheck() {
   console.log("Starting Worker Pre-flight Check...");
@@ -22,7 +22,7 @@ async function runCheck() {
   }
 
   // 2. FFmpeg Binary
-  const ffmpegPath = process.env.FFMPEG_PATH || ffmpegInstaller.path;
+  const ffmpegPath = process.env.FFMPEG_PATH || ffmpegStatic;
   if (ffmpegPath) {
     logPass("FFmpeg binary");
   } else {
