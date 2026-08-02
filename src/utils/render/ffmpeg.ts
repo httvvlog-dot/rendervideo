@@ -37,6 +37,8 @@ export class FFmpegAdapter implements RenderAdapter {
     for (let i = 0; i < timeline.scenes.length; i++) {
       const scene = timeline.scenes[i];
       
+      if (!scene.sourceUrl) continue;
+
       try {
         new URL(scene.sourceUrl); // Validate URL
       } catch (e) {
@@ -134,14 +136,21 @@ export class FFmpegAdapter implements RenderAdapter {
     
     for (let i = 0; i < scenes.length; i++) {
       const scene = scenes[i];
-      const safeFilename = `media_${scene.id.replace(/[^a-zA-Z0-9]/g, '')}.jpg`;
-      const localPath = path.join(this.workDir, safeFilename);
       
-      inputs.push("-loop", "1", "-t", (scene.durationMs / 1000).toString(), "-i", localPath);
-      
-      // Scale and crop to output canvas (e.g. 1080x1920)
-      // Using standard scale, crop, setsar to ensure uniformity
-      filterComplex.push(`[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1[v${i}]`);
+      if (scene.sourceUrl) {
+        const safeFilename = `media_${scene.id.replace(/[^a-zA-Z0-9]/g, '')}.jpg`;
+        const localPath = path.join(this.workDir, safeFilename);
+        
+        inputs.push("-loop", "1", "-t", (scene.durationMs / 1000).toString(), "-i", localPath);
+        
+        // Scale and crop to output canvas (e.g. 1080x1920)
+        // Using standard scale, crop, setsar to ensure uniformity
+        filterComplex.push(`[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1[v${i}]`);
+      } else {
+        // Luxury black-gold placeholder with vignette
+        inputs.push("-f", "lavfi", "-t", (scene.durationMs / 1000).toString(), "-i", `color=c=#1c160a:s=${width}x${height}:r=${fps}`);
+        filterComplex.push(`[${i}:v]vignette=a=PI/2,setsar=1[v${i}]`);
+      }
     }
 
     // Concat the video streams

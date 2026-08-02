@@ -115,17 +115,20 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
 
     expectedNextStartTimeMs = endTimeMs;
 
-    if (!scene.media_id) throw new Error(`Scene ${scene.id} has no media_id`);
-    const media = mediaMap.get(scene.media_id);
-    if (!media || !media.public_url) throw new Error(`Scene ${scene.id} references missing or unresolved media`);
+    let sourceUrl: string | null = null;
+    if (scene.media_id) {
+      const media = mediaMap.get(scene.media_id);
+      if (!media || !media.public_url) throw new Error(`Scene ${scene.id} references missing or unresolved media`);
+      sourceUrl = media.public_url;
+    }
 
     const transitionDurationMs = Math.round(Number(scene.transition_duration || 0) * 1000);
 
     renderScenes.push({
       id: scene.id,
       sectionId: scene.section_id || null,
-      mediaId: scene.media_id,
-      sourceUrl: media.public_url,
+      mediaId: scene.media_id || null,
+      sourceUrl: sourceUrl,
       
       startTimeMs,
       endTimeMs,

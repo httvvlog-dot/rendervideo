@@ -42,8 +42,8 @@ export type RenderAudioTrack = {
 export type RenderScene = {
   id: string;
   sectionId: string | null;
-  mediaId: string;
-  sourceUrl: string;
+  mediaId: string | null;
+  sourceUrl: string | null;
 
   startTimeMs: number;
   endTimeMs: number;

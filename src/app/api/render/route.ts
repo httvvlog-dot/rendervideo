@@ -24,8 +24,8 @@ const TransitionSchema = z.object({
 const RenderSceneSchema = z.object({
   id: z.string(),
   sectionId: z.string().nullable(),
-  mediaId: z.string(),
-  sourceUrl: z.string().url(),
+  mediaId: z.string().nullable(),
+  sourceUrl: z.string().url().nullable(),
   startTimeMs: z.number().nonnegative(),
   endTimeMs: z.number().positive(),
   durationMs: z.number().positive(),
