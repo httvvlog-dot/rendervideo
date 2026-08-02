@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Loader2, Film, RefreshCw } from "lucide-react"
+import { Loader2, Film, RefreshCw, AlertCircle } from "lucide-react"
 import { generateTimeline, rebuildTimeline } from "../timeline-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
@@ -20,21 +20,23 @@ export function TimelineGeneratorButton({
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [missingMediaConfirm, setMissingMediaConfirm] = useState<{ sectionId: string; sectionIndex: number; title: string | null }[] | null>(null)
   const router = useRouter()
   const { activeStep, setStep } = useWorkflowStep(allVoicesGenerated ?? false, hasExistingScenes);
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (allowMissingMedia: boolean = false) => {
     setStep(3);
     setIsGenerating(true)
     const toastId = toast.loading("Generating timeline...")
     try {
-      const res = await generateTimeline(projectId)
+      const res = await generateTimeline(projectId, allowMissingMedia)
       if (!res.success) {
         if (res.code === "TIMELINE_ALREADY_EXISTS") {
           toast.dismiss(toastId)
           setShowConfirm(true)
         } else if (res.code === "SECTION_MEDIA_MISSING") {
-          toast.error(`Media missing in ${res.missingSections?.length} section(s). Please assign images.`, { id: toastId })
+          toast.dismiss(toastId)
+          setMissingMediaConfirm(res.missingSections || [])
         } else {
           toast.error(('message' in res ? res.message : res.code) || "Failed to generate timeline", { id: toastId })
         }
@@ -50,15 +52,16 @@ export function TimelineGeneratorButton({
     }
   }
 
-  const handleRebuild = async () => {
+  const handleRebuild = async (allowMissingMedia: boolean = false) => {
     setStep(3);
     setIsGenerating(true)
     const toastId = toast.loading("Rebuilding timeline...")
     try {
-      const res = await rebuildTimeline(projectId)
+      const res = await rebuildTimeline(projectId, allowMissingMedia)
       if (!res.success) {
         if (res.code === "SECTION_MEDIA_MISSING") {
-          toast.error(`Media missing in ${res.missingSections?.length} section(s). Please assign images.`, { id: toastId })
+          toast.dismiss(toastId)
+          setMissingMediaConfirm(res.missingSections || [])
         } else {
           toast.error(('message' in res ? res.message : res.code) || "Failed to rebuild timeline", { id: toastId })
         }
@@ -89,7 +92,7 @@ export function TimelineGeneratorButton({
           <Button onClick={() => setShowConfirm(false)} variant="outline" size="sm" className="bg-white">
             Keep Current
           </Button>
-          <Button onClick={handleRebuild} disabled={isGenerating} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+          <Button onClick={() => handleRebuild(false)} disabled={isGenerating} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
             {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Yes, Rebuild Timeline
           </Button>
@@ -98,9 +101,49 @@ export function TimelineGeneratorButton({
     )
   }
 
+  if (missingMediaConfirm) {
+    return (
+      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4 mb-6">
+        <h3 className="text-amber-800 dark:text-amber-400 font-medium mb-2 flex items-center">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          Một số Section chưa có hình ảnh
+        </h3>
+        <div className="text-sm text-amber-700 dark:text-amber-500 mb-4 max-h-32 overflow-y-auto pl-6">
+          <ul className="list-disc space-y-1">
+            {missingMediaConfirm.map(s => (
+              <li key={s.sectionId}>Section {s.sectionIndex} — {s.title || "Không có tiêu đề"}</li>
+            ))}
+          </ul>
+        </div>
+        <p className="text-sm text-amber-700 dark:text-amber-500 mb-4 font-medium">
+          Bạn vẫn có thể tạo Timeline và bổ sung hình ảnh sau.
+        </p>
+        <div className="flex space-x-3">
+          <Button onClick={() => setMissingMediaConfirm(null)} variant="outline" size="sm" className="bg-white">
+            Bổ sung ảnh
+          </Button>
+          <Button 
+            onClick={() => {
+              setMissingMediaConfirm(null);
+              if (showConfirm) {
+                handleRebuild(true);
+              } else {
+                handleGenerate(true);
+              }
+            }} 
+            disabled={isGenerating} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            Vẫn Generate Timeline
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Button 
-      onClick={() => hasExistingScenes ? setShowConfirm(true) : handleGenerate()} 
+      onClick={() => hasExistingScenes ? setShowConfirm(true) : handleGenerate(false)} 
       disabled={isGenerating || (allVoicesGenerated === false)}
       className={`transition-all w-full sm:w-auto ${
         (allVoicesGenerated !== false && activeStep === 3) 

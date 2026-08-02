@@ -15,7 +15,7 @@ export type TimelineActionResult =
   | { success: false; code: "INVALID_ACTIVE_SCRIPT" }
   | { success: false; code: "TIMELINE_VALIDATION_FAILED"; message: string }
 
-async function buildTimelineCore(projectId: string, isRebuild: boolean = false, useVoiceDuration: boolean = false): Promise<TimelineActionResult> {
+async function buildTimelineCore(projectId: string, isRebuild: boolean = false, useVoiceDuration: boolean = false, allowMissingMedia: boolean = false): Promise<TimelineActionResult> {
   const user = await getCurrentUser()
   if (!user) return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: "Unauthorized" }
 
@@ -84,11 +84,42 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
     const sectionMedia = mediaBySectionId.get(section.id) || []
     
     if (sectionMedia.length === 0) {
-      missingSections.push({
-        sectionId: section.id,
-        sectionIndex: section.section_index,
-        title: section.title
+      if (!allowMissingMedia) {
+        missingSections.push({
+          sectionId: section.id,
+          sectionIndex: section.section_index,
+          title: section.title
+        })
+        continue
+      }
+
+      // Generate a single empty scene with no media
+      let sectionDurationMs = Math.round(Number(section.duration_seconds) * 1000)
+      if (useVoiceDuration) {
+        if (section.voice_duration_ms) {
+          sectionDurationMs = Number(section.voice_duration_ms)
+        }
+      }
+      expectedGlobalTotalMs += sectionDurationMs
+      
+      if (sectionDurationMs <= 0) {
+        return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: `Scene duration <= 0 calculated in section ${section.section_index}` }
+      }
+      
+      const startTimeMs = globalCursorMs
+      const endTimeMs = startTimeMs + sectionDurationMs
+      
+      newScenes.push({
+        media_id: null,
+        section_id: section.id,
+        duration: sectionDurationMs / 1000.0,
+        start_time: startTimeMs / 1000.0,
+        end_time: endTimeMs / 1000.0,
+        sort_order: globalSortOrder
       })
+      
+      globalCursorMs = endTimeMs
+      globalSortOrder++
       continue
     }
 
@@ -145,7 +176,7 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
     }
   }
 
-  if (missingSections.length > 0) {
+  if (missingSections.length > 0 && !allowMissingMedia) {
     return { success: false, code: "SECTION_MEDIA_MISSING", missingSections }
   }
 
@@ -182,16 +213,16 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
   return { success: true, code: "TIMELINE_CREATED", sceneCount: newScenes.length, totalDurationMs: expectedGlobalTotalMs }
 }
 
-export async function generateTimeline(projectId: string): Promise<TimelineActionResult> {
-  return await buildTimelineCore(projectId, false)
+export async function generateTimeline(projectId: string, allowMissingMedia: boolean = false): Promise<TimelineActionResult> {
+  return await buildTimelineCore(projectId, false, false, allowMissingMedia)
 }
 
-export async function rebuildTimeline(projectId: string): Promise<TimelineActionResult> {
-  return await buildTimelineCore(projectId, true)
+export async function rebuildTimeline(projectId: string, allowMissingMedia: boolean = false): Promise<TimelineActionResult> {
+  return await buildTimelineCore(projectId, true, false, allowMissingMedia)
 }
 
-export async function syncTimelineToVoice(projectId: string): Promise<TimelineActionResult> {
-  return await buildTimelineCore(projectId, true, true)
+export async function syncTimelineToVoice(projectId: string, allowMissingMedia: boolean = false): Promise<TimelineActionResult> {
+  return await buildTimelineCore(projectId, true, true, allowMissingMedia)
 }
 
 export async function updateTimelineDurations(projectId: string, updates: { id: string, durationMs: number, startTimeMs: number, endTimeMs: number }[]) {
