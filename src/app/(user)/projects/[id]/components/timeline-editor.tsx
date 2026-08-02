@@ -72,6 +72,19 @@ export function TimelineEditor({
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [renderJobId, setRenderJobId] = useState<string | undefined>(undefined)
+  
+  const renderStatusRef = useRef<HTMLDivElement>(null)
+  const shouldScrollToRenderRef = useRef(false)
+
+  useEffect(() => {
+    if (renderJobId && shouldScrollToRenderRef.current && renderStatusRef.current) {
+      renderStatusRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      shouldScrollToRenderRef.current = false;
+    }
+  }, [renderJobId]);
 
   // --- TIMELINE DOCUMENT STATE ---
   const [doc, setDoc] = useState<TimelineDocument>(() => {
@@ -512,6 +525,7 @@ export function TimelineEditor({
               size="sm" 
               className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/20 flex-1 sm:flex-none"
           onClick={async () => {
+            shouldScrollToRenderRef.current = true;
             try {
               const res = await fetch('/api/render', {
                 method: 'POST',
@@ -710,11 +724,13 @@ export function TimelineEditor({
       />
       <AudioDiagnosticsPanel activeUrl={voiceBlocks.length > 0 ? voiceBlocks[0].sourceUrl : undefined} />
 
-      <RenderQueueReal 
-        jobId={renderJobId} 
-        onRenderAgain={() => setRenderJobId(undefined)} 
-        onComplete={() => setRenderJobId(undefined)}
-      />
+      <div ref={renderStatusRef} className="scroll-mt-20">
+        <RenderQueueReal 
+          jobId={renderJobId} 
+          onRenderAgain={() => setRenderJobId(undefined)} 
+          onComplete={() => setRenderJobId(undefined)}
+        />
+      </div>
       <RenderHistory projectId={projectId} />
     </>
   )
