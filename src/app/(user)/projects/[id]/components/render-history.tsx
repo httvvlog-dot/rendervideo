@@ -139,33 +139,38 @@ export function RenderHistory({ projectId }: { projectId: string }) {
 
       {/* Latest Output */}
       {outputs.latest && (
-        <div className="bg-slate-900 border border-emerald-900/50 rounded-xl p-8 shadow-2xl relative overflow-hidden">
+        <div className="bg-slate-900 border border-emerald-900/50 rounded-xl p-4 sm:p-6 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex items-center space-x-6">
-              <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center shrink-0">
-                <CheckCircle className="w-10 h-10 text-emerald-400" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+            <div className="flex items-center space-x-4 sm:space-x-6">
+              <div className="hidden sm:flex w-12 h-12 bg-emerald-500/20 rounded-full items-center justify-center shrink-0">
+                <CheckCircle className="w-6 h-6 text-emerald-400" />
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
-                  🎬 Latest Render <span className="text-emerald-400 text-lg">V{outputs.latest.version}</span>
-                </h2>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400 font-mono">
-                  <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">MP4</span>
-                  <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">{getResolutionLabel(outputs.latest.width, outputs.latest.height)}</span>
-                  <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">{outputs.latest.fps} FPS</span>
-                  <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">{formatDuration(outputs.latest.duration_ms)}</span>
-                  <span className="bg-slate-800 px-2 py-1 rounded border border-slate-700">{formatSize(outputs.latest.file_size)}</span>
-                  <span className="text-slate-500 ml-2">Rendered: {timeAgo(outputs.latest.created_at)}</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2 sm:mb-1.5">
+                  <div className="sm:hidden w-6 h-6 bg-emerald-500/20 rounded-full flex items-center justify-center shrink-0 mr-1">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    🎬 Latest Render <span className="text-emerald-400 text-base sm:text-lg">V{outputs.latest.version}</span>
+                  </h2>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-slate-400 font-mono">
+                  <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">MP4</span>
+                  <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">{getResolutionLabel(outputs.latest.width, outputs.latest.height)}</span>
+                  <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">{outputs.latest.fps} FPS</span>
+                  <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">{formatDuration(outputs.latest.duration_ms)}</span>
+                  <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">{formatSize(outputs.latest.file_size)}</span>
+                  <span className="text-slate-500 ml-1 sm:ml-2 block sm:inline w-full sm:w-auto mt-1 sm:mt-0">Rendered: {timeAgo(outputs.latest.created_at)}</span>
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3 justify-end shrink-0">
-              <Button variant="outline" className="border-slate-700 bg-slate-800 text-slate-200" onClick={() => handlePlay(outputs.latest!)} disabled={workingId === outputs.latest.id}>
-                {workingId === outputs.latest.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />} Play
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0 mt-1 sm:mt-0">
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none border-slate-700 bg-slate-800 text-slate-200 text-xs sm:text-sm h-8 sm:h-9" onClick={() => handlePlay(outputs.latest!)} disabled={workingId === outputs.latest.id}>
+                {workingId === outputs.latest.id ? <Loader2 className="w-3.5 h-3.5 mr-1.5 sm:mr-2 animate-spin" /> : <Play className="w-3.5 h-3.5 mr-1.5 sm:mr-2" />} Play
               </Button>
-              <Button className="bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => handleDownload(outputs.latest!)}>
-                <Download className="w-4 h-4 mr-2" /> Download
+              <Button size="sm" className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm h-8 sm:h-9" onClick={() => handleDownload(outputs.latest!)}>
+                <Download className="w-3.5 h-3.5 mr-1.5 sm:mr-2" /> Download
               </Button>
             </div>
           </div>
@@ -174,21 +179,21 @@ export function RenderHistory({ projectId }: { projectId: string }) {
 
       {/* Render History List */}
       {outputs.history.length > 0 && (
-        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6 shadow-sm">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 sm:p-6 shadow-sm">
+          <div className="mb-3 sm:mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
               Render History &middot; {outputs.history.length} version{outputs.history.length > 1 ? 's' : ''}
             </h3>
-            <p className="text-sm text-slate-500">Previous rendered versions</p>
+            <p className="text-xs sm:text-sm text-slate-500">Previous rendered versions</p>
           </div>
           
           <div className="space-y-0 divide-y divide-slate-100 dark:divide-slate-800/60">
             {outputs.history.map(output => (
               <div key={output.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-0.5 sm:gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">Version {output.version}</span>
-                    {output.is_current && <span className="text-[10px] uppercase font-bold tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded">Current</span>}
+                    <span className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-200">Version {output.version}</span>
+                    {output.is_current && <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded">Current</span>}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-2 flex-wrap mt-1">
                     <span>{getResolutionLabel(output.width, output.height)}</span>
@@ -203,21 +208,21 @@ export function RenderHistory({ projectId }: { projectId: string }) {
                     {new Date(output.created_at).toLocaleDateString()} {new Date(output.created_at).toLocaleTimeString()}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 sm:justify-end mt-1 sm:mt-0">
+                <div className="flex items-center gap-2 sm:justify-end mt-1.5 sm:mt-0 w-full sm:w-auto">
                   {!output.is_current && (
-                    <Button variant="ghost" size="sm" className="h-8 px-2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" title="Set as Current" onClick={() => handleSetCurrent(output.id)} disabled={workingId === output.id}>
-                      <Star className="w-4 h-4" />
+                    <Button variant="ghost" size="sm" className="h-7 sm:h-8 px-2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hidden sm:inline-flex" title="Set as Current" onClick={() => handleSetCurrent(output.id)} disabled={workingId === output.id}>
+                      <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Button>
                   )}
-                  <Button variant="outline" size="sm" className="h-8 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700" onClick={() => handlePlay(output)} disabled={workingId === output.id}>
-                    <Play className="w-3.5 h-3.5 mr-1.5" /> Play
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-7 sm:h-8 text-xs sm:text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700" onClick={() => handlePlay(output)} disabled={workingId === output.id}>
+                    <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5" /> Play
                   </Button>
-                  <Button variant="outline" size="sm" className="h-8 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700" onClick={() => handleDownload(output)}>
-                    <Download className="w-3.5 h-3.5 mr-1.5" /> Download
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-7 sm:h-8 text-xs sm:text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700" onClick={() => handleDownload(output)}>
+                    <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5" /> Download
                   </Button>
                   {!output.is_current && (
-                    <Button variant="ghost" size="sm" className="h-8 px-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/20" title="Delete version" onClick={() => handleDelete(output.id)} disabled={workingId === output.id}>
-                      <Trash2 className="w-4 h-4" />
+                    <Button variant="ghost" size="sm" className="h-7 sm:h-8 px-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/20" title="Delete version" onClick={() => handleDelete(output.id)} disabled={workingId === output.id}>
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Button>
                   )}
                 </div>
