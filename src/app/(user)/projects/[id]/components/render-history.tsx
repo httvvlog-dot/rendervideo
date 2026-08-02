@@ -172,46 +172,51 @@ export function RenderHistory({ projectId }: { projectId: string }) {
         </div>
       )}
 
-      {/* Version History List */}
+      {/* Render History List */}
       {outputs.history.length > 0 && (
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-slate-300 mb-4 flex items-center">
-            <Video className="w-5 h-5 mr-2" /> Version History
-          </h3>
-          <div className="space-y-3">
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-6 shadow-sm">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              Render History &middot; {outputs.history.length} version{outputs.history.length > 1 ? 's' : ''}
+            </h3>
+            <p className="text-sm text-slate-500">Previous rendered versions</p>
+          </div>
+          
+          <div className="space-y-0 divide-y divide-slate-100 dark:divide-slate-800/60">
             {outputs.history.map(output => (
-              <div key={output.id} className={`flex items-center justify-between p-3 rounded-lg border ${output.is_current ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-slate-800 bg-slate-800/50'}`}>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-slate-800 rounded flex items-center justify-center shrink-0">
-                    <Video className="w-5 h-5 text-slate-500" />
+              <div key={output.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">Version {output.version}</span>
+                    {output.is_current && <span className="text-[10px] uppercase font-bold tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded">Current</span>}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-200">Version {output.version}</span>
-                      {output.is_current && <span className="text-[10px] uppercase tracking-wider bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">Current</span>}
-                    </div>
-                    <div className="text-xs text-slate-500 font-mono mt-1 flex gap-3">
-                      <span>{new Date(output.created_at).toLocaleString()}</span>
-                      <span>{getResolutionLabel(output.width, output.height)}</span>
-                      <span>{formatDuration(output.duration_ms)}</span>
-                      <span>{formatSize(output.file_size)}</span>
-                    </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-2 flex-wrap mt-1">
+                    <span>{getResolutionLabel(output.width, output.height)}</span>
+                    <span className="text-slate-300 dark:text-slate-700">&bull;</span>
+                    <span>{output.fps} FPS</span>
+                    <span className="text-slate-300 dark:text-slate-700">&bull;</span>
+                    <span>{formatDuration(output.duration_ms)}</span>
+                    <span className="text-slate-300 dark:text-slate-700">&bull;</span>
+                    <span>{formatSize(output.file_size)}</span>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">
+                    {new Date(output.created_at).toLocaleDateString()} {new Date(output.created_at).toLocaleTimeString()}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 sm:justify-end mt-1 sm:mt-0">
                   {!output.is_current && (
-                    <Button variant="ghost" size="sm" className="h-8 text-slate-400 hover:text-emerald-400" title="Set as Current" onClick={() => handleSetCurrent(output.id)} disabled={workingId === output.id}>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20" title="Set as Current" onClick={() => handleSetCurrent(output.id)} disabled={workingId === output.id}>
                       <Star className="w-4 h-4" />
                     </Button>
                   )}
-                  <Button variant="ghost" size="sm" className="h-8 text-slate-400 hover:text-white" onClick={() => handlePlay(output)} disabled={workingId === output.id}>
-                    <Play className="w-4 h-4" />
+                  <Button variant="outline" size="sm" className="h-8 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700" onClick={() => handlePlay(output)} disabled={workingId === output.id}>
+                    <Play className="w-3.5 h-3.5 mr-1.5" /> Play
                   </Button>
-                  <Button variant="ghost" size="sm" className="h-8 text-slate-400 hover:text-white" onClick={() => handleDownload(output)}>
-                    <Download className="w-4 h-4" />
+                  <Button variant="outline" size="sm" className="h-8 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700" onClick={() => handleDownload(output)}>
+                    <Download className="w-3.5 h-3.5 mr-1.5" /> Download
                   </Button>
                   {!output.is_current && (
-                    <Button variant="ghost" size="sm" className="h-8 text-slate-500 hover:text-red-400" onClick={() => handleDelete(output.id)} disabled={workingId === output.id}>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/20" title="Delete version" onClick={() => handleDelete(output.id)} disabled={workingId === output.id}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   )}
