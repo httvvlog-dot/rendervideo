@@ -7,6 +7,7 @@ import { AdapterRegistry } from "@/utils/provider-runtime/adapters/factory"
 import { MediaService } from "@/utils/media/MediaService"
 import { ReferenceManager } from "@/utils/media/ReferenceManager"
 import * as crypto from "crypto";
+import { revalidatePath } from "next/cache";
 
 import { PromptValidator } from "@/utils/prompt-validator"
 import { ImageProviderAdapter } from "@/utils/provider-runtime/adapters/image-adapters"
@@ -252,6 +253,7 @@ export async function saveAIImage(projectId: string, sectionId: string, url: str
     // 4. Update Reference Count (Single Source of Truth)
     await ReferenceManager.attach(asset.id, "project_media", mediaData.id);
     
+    revalidatePath(`/projects/${projectId}`);
     return { success: true, data: mediaData };
   } catch (error: any) {
     console.error("Save AI Image Error:", error);
