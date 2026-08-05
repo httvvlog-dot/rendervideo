@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
+import { HataraLogo } from "@/components/hatara-logo"
 import { ChangePasswordDialog } from "./change-password-dialog"
 
 export function UserTopbar() {
@@ -40,7 +41,8 @@ export function UserTopbar() {
         <Button variant="ghost" size="icon" className="-ml-2">
           <Menu className="h-6 w-6" />
         </Button>
-        <span className="ml-2 text-lg font-bold">TaoVideo</span>
+        <HataraLogo className="ml-2 h-6 w-6" />
+        <span className="ml-2 text-lg font-bold">Hatara Studio</span>
       </div>
       
       <div className="ml-auto flex items-center space-x-4">

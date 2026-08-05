@@ -3,7 +3,8 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { LayoutDashboard, FolderKanban, Video, Wallet } from "lucide-react"
+import { LayoutDashboard, FolderKanban, Wallet } from "lucide-react"
+import { HataraLogo } from "@/components/hatara-logo"
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -18,8 +19,8 @@ export function UserSidebar() {
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-white/80 backdrop-blur-md transition-transform dark:bg-slate-950/80 hidden lg:block">
       <div className="flex h-full flex-col px-3 py-4">
         <div className="mb-6 px-3 flex items-center space-x-2">
-          <Video className="h-6 w-6 text-indigo-600" />
-          <span className="text-xl font-bold tracking-tight">TaoVideo</span>
+          <HataraLogo className="h-6 w-6" />
+          <span className="text-xl font-bold tracking-tight">Hatara Studio</span>
         </div>
         <ul className="space-y-2 font-medium flex-1">
           {navItems.map((item) => {

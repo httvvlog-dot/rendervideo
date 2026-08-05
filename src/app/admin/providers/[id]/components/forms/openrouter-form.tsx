@@ -187,7 +187,7 @@ export function OpenRouterForm({ providerId, credential, onSuccess }: { provider
             type="text" 
             name="siteName" 
             defaultValue={config.siteName}
-            placeholder="TaoVideo AI"
+            placeholder="Hatara Studio"
             className="w-full border rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>

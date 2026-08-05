@@ -2,12 +2,13 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { motion } from "framer-motion"
-import { Video, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { login, signup } from "./actions"
+import { HataraLogo } from "@/components/hatara-logo"
 import { useSearchParams } from "next/navigation"
 
 function LoginForm() {
@@ -120,11 +121,11 @@ export default function LoginPage() {
         className="w-full max-w-md"
       >
         <div className="mb-8 flex flex-col items-center justify-center space-y-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg">
-            <Video className="h-6 w-6" />
+          <div className="flex items-center justify-center">
+            <HataraLogo className="h-12 w-12" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
-            TaoVideo
+            Hatara Studio
           </h1>
         </div>
 

@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { Video, ArrowRight, CheckCircle2 } from "lucide-react"
+import { ArrowRight, CheckCircle2 } from "lucide-react"
+import { HataraLogo } from "@/components/hatara-logo"
 import { Button } from "@/components/ui/button"
 
 export default function Home() {
@@ -7,8 +8,8 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       <header className="flex items-center justify-between px-6 py-4 border-b bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <Video className="h-6 w-6 text-indigo-600" />
-          <span className="font-bold text-xl tracking-tight">TaoVideo</span>
+          <HataraLogo className="h-8 w-8" />
+          <span className="font-bold text-xl tracking-tight">Hatara Studio</span>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/login" className="text-sm font-medium hover:text-indigo-600 transition-colors">
@@ -24,7 +25,7 @@ export default function Home() {
 
       <main className="flex-1 flex flex-col items-center justify-center text-center px-4 py-20">
         <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-2xl">
-          <Video className="h-10 w-10" />
+          <HataraLogo className="h-10 w-10 text-white" />
         </div>
         
         <h1 className="mb-4 text-5xl font-extrabold tracking-tight sm:text-7xl max-w-4xl">
@@ -78,7 +79,7 @@ export default function Home() {
       </main>
 
       <footer className="py-6 border-t text-center text-sm text-slate-500">
-        © 2026 TaoVideo. All rights reserved.
+        © 2026 Hatara Studio. All rights reserved.
       </footer>
     </div>
   )
