@@ -152,7 +152,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
                Regenerate
             </Button>
-            <Button onClick={handleDelete} variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0 hidden sm:flex">
+            <Button onClick={handleDelete} variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0 hidden sm:flex" title="Delete">
                <Trash className="h-4 w-4" />
             </Button>
           </div>

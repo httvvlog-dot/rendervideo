@@ -169,50 +169,85 @@ export function WalletClientPage({
       {/* 3. Transaction History */}
       <div>
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2 mt-8 text-slate-900 dark:text-white"><FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Transaction History</h2>
-        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-x-auto bg-white dark:bg-slate-900 shadow-sm">
-          <table className="w-full text-left text-xs sm:text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap min-w-[500px]">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <tr>
-                <th className="px-4 sm:px-6 py-3 font-medium">Date</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">Description</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">Credits / VNĐ</th>
-                <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-              {transactions.length === 0 ? (
+        <div className="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+          {/* Desktop Table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap min-w-[500px]">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <tr>
-                  <td colSpan={4}>
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <FileText className="h-10 w-10 mb-3 text-indigo-400 opacity-50" />
-                      <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">No transactions yet</p>
-                    </div>
-                  </td>
+                  <th className="px-6 py-3 font-medium">Date</th>
+                  <th className="px-6 py-3 font-medium">Description</th>
+                  <th className="px-6 py-3 font-medium">Credits / VNĐ</th>
+                  <th className="px-6 py-3 font-medium">Status</th>
                 </tr>
-              ) : (
-                transactions.map(t => (
-                  <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-4 sm:px-6 py-4 font-mono text-xs text-slate-500 align-top pt-5">
-                      {new Date(t.created_at).toLocaleString('vi-VN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="px-4 sm:px-6 py-4 font-medium text-slate-800 dark:text-slate-200 align-top pt-5">
-                      {getFeatureIcon(t.feature)}
-                      {t.transaction_type === "REFUND" && <span className="ml-1 sm:ml-2 text-xs text-purple-500 dark:text-purple-400">(Refund)</span>}
-                    </td>
-                    <td className={`px-4 sm:px-6 py-4 font-bold align-top ${t.amount < 0 ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
-                      <div>{t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()} Credits</div>
-                      <div className="text-xs font-medium opacity-70 mt-1">≈ {t.amount > 0 ? '+' : ''}{Math.abs(t.amount * CREDIT_TO_VND).toLocaleString('vi-VN')} VNĐ</div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-4 align-top pt-5">
-                      <span className={`px-2 sm:px-2.5 py-1 border rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(t.status || t.transaction_type)}`}>
-                        {t.status || t.transaction_type}
-                      </span>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={4}>
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <FileText className="h-10 w-10 mb-3 text-indigo-400 opacity-50" />
+                        <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">No transactions yet</p>
+                      </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  transactions.map(t => (
+                    <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="px-6 py-4 font-mono text-xs text-slate-500 align-top pt-5">
+                        {new Date(t.created_at).toLocaleString('vi-VN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200 align-top pt-5">
+                        {getFeatureIcon(t.feature)}
+                        {t.transaction_type === "REFUND" && <span className="ml-2 text-xs text-purple-500 dark:text-purple-400">(Refund)</span>}
+                      </td>
+                      <td className={`px-6 py-4 font-bold align-top ${t.amount < 0 ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
+                        <div>{t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()} Credits</div>
+                        <div className="text-xs font-medium opacity-70 mt-1">≈ {t.amount > 0 ? '+' : ''}{Math.abs(t.amount * CREDIT_TO_VND).toLocaleString('vi-VN')} VNĐ</div>
+                      </td>
+                      <td className="px-6 py-4 align-top pt-5">
+                        <span className={`px-2.5 py-1 border rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(t.status || t.transaction_type)}`}>
+                          {t.status || t.transaction_type}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile List */}
+          <div className="sm:hidden flex flex-col divide-y divide-slate-100 dark:divide-slate-800/80">
+            {transactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileText className="h-10 w-10 mb-3 text-indigo-400 opacity-50" />
+                <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">No transactions yet</p>
+              </div>
+            ) : (
+              transactions.map(t => (
+                <div key={t.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-medium text-slate-800 dark:text-slate-200 text-sm flex-1">
+                      {getFeatureIcon(t.feature)}
+                      {t.transaction_type === "REFUND" && <span className="ml-1 text-xs text-purple-500 dark:text-purple-400">(Refund)</span>}
+                    </div>
+                    <div className={`font-bold text-right text-sm ${t.amount < 0 ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
+                      <div>{t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()} Cr</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <div className="font-mono text-xs text-slate-500">
+                      {new Date(t.created_at).toLocaleString('vi-VN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <span className={`px-2 py-0.5 border rounded-full text-[9px] font-bold uppercase tracking-wider ${getStatusColor(t.status || t.transaction_type)}`}>
+                      {t.status || t.transaction_type}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>
