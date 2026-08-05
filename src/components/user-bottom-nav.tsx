@@ -48,7 +48,7 @@ export function UserBottomNav() {
                         : "text-slate-500 group-hover:bg-slate-100 dark:text-slate-400 dark:group-hover:bg-slate-800"
                     }`}
                   >
-                    <item.icon className={`h-6 w-6 ${isActive ? "" : "group-hover:text-slate-900 dark:group-hover:text-white"}`} />
+                    <item.icon className={`h-5 w-5 ${isActive ? "" : "group-hover:text-slate-900 dark:group-hover:text-white"}`} />
                   </div>
                   
                   {/* Badge logic for Wallet */}
@@ -59,7 +59,7 @@ export function UserBottomNav() {
                   )}
                 </div>
                 <span 
-                  className={`text-[10px] font-medium transition-colors ${
+                  className={`text-[11px] font-medium transition-colors ${
                     isActive 
                       ? "text-indigo-600 dark:text-indigo-400" 
                       : "text-slate-500 dark:text-slate-400"

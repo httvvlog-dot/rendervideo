@@ -41,13 +41,13 @@ export function UserTopbar() {
         <Button variant="ghost" size="icon" className="-ml-2 active:scale-[0.98] transition-all duration-200">
           <Menu className="h-6 w-6" />
         </Button>
-        <HataraLogo className="ml-2 h-6 w-6 shrink-0" />
-        <div className="ml-2 flex flex-col hidden sm:flex">
-          <span className="text-lg font-extrabold tracking-tight leading-none">
+        <HataraLogo className="ml-2 h-6 w-6 sm:h-6 sm:w-6 shrink-0" />
+        <div className="ml-2 flex flex-col">
+          <span className="text-[14px] sm:text-lg font-bold sm:font-extrabold tracking-tight leading-none">
             <span className="bg-gradient-to-br from-purple-500 via-fuchsia-500 to-blue-500 bg-clip-text text-transparent">Hatara</span>
             <span className="text-slate-900 dark:text-slate-50 ml-1">Studio</span>
           </span>
-          <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 leading-none">
+          <span className="hidden sm:block text-[9px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 leading-none">
             AI Creative Platform
           </span>
         </div>

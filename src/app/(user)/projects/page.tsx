@@ -20,8 +20,8 @@ export default async function ProjectsPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Projects</h1>
-        <p className="text-muted-foreground mt-1">View and manage your completed AI video projects.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">My Projects</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">View and manage your completed AI video projects.</p>
       </div>
 
       <Card>
@@ -31,9 +31,9 @@ export default async function ProjectsPage() {
         </CardHeader>
         <CardContent>
           {completedProjects && completedProjects.length > 0 ? (
-            <div className="space-y-4">
+            <div className="flex flex-col gap-2.5 sm:gap-4">
               {completedProjects.map((project: any) => (
-                <Link href={`/projects/${project.project_id}`} key={project.project_id} className="group relative flex items-center justify-between p-3 rounded-lg hover:border-transparent transition-colors overflow-hidden border border-slate-200 dark:border-slate-800">
+                <Link href={`/projects/${project.project_id}`} key={project.project_id} className="group relative flex items-center justify-between p-2.5 sm:p-3 rounded-lg hover:border-transparent transition-colors overflow-hidden border border-slate-200 dark:border-slate-800">
                   {/* Hover Gradient Border Background */}
                   <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0">
                     <div className="bg-slate-50 dark:bg-slate-900 w-full h-full rounded-[7px]"></div>
@@ -45,14 +45,14 @@ export default async function ProjectsPage() {
                         <PlayCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm text-slate-900 dark:text-slate-100">{project.title}</p>
+                        <p className="font-medium sm:font-semibold text-sm text-slate-900 dark:text-slate-100">{project.title}</p>
                         <p className="text-xs text-muted-foreground">
                           Last render: {new Date(project.last_completed_at || project.created_at).toLocaleString()}
                         </p>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                       <span className="text-xs px-2 py-1 rounded-full font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                       <span className="text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 rounded-full font-medium bg-emerald-50 text-emerald-600 border border-emerald-200/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50">
                          {project.lifecycle_status}
                        </span>
                        {project.latest_resolution && (

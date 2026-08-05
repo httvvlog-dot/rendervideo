@@ -30,69 +30,69 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Welcome back, {user?.full_name || user?.email}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Welcome back, {user?.full_name || user?.email}</p>
         </div>
         <Link href="/projects/new">
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white active:scale-[0.98] transition-all duration-200">
-            <Plus className="mr-2 h-4 w-4" /> Create Project
+          <Button className="h-9 sm:h-10 px-3 sm:px-4 bg-indigo-600 hover:bg-indigo-700 text-white active:scale-[0.98] transition-all duration-200">
+            <Plus className="mr-1.5 h-4 w-4" /> Create Project
           </Button>
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Projects</CardTitle>
-            <FolderKanban className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <Card className="p-3 sm:p-5">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Projects</CardTitle>
+            <FolderKanban className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-indigo-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.total || 0}</div>
+          <CardContent className="p-0">
+            <div className="text-xl sm:text-2xl font-bold">{summary.total || 0}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Draft</CardTitle>
-            <FolderKanban className="h-4 w-4 text-muted-foreground" />
+        <Card className="p-3 sm:p-5">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Draft</CardTitle>
+            <FolderKanban className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-violet-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.draft || 0}</div>
+          <CardContent className="p-0">
+            <div className="text-xl sm:text-2xl font-bold">{summary.draft || 0}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rendering</CardTitle>
-            <Clock className="h-4 w-4 text-amber-500" />
+        <Card className="p-3 sm:p-5">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Rendering</CardTitle>
+            <Clock className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-amber-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.rendering || 0}</div>
+          <CardContent className="p-0">
+            <div className="text-xl sm:text-2xl font-bold">{summary.rendering || 0}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+        <Card className="p-3 sm:p-5">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Completed</CardTitle>
+            <CheckCircle2 className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-emerald-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.completed || 0}</div>
+          <CardContent className="p-0">
+            <div className="text-xl sm:text-2xl font-bold">{summary.completed || 0}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Failed</CardTitle>
-            <Activity className="h-4 w-4 text-red-500" />
+        <Card className="p-3 sm:p-5">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Failed</CardTitle>
+            <Activity className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-red-500" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.failed || 0}</div>
+          <CardContent className="p-0">
+            <div className="text-xl sm:text-2xl font-bold">{summary.failed || 0}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Credits Used</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+        <Card className="p-3 sm:p-5">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Credits Used</CardTitle>
+            <Activity className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-slate-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{creditsUsed.toLocaleString()}</div>
+          <CardContent className="p-0">
+            <div className="text-xl sm:text-2xl font-bold">{creditsUsed.toLocaleString()}</div>
           </CardContent>
         </Card>
       </div>
@@ -105,9 +105,9 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {recentProjects && recentProjects.length > 0 ? (
-              <div className="space-y-4">
+              <div className="flex flex-col gap-2.5 sm:gap-4">
                 {recentProjects.map((project: any) => (
-                  <Link href={`/projects/${project.project_id}`} key={project.project_id} className="group relative flex items-center justify-between p-3 rounded-lg hover:border-transparent transition-colors overflow-hidden border border-slate-200 dark:border-slate-800 hover:shadow-[0_0_15px_rgba(99,102,241,0.1)]">
+                  <Link href={`/projects/${project.project_id}`} key={project.project_id} className="group relative flex items-center justify-between p-2.5 sm:p-3 rounded-lg hover:border-transparent transition-colors overflow-hidden border border-slate-200 dark:border-slate-800 hover:shadow-[0_0_15px_rgba(99,102,241,0.1)]">
                     {/* Hover Gradient Border Background */}
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0">
                       <div className="bg-slate-50 dark:bg-slate-900 w-full h-full rounded-[7px]"></div>
@@ -134,11 +134,11 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium
-                          ${project.lifecycle_status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 
-                            project.lifecycle_status === 'FAILED' ? 'bg-red-100 text-red-800 border border-red-200' : 
-                            project.lifecycle_status === 'RENDERING' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 
-                            'bg-slate-100 text-slate-800 border border-slate-200'}`}>
+                        <span className={`text-[10px] sm:text-xs px-2 py-0.5 sm:py-1 rounded-full font-medium
+                          ${project.lifecycle_status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50' : 
+                            project.lifecycle_status === 'FAILED' ? 'bg-red-50 text-red-600 border border-red-200/50 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800/50' : 
+                            project.lifecycle_status === 'RENDERING' ? 'bg-amber-50 text-amber-600 border border-amber-200/50 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/50' : 
+                            'bg-slate-50 text-slate-600 border border-slate-200/50 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'}`}>
                           {project.lifecycle_status}
                         </span>
                         {project.lifecycle_status === 'COMPLETED' && project.latest_resolution && (

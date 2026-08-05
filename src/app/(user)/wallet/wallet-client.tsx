@@ -64,36 +64,36 @@ export function WalletClientPage({
 
       {/* 1. Wallet Summary */}
       <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 shadow-[0_0_20px_rgba(139,92,246,0.15)]">
-        <div className="bg-slate-950 rounded-[15px] p-6 sm:p-8 relative overflow-hidden h-full w-full">
+        <div className="bg-slate-950 rounded-[15px] p-5 sm:p-8 relative overflow-hidden h-full w-full">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/50 to-slate-900 pointer-events-none"></div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
           
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-5 sm:gap-6">
           <div>
-            <div className="flex items-center text-indigo-300 mb-2 font-medium">
-              <Wallet className="w-5 h-5 mr-2" />
+            <div className="flex items-center text-indigo-300 mb-1.5 sm:mb-2 font-medium text-sm sm:text-base">
+              <Wallet className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
               AI Wallet Balance
             </div>
-            <div className="flex items-baseline gap-3">
-              <div className="text-5xl font-extrabold text-white">{balance.toLocaleString()}</div>
-              <div className="text-xl font-medium text-indigo-300/80">≈ {balanceVnd.toLocaleString('vi-VN')} VNĐ</div>
+            <div className="flex items-baseline gap-2 sm:gap-3">
+              <div className="text-4xl sm:text-5xl font-extrabold text-white">{balance.toLocaleString()}</div>
+              <div className="text-lg sm:text-xl font-medium text-indigo-300/80">≈ {balanceVnd.toLocaleString('vi-VN')} VNĐ</div>
             </div>
             <Button 
               onClick={scrollToBuyCredits}
-              className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 py-2 shadow-lg shadow-indigo-500/20 border-0 active:scale-[0.98] transition-all duration-200"
+              className="mt-3 sm:mt-4 h-9 sm:h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-5 sm:px-6 shadow-lg shadow-indigo-500/20 border-0 active:scale-[0.98] transition-all duration-200"
             >
               + Buy Credits
             </Button>
           </div>
           
-          <div className="flex gap-4 w-full md:w-auto mt-6 md:mt-0">
-            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 flex-1 md:w-40 backdrop-blur-md shadow-inner">
-              <div className="text-slate-400 text-sm mb-1 flex items-center gap-1.5"><Zap className="w-4 h-4 text-purple-400" /> Current Plan</div>
-              <div className="text-lg font-bold text-white">{userPlan}</div>
+          <div className="flex gap-3 sm:gap-4 w-full md:w-auto mt-2 md:mt-0">
+            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3 sm:p-4 flex-1 md:w-40 backdrop-blur-md shadow-inner flex flex-col justify-center">
+              <div className="text-slate-400 text-xs sm:text-sm mb-1 flex items-center gap-1.5"><Zap className="w-[14px] h-[14px] sm:w-4 sm:h-4 text-purple-400" /> Current Plan</div>
+              <div className="text-base sm:text-lg font-bold text-white leading-none">{userPlan}</div>
             </div>
-            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 flex-1 md:w-40 backdrop-blur-md shadow-inner">
-              <div className="text-slate-400 text-sm mb-1 flex items-center gap-1.5"><FileText className="w-4 h-4 text-cyan-400" /> Total Credits Used</div>
-              <div className="text-lg font-bold text-white">{lifetimeUsage.toLocaleString()}</div>
+            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3 sm:p-4 flex-1 md:w-40 backdrop-blur-md shadow-inner flex flex-col justify-center">
+              <div className="text-slate-400 text-xs sm:text-sm mb-1 flex items-center gap-1.5"><FileText className="w-[14px] h-[14px] sm:w-4 sm:h-4 text-cyan-400" /> Total Used</div>
+              <div className="text-base sm:text-lg font-bold text-white leading-none">{lifetimeUsage.toLocaleString()}</div>
             </div>
           </div>
         </div>
@@ -108,9 +108,9 @@ export function WalletClientPage({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {packages.length === 0 ? (
-            <div className="col-span-3 flex flex-col items-center justify-center h-48 border border-slate-800 rounded-xl border-dashed bg-slate-900/50">
-              <CreditCard className="w-10 h-10 text-indigo-400 mb-3 opacity-50" />
-              <div className="text-slate-400 font-medium text-sm">No active credit packages available.</div>
+            <div className="col-span-1 md:col-span-3 flex flex-col items-center justify-center h-32 sm:h-40 border border-slate-800 rounded-xl border-dashed bg-slate-900/30">
+              <CreditCard className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-400 mb-2 opacity-40" />
+              <div className="text-slate-500 font-medium text-sm">No active credit packages available.</div>
             </div>
           ) : (
             packages.map(pkg => (
