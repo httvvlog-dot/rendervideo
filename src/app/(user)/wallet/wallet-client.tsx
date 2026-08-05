@@ -80,7 +80,7 @@ export function WalletClientPage({
             </div>
             <Button 
               onClick={scrollToBuyCredits}
-              className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 py-2 shadow-lg shadow-indigo-500/20 border-0"
+              className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 py-2 shadow-lg shadow-indigo-500/20 border-0 active:scale-[0.98] transition-all duration-200"
             >
               + Buy Credits
             </Button>
@@ -108,12 +108,13 @@ export function WalletClientPage({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {packages.length === 0 ? (
-            <div className="col-span-3 text-slate-500 py-10 text-center border border-slate-800 rounded-xl border-dashed">
-              No active credit packages available.
+            <div className="col-span-3 flex flex-col items-center justify-center h-48 border border-slate-800 rounded-xl border-dashed bg-slate-900/50">
+              <CreditCard className="w-10 h-10 text-indigo-400 mb-3 opacity-50" />
+              <div className="text-slate-400 font-medium text-sm">No active credit packages available.</div>
             </div>
           ) : (
             packages.map(pkg => (
-              <div key={pkg.id} className={`group relative rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl border overflow-hidden ${pkg.is_featured ? 'border-indigo-500 shadow-lg shadow-indigo-500/20 hover:border-transparent' : 'border-slate-800 hover:border-transparent'}`}>
+              <div key={pkg.id} className={`group relative rounded-2xl transition-all hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(99,102,241,0.1)] border overflow-hidden ${pkg.is_featured ? 'border-indigo-500 shadow-lg shadow-indigo-500/20 hover:border-transparent' : 'border-slate-800 hover:border-transparent'}`}>
                 {/* Hover Gradient Border Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0">
                   <div className="bg-slate-900 w-full h-full rounded-[15px]"></div>
@@ -150,7 +151,7 @@ export function WalletClientPage({
                       size="sm"
                       onClick={() => handleCheckout(pkg.id)} 
                       disabled={isProcessing}
-                      className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm h-10 border border-slate-700"
+                      className="w-full bg-slate-800/50 text-slate-400 text-sm h-10 border border-slate-700/50 opacity-70 cursor-not-allowed"
                     >
                       Coming Soon
                     </Button>
@@ -183,27 +184,27 @@ export function WalletClientPage({
                 <tr>
                   <td colSpan={4}>
                     <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <FileText className="h-10 w-10 mb-3 text-slate-400 dark:text-slate-700" />
-                      <p className="text-slate-500 dark:text-slate-400 font-medium">No transactions yet</p>
+                      <FileText className="h-10 w-10 mb-3 text-indigo-400 opacity-50" />
+                      <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">No transactions yet</p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 transactions.map(t => (
                   <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-4 sm:px-6 py-4 font-mono text-[10px] sm:text-xs text-slate-500 align-top pt-5">
+                    <td className="px-4 sm:px-6 py-4 font-mono text-xs text-slate-500 align-top pt-5">
                       {new Date(t.created_at).toLocaleString('vi-VN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="px-4 sm:px-6 py-4 font-medium text-slate-800 dark:text-slate-200 align-top pt-5">
                       {getFeatureIcon(t.feature)}
-                      {t.transaction_type === "REFUND" && <span className="ml-1 sm:ml-2 text-[10px] sm:text-xs text-purple-500 dark:text-purple-400">(Refund)</span>}
+                      {t.transaction_type === "REFUND" && <span className="ml-1 sm:ml-2 text-xs text-purple-500 dark:text-purple-400">(Refund)</span>}
                     </td>
                     <td className={`px-4 sm:px-6 py-4 font-bold align-top ${t.amount < 0 ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
                       <div>{t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()} Credits</div>
-                      <div className="text-[10px] sm:text-xs font-medium opacity-70 mt-1">≈ {t.amount > 0 ? '+' : ''}{Math.abs(t.amount * CREDIT_TO_VND).toLocaleString('vi-VN')} VNĐ</div>
+                      <div className="text-xs font-medium opacity-70 mt-1">≈ {t.amount > 0 ? '+' : ''}{Math.abs(t.amount * CREDIT_TO_VND).toLocaleString('vi-VN')} VNĐ</div>
                     </td>
                     <td className="px-4 sm:px-6 py-4 align-top pt-5">
-                      <span className={`px-2 sm:px-2.5 py-1 border rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${getStatusColor(t.status || t.transaction_type)}`}>
+                      <span className={`px-2 sm:px-2.5 py-1 border rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(t.status || t.transaction_type)}`}>
                         {t.status || t.transaction_type}
                       </span>
                     </td>

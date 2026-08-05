@@ -68,8 +68,8 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
   return (
     <div 
       ref={sectionHeaderRef}
-      className={`mb-4 scroll-mt-24 group relative rounded-xl transition-all duration-300 sm:p-[1px] ${
-        isOpen ? 'bg-gradient-to-br from-purple-500/80 via-violet-500/80 to-cyan-400/80' : 'bg-transparent sm:hover:bg-gradient-to-br sm:hover:from-purple-500/50 sm:hover:via-violet-500/50 sm:hover:to-cyan-400/50'
+      className={`mb-4 scroll-mt-24 group relative rounded-xl transition-all duration-300 sm:p-[1px] sm:hover:shadow-[0_0_15px_rgba(99,102,241,0.15)] ${
+        isOpen ? 'bg-gradient-to-br from-purple-500/80 via-violet-500/80 to-cyan-400/80 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'bg-transparent sm:hover:bg-gradient-to-br sm:hover:from-purple-500/50 sm:hover:via-violet-500/50 sm:hover:to-cyan-400/50'
       }`}
     >
       <Card 
@@ -88,7 +88,7 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
         <div className="flex items-center space-x-4">
           <div className="flex flex-col">
             <span className={`text-xs font-bold uppercase tracking-wider ${isOpen ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500"}`}>Section {section.section_index}</span>
-            <CardTitle className="text-base">{isEditing ? <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="h-7 text-sm mt-1" /> : <span className={isOpen ? "text-indigo-900 dark:text-indigo-100" : ""}>{section.title || `Section ${section.section_index}`}</span>}</CardTitle>
+            <CardTitle className="text-base">{isEditing ? <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="h-9 sm:h-7 text-sm mt-1" /> : <span className={isOpen ? "text-indigo-900 dark:text-indigo-100" : ""}>{section.title || `Section ${section.section_index}`}</span>}</CardTitle>
           </div>
         </div>
         <div className="flex items-center space-x-4">
@@ -108,8 +108,8 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
             </div>
           ) : (
             <div className="flex space-x-2">
-              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setIsEditing(false) }} disabled={isSaving}><X className="h-4 w-4 text-red-500" /></Button>
-              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleSave() }} disabled={isSaving}><Check className="h-4 w-4 text-green-500" /></Button>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setIsEditing(false) }} disabled={isSaving} className="active:scale-[0.98] transition-all duration-200"><X className="h-4 w-4 text-red-500" /></Button>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleSave() }} disabled={isSaving} className="active:scale-[0.98] transition-all duration-200"><Check className="h-4 w-4 text-green-500" /></Button>
             </div>
           )}
         </div>
@@ -173,15 +173,15 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
             <div className="grid grid-cols-2 gap-4">
                <div>
                 <h4 className="text-xs font-semibold text-slate-500 mb-1">Image Prompt</h4>
-                <Input value={formData.image_prompt} onChange={e => setFormData({...formData, image_prompt: e.target.value})} className="text-sm h-8" />
+                <Input value={formData.image_prompt} onChange={e => setFormData({...formData, image_prompt: e.target.value})} className="text-sm h-9 sm:h-8" />
                </div>
                <div>
                 <h4 className="text-xs font-semibold text-slate-500 mb-1">Target Images</h4>
-                <Input type="number" min="1" max="20" value={formData.recommended_image_count} onChange={e => setFormData({...formData, recommended_image_count: parseInt(e.target.value) || 1})} className="text-sm h-8" />
+                <Input type="number" min="1" max="20" value={formData.recommended_image_count} onChange={e => setFormData({...formData, recommended_image_count: parseInt(e.target.value) || 1})} className="text-sm h-9 sm:h-8" />
                </div>
                <div className="col-span-2">
                 <h4 className="text-xs font-semibold text-slate-500 mb-1">Keywords</h4>
-                <Input value={formData.keywords} onChange={e => setFormData({...formData, keywords: e.target.value})} placeholder="tag1, tag2..." className="text-sm h-8" />
+                <Input value={formData.keywords} onChange={e => setFormData({...formData, keywords: e.target.value})} placeholder="tag1, tag2..." className="text-sm h-9 sm:h-8" />
                </div>
             </div>
           )}
@@ -212,7 +212,7 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
                   <select 
                     value={formData.transition_type} 
                     onChange={e => setFormData({...formData, transition_type: e.target.value})}
-                    className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-9 sm:h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="none">None</option>
                     <option value="fade">🎬 Fade</option>
@@ -231,7 +231,7 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
                   <select 
                     value={formData.transition_duration} 
                     onChange={e => setFormData({...formData, transition_duration: parseFloat(e.target.value)})}
-                    className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-9 sm:h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="0.3">0.3s</option>
                     <option value="0.5">0.5s</option>
@@ -251,7 +251,7 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
           <Button 
             type="button"
             variant="outline" 
-            className="w-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="w-full text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-[0.98] transition-all duration-200"
             onClick={handleCollapse}
           >
             <ChevronUp className="h-4 w-4 mr-2" />

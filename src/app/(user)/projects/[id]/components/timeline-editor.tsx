@@ -489,7 +489,7 @@ export function TimelineEditor({
             variant="outline" 
             size="sm" 
             onClick={togglePlay}
-            className="bg-white dark:bg-slate-800 w-24"
+            className="bg-white dark:bg-slate-800 w-24 active:scale-[0.98] transition-all duration-200"
           >
             {isPlaying ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
             {isPlaying ? "Pause" : "Play"}
@@ -498,7 +498,7 @@ export function TimelineEditor({
             variant="outline" 
             size="sm" 
             onClick={() => handleSeek(0)}
-            className="bg-white dark:bg-slate-800"
+            className="bg-white dark:bg-slate-800 active:scale-[0.98] transition-all duration-200"
             title="Restart"
           >
             <RotateCcw className="w-4 h-4" />
@@ -524,7 +524,7 @@ export function TimelineEditor({
             <div className="relative rounded-[7px] p-[1px] bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 shadow-[0_0_15px_rgba(139,92,246,0.2)] max-sm:shadow-none flex-1 sm:flex-none">
               <Button 
                 size="sm" 
-                className="w-full h-full bg-slate-950 hover:bg-slate-900 text-white border-0"
+                className="w-full h-full bg-slate-950 hover:bg-slate-900 text-white border-0 active:scale-[0.98] transition-all duration-200"
           onClick={async () => {
             shouldScrollToRenderRef.current = true;
             try {
@@ -604,7 +604,7 @@ export function TimelineEditor({
               </div>
 
               {/* VIDEO TRACK (Active) */}
-              <div className="flex flex-col sm:flex-row relative z-10 mb-6 sm:mb-2" 
+              <div className="flex flex-col sm:flex-row relative z-10 mb-8 sm:mb-2" 
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerLeave={handlePointerUp}
@@ -613,7 +613,7 @@ export function TimelineEditor({
                 <div className="w-full sm:w-24 shrink-0 sm:sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-transparent sm:bg-slate-100 sm:dark:bg-slate-900 border-0 sm:border-r sm:border-y border-slate-300 dark:border-slate-800 px-0 sm:px-2 sm:rounded-r-md sm:shadow-sm h-6 sm:h-20 mb-1 sm:mb-0">
                   <ImageIcon className="w-3 h-3 mr-1" /> Video
                 </div>
-                <div className="relative h-20 w-full sm:w-auto sm:flex-1">
+                <div className="relative h-24 sm:h-20 w-full sm:w-auto sm:flex-1">
                   {previewScenes.map((scene) => {
                     const isSelected = selectedId === scene.id;
                     const voiceBlock = voiceBlocks.find(v => v.id === scene.sectionId);
@@ -677,11 +677,11 @@ export function TimelineEditor({
               </div>
 
               {/* VOICE TRACK (Read-Only) */}
-              <div className="flex flex-col sm:flex-row relative z-0 mb-6 sm:mb-2">
+              <div className="flex flex-col sm:flex-row relative z-0 mb-8 sm:mb-2">
                 <div className="w-full sm:w-24 shrink-0 sm:sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-transparent sm:bg-slate-100 sm:dark:bg-slate-900 border-0 sm:border-r sm:border-y border-slate-300 dark:border-slate-800 px-0 sm:px-2 sm:rounded-r-md sm:shadow-sm h-6 sm:h-12 mb-1 sm:mb-0">
                   <Mic className="w-3 h-3 mr-1" /> Voice
                 </div>
-                <div className="relative h-12 w-full sm:w-auto sm:flex-1">
+                <div className="relative h-16 sm:h-12 w-full sm:w-auto sm:flex-1">
                   {voiceBlocks.length > 0 ? voiceBlocks.map(block => (
                     <div
                       key={block.id}
@@ -703,11 +703,11 @@ export function TimelineEditor({
               </div>
 
               {/* SUBTITLE TRACK (Disabled) */}
-              <div className="flex flex-col sm:flex-row relative z-0 opacity-50 grayscale pointer-events-none mb-6 sm:mb-2">
+              <div className="flex flex-col sm:flex-row relative z-0 opacity-50 grayscale pointer-events-none mb-8 sm:mb-2">
                 <div className="w-full sm:w-24 shrink-0 sm:sticky left-0 z-40 flex items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-transparent sm:bg-slate-100 sm:dark:bg-slate-900 border-0 sm:border-r sm:border-y border-slate-300 dark:border-slate-800 px-0 sm:px-2 sm:rounded-r-md sm:shadow-sm h-6 sm:h-12 mb-1 sm:mb-0">
                   <Type className="w-3 h-3 mr-1" /> Subs
                 </div>
-                <div className="relative h-12 flex items-center justify-center text-xs text-slate-400 w-full sm:w-auto sm:flex-1">
+                <div className="relative h-16 sm:h-12 flex items-center justify-center text-xs text-slate-400 w-full sm:w-auto sm:flex-1">
                   [ Coming Soon ]
                 </div>
               </div>

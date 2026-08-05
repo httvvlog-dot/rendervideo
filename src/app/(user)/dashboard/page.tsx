@@ -34,7 +34,7 @@ export default async function DashboardPage() {
           <p className="text-muted-foreground mt-1">Welcome back, {user?.full_name || user?.email}</p>
         </div>
         <Link href="/projects/new">
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white active:scale-[0.98] transition-all duration-200">
             <Plus className="mr-2 h-4 w-4" /> Create Project
           </Button>
         </Link>
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
             {recentProjects && recentProjects.length > 0 ? (
               <div className="space-y-4">
                 {recentProjects.map((project: any) => (
-                  <Link href={`/projects/${project.project_id}`} key={project.project_id} className="group relative flex items-center justify-between p-3 rounded-lg hover:border-transparent transition-colors overflow-hidden border border-slate-200 dark:border-slate-800">
+                  <Link href={`/projects/${project.project_id}`} key={project.project_id} className="group relative flex items-center justify-between p-3 rounded-lg hover:border-transparent transition-colors overflow-hidden border border-slate-200 dark:border-slate-800 hover:shadow-[0_0_15px_rgba(99,102,241,0.1)]">
                     {/* Hover Gradient Border Background */}
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0">
                       <div className="bg-slate-50 dark:bg-slate-900 w-full h-full rounded-[7px]"></div>
@@ -151,13 +151,13 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-[300px] border-2 border-dashed rounded-lg bg-slate-50/50 dark:bg-slate-900/50">
-                <FolderKanban className="h-10 w-10 text-slate-300 mb-4" />
+                <FolderKanban className="h-10 w-10 text-indigo-400 mb-4 opacity-50" />
                 <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">No projects found</h3>
                 <p className="text-sm text-slate-500 max-w-sm text-center mt-1 mb-4">
                   You haven't created any AI videos yet. Start by creating a new project.
                 </p>
                 <Link href="/projects/new">
-                  <Button variant="outline">Create First Project</Button>
+                  <Button variant="outline" className="active:scale-[0.98] transition-all duration-200">Create First Project</Button>
                 </Link>
               </div>
             )}

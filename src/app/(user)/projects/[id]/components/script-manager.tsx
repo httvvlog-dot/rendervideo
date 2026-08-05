@@ -111,7 +111,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
             <FileText className="h-10 w-10 text-indigo-400 mb-4 opacity-80" />
             <h2 className="text-lg font-semibold">No Script Generated</h2>
             <p className="text-sm text-muted-foreground mt-1 mb-4">Start the AI pipeline by generating the initial video script.</p>
-            <Button onClick={handleGenerate} disabled={isGenerating} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 shadow-md shadow-indigo-500/20">
+            <Button onClick={handleGenerate} disabled={isGenerating} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 shadow-md shadow-indigo-500/20 active:scale-[0.98] transition-all duration-200">
               {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : <><Play className="mr-2 h-4 w-4" /> Generate Script</>}
             </Button>
           </CardContent>
@@ -132,7 +132,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
               Active for Timeline
             </span>
           ) : (
-            <Button onClick={handleSetActive} variant="outline" size="sm" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 whitespace-nowrap">
+            <Button onClick={handleSetActive} variant="outline" size="sm" className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 whitespace-nowrap active:scale-[0.98] transition-all duration-200">
               Set as Active Version
             </Button>
           )}
@@ -148,7 +148,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
             ))}
           </select>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button onClick={handleGenerate} disabled={isGenerating} variant="outline" size="sm" className="flex-1 sm:flex-none">
+            <Button onClick={handleGenerate} disabled={isGenerating} variant="outline" size="sm" className="flex-1 sm:flex-none active:scale-[0.98] transition-all duration-200">
                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
                Regenerate
             </Button>
@@ -178,7 +178,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
             ) : (
               <textarea 
                 readOnly 
-                className="w-full h-80 p-4 bg-white dark:bg-slate-900 border rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 font-serif leading-relaxed text-slate-800 dark:text-slate-200"
+                className="w-full h-80 p-4 bg-white dark:bg-slate-900 border rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans leading-relaxed text-slate-800 dark:text-slate-200"
                 value={activeScript.content}
               />
             )}

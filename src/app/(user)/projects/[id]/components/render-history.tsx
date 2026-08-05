@@ -166,10 +166,10 @@ export function RenderHistory({ projectId }: { projectId: string }) {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0 mt-1 sm:mt-0">
-              <Button variant="outline" size="sm" className="flex-1 sm:flex-none border-slate-700 bg-slate-800 text-slate-200 text-xs sm:text-sm h-8 sm:h-9" onClick={() => handlePlay(outputs.latest!)} disabled={workingId === outputs.latest.id}>
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none border-slate-700 bg-slate-800 text-slate-200 text-xs sm:text-sm h-8 sm:h-9 active:scale-[0.98] transition-all duration-200" onClick={() => handlePlay(outputs.latest!)} disabled={workingId === outputs.latest.id}>
                 {workingId === outputs.latest.id ? <Loader2 className="w-3.5 h-3.5 mr-1.5 sm:mr-2 animate-spin" /> : <Play className="w-3.5 h-3.5 mr-1.5 sm:mr-2" />} Play
               </Button>
-              <Button size="sm" className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm h-8 sm:h-9" onClick={() => handleDownload(outputs.latest!)}>
+              <Button size="sm" className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm h-8 sm:h-9 active:scale-[0.98] transition-all duration-200" onClick={() => handleDownload(outputs.latest!)}>
                 <Download className="w-3.5 h-3.5 mr-1.5 sm:mr-2" /> Download
               </Button>
             </div>
@@ -217,18 +217,18 @@ export function RenderHistory({ projectId }: { projectId: string }) {
                 </div>
                 <div className="flex items-center gap-2 sm:justify-end mt-1.5 sm:mt-0 w-full sm:w-auto">
                   {!output.is_current && (
-                    <Button variant="ghost" size="sm" className="h-7 sm:h-8 px-2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hidden sm:inline-flex" title="Set as Current" onClick={() => handleSetCurrent(output.id)} disabled={workingId === output.id}>
+                    <Button variant="ghost" size="sm" className="h-7 sm:h-8 px-2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hidden sm:inline-flex active:scale-[0.98] transition-all duration-200" title="Set as Current" onClick={() => handleSetCurrent(output.id)} disabled={workingId === output.id}>
                       <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Button>
                   )}
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-7 sm:h-8 text-xs sm:text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700" onClick={() => handlePlay(output)} disabled={workingId === output.id}>
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-7 sm:h-8 text-xs sm:text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 active:scale-[0.98] transition-all duration-200" onClick={() => handlePlay(output)} disabled={workingId === output.id}>
                     <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5" /> Play
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-7 sm:h-8 text-xs sm:text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700" onClick={() => handleDownload(output)}>
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-7 sm:h-8 text-xs sm:text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 active:scale-[0.98] transition-all duration-200" onClick={() => handleDownload(output)}>
                     <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5" /> Download
                   </Button>
                   {!output.is_current && (
-                    <Button variant="ghost" size="sm" className="h-7 sm:h-8 px-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/20" title="Delete version" onClick={() => handleDelete(output.id)} disabled={workingId === output.id}>
+                    <Button variant="ghost" size="sm" className="h-7 sm:h-8 px-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/20 active:scale-[0.98] transition-all duration-200" title="Delete version" onClick={() => handleDelete(output.id)} disabled={workingId === output.id}>
                       <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Button>
                   )}

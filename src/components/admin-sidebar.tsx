@@ -47,7 +47,7 @@ export function AdminSidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "relative flex items-center rounded-lg p-2 text-slate-900 transition-colors dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 group",
+                    "relative flex items-center rounded-lg p-2 text-slate-900 transition-all duration-200 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-[0.98] group",
                     isActive && "bg-slate-100 dark:bg-slate-800"
                   )}
                 >

@@ -38,7 +38,7 @@ export function UserTopbar() {
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:bg-slate-950/80">
       <div className="flex items-center lg:hidden">
-        <Button variant="ghost" size="icon" className="-ml-2">
+        <Button variant="ghost" size="icon" className="-ml-2 active:scale-[0.98] transition-all duration-200">
           <Menu className="h-6 w-6" />
         </Button>
         <HataraLogo className="ml-2 h-6 w-6 shrink-0" />
@@ -54,7 +54,7 @@ export function UserTopbar() {
       </div>
       
       <div className="ml-auto flex items-center space-x-4">
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative active:scale-[0.98] transition-all duration-200">
           <Bell className="h-5 w-5" />
         </Button>
 
