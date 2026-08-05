@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Play, RotateCcw, Trash, FileText, Loader2, Clock, Zap, DollarSign } from "lucide-react"
+import { Play, RotateCcw, Trash, FileText, Loader2, Clock, Zap, DollarSign, Image as ImageIcon } from "lucide-react"
 import { generateScript, deleteScriptVersion, setActiveScript } from "../script-actions"
+import { getMissingImageSections } from "../media-actions"
+import { generateAIImage, saveAIImage } from "../image-actions"
 import { toast } from "sonner"
 import { createClient } from "@/utils/supabase/client"
 import { ScriptSectionList } from "./script-section-list"
@@ -14,6 +16,9 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
   const [activeVersion, setActiveVersion] = useState<number>(scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0)
   const [sections, setSections] = useState<any[]>([])
   const [isLoadingSections, setIsLoadingSections] = useState(false)
+
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false)
+  const [missingSectionsCount, setMissingSectionsCount] = useState<number | null>(null)
 
   const activeScript = scripts.find(s => s.version === activeVersion)
   const activeScriptId = activeScript?.id
@@ -43,6 +48,79 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
     }
     loadSections()
   }, [activeScriptId, supabase])
+
+  useEffect(() => {
+    async function checkMissing() {
+      if (!activeScriptId) return
+      try {
+         const missing = await getMissingImageSections(activeScriptId);
+         setMissingSectionsCount(missing.length);
+      } catch(e) {
+         setMissingSectionsCount(0);
+      }
+    }
+    if (sections.length > 0) {
+      checkMissing();
+    }
+  }, [activeScriptId, sections])
+
+  const handleGenerateAllImages = async () => {
+    if (!activeScriptId) return
+    setIsGeneratingAll(true)
+    try {
+      const missingSections = await getMissingImageSections(activeScriptId);
+      if (missingSections.length === 0) {
+        toast.info("All sections already have images.")
+        return;
+      }
+      
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < missingSections.length; i++) {
+         const section = missingSections[i];
+         const toastId = toast.loading(`Đang tạo ảnh ${i + 1}/${missingSections.length}...`);
+         try {
+             const res = await generateAIImage(projectId, section.id);
+             if (res && typeof res === 'object' && 'error' in res && res.error) {
+                 const errStr = String(res.error).toLowerCase();
+                 if (errStr.includes("credit") || errStr.includes("balance") || errStr.includes("số dư")) {
+                     toast.error("Hết Credit. Đã dừng tiến trình.", { id: toastId });
+                     break; 
+                 }
+                 toast.error(`Lỗi section ${section.section_index}: ${res.error}`, { id: toastId });
+                 failCount++;
+                 continue; 
+             }
+             
+             toast.loading(`Đang lưu ảnh ${i + 1}/${missingSections.length}...`, { id: toastId });
+             
+             const data = res as { url: string; width: number; height: number; };
+             if (!data.url) throw new Error("No URL returned from AI generation");
+             
+             const saveRes = await saveAIImage(projectId, section.id, data.url, `ai_img_${section.id}.png`);
+             if (saveRes && 'error' in saveRes && saveRes.error) {
+                 toast.error(`Lỗi lưu ảnh section ${section.section_index}: ${saveRes.error}`, { id: toastId });
+                 failCount++;
+                 continue;
+             }
+             
+             toast.success(`Tạo thành công ảnh ${i + 1}/${missingSections.length}`, { id: toastId });
+             successCount++;
+         } catch (err: any) {
+             toast.error(`Lỗi hệ thống: ${err.message}`, { id: toastId });
+             failCount++;
+         }
+      }
+      
+      toast.success(`Hoàn tất Auto AI Image: ${successCount} thành công, ${failCount} thất bại.`);
+      setMissingSectionsCount(0);
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi khởi tạo tiến trình batch");
+    } finally {
+      setIsGeneratingAll(false)
+    }
+  }
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -147,8 +225,19 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
               <option key={s.id} value={s.version}>Version {s.version} {s.id === project?.active_script_id ? "(Active)" : ""} ({new Date(s.created_at).toLocaleTimeString()})</option>
             ))}
           </select>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button onClick={handleGenerate} disabled={isGenerating} variant="outline" size="sm" className="flex-1 sm:flex-none active:scale-[0.98] transition-all duration-200">
+          <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto hide-scrollbar shrink-0">
+            {missingSectionsCount !== null && missingSectionsCount > 0 && (
+              <Button onClick={handleGenerateAllImages} disabled={isGeneratingAll || isGenerating} variant="default" size="sm" className="bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all duration-200 shadow-md shadow-indigo-500/20 whitespace-nowrap shrink-0 hidden lg:flex">
+                 {isGeneratingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageIcon className="mr-2 h-4 w-4" />}
+                 Generate All Images ({missingSectionsCount})
+              </Button>
+            )}
+            {missingSectionsCount !== null && missingSectionsCount > 0 && (
+              <Button onClick={handleGenerateAllImages} disabled={isGeneratingAll || isGenerating} variant="default" size="icon" className="bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all duration-200 shadow-md shadow-indigo-500/20 shrink-0 lg:hidden" title={`Generate All Images (${missingSectionsCount})`}>
+                 {isGeneratingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+              </Button>
+            )}
+            <Button onClick={handleGenerate} disabled={isGenerating || isGeneratingAll} variant="outline" size="sm" className="flex-1 sm:flex-none active:scale-[0.98] transition-all duration-200 whitespace-nowrap">
                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
                Regenerate
             </Button>

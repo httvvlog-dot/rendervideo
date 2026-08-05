@@ -285,3 +285,36 @@ export async function reorderSectionMedia(sectionId: string, orderedMediaIds: st
   revalidatePath(`/projects/${projectId}`)
   return { success: true }
 }
+
+export async function getMissingImageSections(scriptId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  // 1. Get all sections for this script
+  const { data: sections, error: secErr } = await supabase
+    .from("script_sections")
+    .select("id, section_index")
+    .eq("script_id", scriptId)
+    .order("section_index", { ascending: true })
+
+  if (secErr || !sections) throw new Error("Failed to fetch script sections")
+  if (sections.length === 0) return []
+
+  const sectionIds = sections.map(s => s.id)
+
+  // 2. Get all image media for these sections
+  const { data: media, error: medErr } = await supabase
+    .from("project_media")
+    .select("section_id")
+    .in("section_id", sectionIds)
+    .eq("asset_type", "image")
+
+  if (medErr) throw new Error("Failed to fetch media mapping")
+
+  // 3. Filter sections that have NO matching image
+  const sectionsWithImages = new Set(media?.map(m => m.section_id) || [])
+  const missingSections = sections.filter(s => !sectionsWithImages.has(s.id))
+
+  return missingSections
+}

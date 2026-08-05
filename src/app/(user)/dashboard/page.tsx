@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FolderKanban, Plus, Clock, PlayCircle, CheckCircle2, Activity } from "lucide-react"
+import { DeleteProjectButton } from "./components/delete-project-button"
 import Link from "next/link"
 import { getCurrentUser } from "@/utils/auth-service"
 import { createClient } from "@/utils/supabase/server"
@@ -144,6 +145,11 @@ export default async function DashboardPage() {
                         {project.lifecycle_status === 'COMPLETED' && project.latest_resolution && (
                           <span className="text-[10px] text-muted-foreground">{project.latest_resolution} • {Math.round(project.latest_output_duration / 1000)}s</span>
                         )}
+                      </div>
+                      
+                      {/* Separate Delete Button container. Needs higher z-index if overlay is present, but relative z-10 should be enough as it is a sibling to link content. */}
+                      <div className="ml-2 pl-2 border-l border-slate-100 dark:border-slate-800 flex items-center justify-center">
+                        <DeleteProjectButton projectId={project.project_id} />
                       </div>
                     </div>
                   </Link>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Wallet, Star, FileText, Zap } from "lucide-react";
+import { CreditCard, Wallet, Star, FileText, Zap, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 const CREDIT_TO_VND = 1000;
 
@@ -10,14 +11,32 @@ export function WalletClientPage({
   wallet, 
   packages, 
   transactions,
-  userPlan
+  userPlan,
+  initialStartDate,
+  initialEndDate
 }: { 
   wallet: any, 
   packages: any[], 
   transactions: any[],
-  userPlan: string
+  userPlan: string,
+  initialStartDate?: string,
+  initialEndDate?: string
 }) {
+  const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [startDate, setStartDate] = useState(initialStartDate || "");
+  const [endDate, setEndDate] = useState(initialEndDate || "");
+
+  const handleFilter = () => {
+    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+      alert("Ngày bắt đầu không được lớn hơn ngày kết thúc");
+      return;
+    }
+    const params = new URLSearchParams();
+    if (startDate) params.set("startDate", startDate);
+    if (endDate) params.set("endDate", endDate);
+    router.push(`/wallet?${params.toString()}`);
+  };
   
   const handleCheckout = async (pkgId: string) => {
     setIsProcessing(true);
@@ -168,7 +187,29 @@ export function WalletClientPage({
 
       {/* 3. Transaction History */}
       <div>
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 mt-8 text-slate-900 dark:text-white"><FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Transaction History</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 mt-8">
+          <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+            <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Transaction History
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <input 
+              type="date" 
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-2 text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
+            />
+            <span className="text-slate-400">-</span>
+            <input 
+              type="date" 
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-2 text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
+            />
+            <Button onClick={handleFilter} size="sm" variant="secondary" className="px-3 h-9" title="Lọc">
+              <Search className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
         <div className="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
           {/* Desktop Table */}
           <div className="hidden sm:block overflow-x-auto">
