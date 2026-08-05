@@ -139,9 +139,9 @@ export function RenderHistory({ projectId }: { projectId: string }) {
 
       {/* Latest Output */}
       {outputs.latest && (
-        <div className="bg-slate-900 border border-emerald-900/50 rounded-xl p-4 sm:p-6 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+        <div className="relative rounded-[17px] p-[1px] bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 shadow-[0_0_20px_rgba(139,92,246,0.15)] max-sm:shadow-none mb-6 group">
+          <div className="bg-slate-900 rounded-2xl p-4 sm:p-6 relative overflow-hidden h-full w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 relative z-10">
             <div className="flex items-center space-x-4 sm:space-x-6">
               <div className="hidden sm:flex w-12 h-12 bg-emerald-500/20 rounded-full items-center justify-center shrink-0">
                 <CheckCircle className="w-6 h-6 text-emerald-400" />
@@ -173,6 +173,7 @@ export function RenderHistory({ projectId }: { projectId: string }) {
                 <Download className="w-3.5 h-3.5 mr-1.5 sm:mr-2" /> Download
               </Button>
             </div>
+            </div>
           </div>
         </div>
       )}
@@ -189,8 +190,14 @@ export function RenderHistory({ projectId }: { projectId: string }) {
           
           <div className="space-y-0 divide-y divide-slate-100 dark:divide-slate-800/60">
             {outputs.history.map(output => (
-              <div key={output.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex flex-col gap-0.5 sm:gap-1">
+              <div key={output.id} className="group relative p-4 -mx-4 sm:-mx-6 sm:px-6 rounded-lg transition-colors hover:border-transparent">
+                {/* Hover Gradient Border Background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0 rounded-lg">
+                  <div className="bg-slate-50 dark:bg-slate-900 w-full h-full rounded-[7px]"></div>
+                </div>
+                {/* Content */}
+                <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col gap-0.5 sm:gap-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-200">Version {output.version}</span>
                     {output.is_current && <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded">Current</span>}
@@ -225,6 +232,7 @@ export function RenderHistory({ projectId }: { projectId: string }) {
                       <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Button>
                   )}
+                </div>
                 </div>
               </div>
             ))}

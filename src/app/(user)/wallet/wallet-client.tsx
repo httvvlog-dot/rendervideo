@@ -113,43 +113,50 @@ export function WalletClientPage({
             </div>
           ) : (
             packages.map(pkg => (
-              <div key={pkg.id} className={`bg-slate-900 border rounded-2xl p-6 relative flex flex-col transition-all hover:-translate-y-1 hover:shadow-xl ${pkg.is_featured ? 'border-indigo-500 shadow-lg shadow-indigo-500/20' : 'border-slate-800'}`}>
-                {pkg.is_featured && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap">
-                    <Star className="w-3 h-3 mr-1 fill-white" /> POPULAR
-                  </div>
-                )}
-                {pkg.bonus_credits > 20 && !pkg.is_featured && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap">
-                    🔥 BEST VALUE
-                  </div>
-                )}
-                
-                <div className="text-center mt-4 mb-4">
-                  <h3 className="text-slate-400 font-medium mb-1">{pkg.name}</h3>
-                  <div className="text-3xl font-bold text-white">{pkg.price_vnd.toLocaleString('vi-VN')} VNĐ</div>
+              <div key={pkg.id} className={`group relative rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl border overflow-hidden ${pkg.is_featured ? 'border-indigo-500 shadow-lg shadow-indigo-500/20 hover:border-transparent' : 'border-slate-800 hover:border-transparent'}`}>
+                {/* Hover Gradient Border Background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0">
+                  <div className="bg-slate-900 w-full h-full rounded-[15px]"></div>
                 </div>
                 
-                <div className="bg-slate-950 rounded-xl p-4 mb-4 text-center border border-slate-800/50">
-                  <div className="text-2xl font-bold text-indigo-400">{pkg.credits?.toLocaleString()} <span className="text-sm font-normal text-slate-400">Credits</span></div>
-                  {pkg.bonus_credits > 0 ? (
-                    <div className="text-emerald-400 text-xs font-medium mt-1">🎁 +{pkg.bonus_credits?.toLocaleString()} Bonus</div>
-                  ) : (
-                    <div className="text-slate-500 text-xs mt-1">Standard rate</div>
+                <div className="relative z-10 flex flex-col h-full p-6">
+                  {pkg.is_featured && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap">
+                      <Star className="w-3 h-3 mr-1 fill-white" /> POPULAR
+                    </div>
                   )}
-                </div>
-                
-                <div className="mt-auto pt-2">
-                  <Button 
-                    size="sm"
-                    onClick={() => handleCheckout(pkg.id)} 
-                    disabled={isProcessing}
-                    className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm h-10 border border-slate-700"
-                  >
-                    Coming Soon
-                  </Button>
-                  <div className="text-[10px] text-slate-500 text-center mt-2 font-medium tracking-wide">
-                    QR • MoMo • VNPay • Stripe
+                  {pkg.bonus_credits > 20 && !pkg.is_featured && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap">
+                      🔥 BEST VALUE
+                    </div>
+                  )}
+                  
+                  <div className="text-center mt-4 mb-4">
+                    <h3 className="text-slate-400 font-medium mb-1">{pkg.name}</h3>
+                    <div className="text-3xl font-bold text-white">{pkg.price_vnd.toLocaleString('vi-VN')} VNĐ</div>
+                  </div>
+                  
+                  <div className="bg-slate-950 rounded-xl p-4 mb-4 text-center border border-slate-800/50">
+                    <div className="text-2xl font-bold text-indigo-400">{pkg.credits?.toLocaleString()} <span className="text-sm font-normal text-slate-400">Credits</span></div>
+                    {pkg.bonus_credits > 0 ? (
+                      <div className="text-emerald-400 text-xs font-medium mt-1">🎁 +{pkg.bonus_credits?.toLocaleString()} Bonus</div>
+                    ) : (
+                      <div className="text-slate-500 text-xs mt-1">Standard rate</div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-auto pt-2">
+                    <Button 
+                      size="sm"
+                      onClick={() => handleCheckout(pkg.id)} 
+                      disabled={isProcessing}
+                      className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm h-10 border border-slate-700"
+                    >
+                      Coming Soon
+                    </Button>
+                    <div className="text-[10px] text-slate-500 text-center mt-2 font-medium tracking-wide">
+                      QR • MoMo • VNPay • Stripe
+                    </div>
                   </div>
                 </div>
               </div>

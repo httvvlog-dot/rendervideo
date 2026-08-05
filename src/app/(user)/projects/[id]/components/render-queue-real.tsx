@@ -92,10 +92,10 @@ export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: 
 
   if (status === "completed") {
     return (
-      <div className="bg-slate-900 border border-emerald-900/50 rounded-xl p-8 mt-6 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center space-x-6">
+      <div className="relative rounded-[17px] p-[1px] bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 shadow-[0_0_20px_rgba(139,92,246,0.15)] max-sm:shadow-none mt-6 group">
+        <div className="bg-slate-900 rounded-2xl p-8 relative overflow-hidden h-full w-full">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+            <div className="flex items-center space-x-6">
             <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center shrink-0">
               <Check className="w-10 h-10 text-emerald-400" />
             </div>
@@ -131,6 +131,7 @@ export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: 
             <Button variant="outline" className="border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700" onClick={onRenderAgain}>
               <RefreshCw className="w-4 h-4 mr-2" /> Render Again
             </Button>
+          </div>
           </div>
         </div>
       </div>

@@ -105,16 +105,18 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
 
   if (scripts.length === 0) {
     return (
-      <Card className="border-dashed border-2 bg-slate-50/50 dark:bg-slate-900/50 mt-6">
-        <CardContent className="flex flex-col items-center justify-center h-48 text-center">
-          <FileText className="h-10 w-10 text-slate-400 mb-4 opacity-50" />
-          <h2 className="text-lg font-semibold">No Script Generated</h2>
-          <p className="text-sm text-muted-foreground mt-1 mb-4">Start the AI pipeline by generating the initial video script.</p>
-          <Button onClick={handleGenerate} disabled={isGenerating} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-            {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : <><Play className="mr-2 h-4 w-4" /> Generate Script</>}
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="relative rounded-xl p-[1px] bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 shadow-[0_0_20px_rgba(139,92,246,0.15)] max-sm:shadow-none mt-6 group">
+        <Card className="border-0 shadow-none bg-slate-50 dark:bg-slate-950 rounded-[11px] h-full w-full">
+          <CardContent className="flex flex-col items-center justify-center h-48 text-center pt-6">
+            <FileText className="h-10 w-10 text-indigo-400 mb-4 opacity-80" />
+            <h2 className="text-lg font-semibold">No Script Generated</h2>
+            <p className="text-sm text-muted-foreground mt-1 mb-4">Start the AI pipeline by generating the initial video script.</p>
+            <Button onClick={handleGenerate} disabled={isGenerating} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 shadow-md shadow-indigo-500/20">
+              {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : <><Play className="mr-2 h-4 w-4" /> Generate Script</>}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 

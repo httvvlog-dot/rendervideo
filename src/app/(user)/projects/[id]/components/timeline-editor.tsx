@@ -521,9 +521,10 @@ export function TimelineEditor({
           </div>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button 
-              size="sm" 
-              className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/20 flex-1 sm:flex-none"
+            <div className="relative rounded-[7px] p-[1px] bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 shadow-[0_0_15px_rgba(139,92,246,0.2)] max-sm:shadow-none flex-1 sm:flex-none">
+              <Button 
+                size="sm" 
+                className="w-full h-full bg-slate-950 hover:bg-slate-900 text-white border-0"
           onClick={async () => {
             shouldScrollToRenderRef.current = true;
             try {
@@ -549,12 +550,14 @@ export function TimelineEditor({
         >
           <Download className="w-4 h-4 mr-2" /> Render Video (MP4)
         </Button>
+        </div>
         <ExportSettingsModal 
           projectId={projectId} 
           activePresetId={activePresetId || null} 
           presets={exportPresets || []}
           totalDurationMs={totalDurationMs}
         />
+        </div>
         </div>
       </div>
 
@@ -714,7 +717,6 @@ export function TimelineEditor({
         </div>
 
       </div>
-    </div>
     </div>
         {/* AUDIO ENGINE */}
       <AudioPlaybackManager 

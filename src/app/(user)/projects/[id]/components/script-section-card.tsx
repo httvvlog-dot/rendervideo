@@ -66,10 +66,17 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
   }
 
   return (
-    <Card 
+    <div 
       ref={sectionHeaderRef}
-      className="mb-4 overflow-hidden border-slate-200 dark:border-slate-800 border-0 shadow-none sm:border sm:shadow-sm scroll-mt-24"
+      className={`mb-4 scroll-mt-24 group relative rounded-xl transition-all duration-300 sm:p-[1px] ${
+        isOpen ? 'bg-gradient-to-br from-purple-500/80 via-violet-500/80 to-cyan-400/80' : 'bg-transparent sm:hover:bg-gradient-to-br sm:hover:from-purple-500/50 sm:hover:via-violet-500/50 sm:hover:to-cyan-400/50'
+      }`}
     >
+      <Card 
+        className={`overflow-hidden border-0 shadow-none sm:border sm:shadow-sm h-full w-full transition-colors sm:rounded-[11px] ${
+          isOpen ? 'sm:border-transparent' : 'border-slate-200 dark:border-slate-800 group-hover:sm:border-transparent'
+        }`}
+      >
       <CardHeader 
         className={`py-3 px-4 border-b flex flex-row items-center justify-between cursor-pointer transition-colors ${
           isOpen 
@@ -252,7 +259,8 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
           </Button>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   )
 }
 

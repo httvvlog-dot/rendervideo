@@ -38,9 +38,15 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
         return (
           <div 
             key={p.provider_key} 
-            className="group relative border rounded-xl overflow-hidden shadow-sm transition-all flex flex-col bg-white dark:bg-slate-900 hover:shadow-md"
+            className="group relative border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm transition-all flex flex-col hover:border-transparent hover:shadow-md"
           >
-            <div className="p-6 flex-1">
+            {/* Hover Gradient Border Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0">
+              <div className="bg-white dark:bg-slate-900 w-full h-full rounded-[11px]"></div>
+            </div>
+            
+            <div className="relative z-10 flex flex-col h-full">
+            <div className="p-6 flex-1 bg-white dark:bg-slate-900">
               <div className="flex justify-between items-start mb-4">
                 <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                   {getIcon(p.provider_key)}
@@ -61,7 +67,7 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
               </div>
             </div>
             
-            <div className="border-t bg-slate-50 dark:bg-slate-800/50 p-4">
+            <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-b-[11px]">
               <button 
                 onClick={() => router.push(`/admin/providers/${p.provider_key}`)}
                 className="w-full flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm"
@@ -69,6 +75,7 @@ export function ProviderCards({ providers, type }: { providers: any[], type: str
                 Manage Credentials
                 <ArrowRight className="h-4 w-4" />
               </button>
+            </div>
             </div>
           </div>
         )

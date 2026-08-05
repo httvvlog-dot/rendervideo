@@ -33,25 +33,32 @@ export default async function ProjectsPage() {
           {completedProjects && completedProjects.length > 0 ? (
             <div className="space-y-4">
               {completedProjects.map((project: any) => (
-                <Link href={`/projects/${project.project_id}`} key={project.project_id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-indigo-100 dark:bg-indigo-900/50 p-2 rounded-md">
-                      <PlayCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{project.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Last render: {new Date(project.last_completed_at || project.created_at).toLocaleString()}
-                      </p>
-                    </div>
+                <Link href={`/projects/${project.project_id}`} key={project.project_id} className="group relative flex items-center justify-between p-3 rounded-lg hover:border-transparent transition-colors overflow-hidden border border-slate-200 dark:border-slate-800">
+                  {/* Hover Gradient Border Background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0">
+                    <div className="bg-slate-50 dark:bg-slate-900 w-full h-full rounded-[7px]"></div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                     <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-800">
-                       {project.lifecycle_status}
-                     </span>
-                     {project.latest_resolution && (
-                       <span className="text-[10px] text-muted-foreground">{project.latest_resolution} • {Math.round(project.latest_output_duration / 1000)}s</span>
-                     )}
+                  {/* Content */}
+                  <div className="relative z-10 flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-indigo-100 dark:bg-indigo-900/50 p-2 rounded-md">
+                        <PlayCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-slate-900 dark:text-slate-100">{project.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Last render: {new Date(project.last_completed_at || project.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                       <span className="text-xs px-2 py-1 rounded-full font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                         {project.lifecycle_status}
+                       </span>
+                       {project.latest_resolution && (
+                         <span className="text-[10px] text-muted-foreground">{project.latest_resolution} • {Math.round(project.latest_output_duration / 1000)}s</span>
+                       )}
+                    </div>
                   </div>
                 </Link>
               ))}
