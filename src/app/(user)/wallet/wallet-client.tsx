@@ -63,9 +63,12 @@ export function WalletClientPage({
       </div>
 
       {/* 1. Wallet Summary */}
-      <div className="bg-gradient-to-br from-indigo-900/50 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 shadow-[0_0_20px_rgba(139,92,246,0.15)]">
+        <div className="bg-slate-950 rounded-[15px] p-6 sm:p-8 relative overflow-hidden h-full w-full">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/50 to-slate-900 pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <div className="flex items-center text-indigo-300 mb-2 font-medium">
               <Wallet className="w-5 h-5 mr-2" />
@@ -84,15 +87,16 @@ export function WalletClientPage({
           </div>
           
           <div className="flex gap-4 w-full md:w-auto mt-6 md:mt-0">
-            <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 flex-1 md:w-40 backdrop-blur-sm">
-              <div className="text-slate-400 text-sm mb-1 flex items-center gap-1.5"><Zap className="w-4 h-4" /> Current Plan</div>
+            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 flex-1 md:w-40 backdrop-blur-md shadow-inner">
+              <div className="text-slate-400 text-sm mb-1 flex items-center gap-1.5"><Zap className="w-4 h-4 text-purple-400" /> Current Plan</div>
               <div className="text-lg font-bold text-white">{userPlan}</div>
             </div>
-            <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 flex-1 md:w-40 backdrop-blur-sm">
-              <div className="text-slate-400 text-sm mb-1 flex items-center gap-1.5"><FileText className="w-4 h-4" /> Total Credits Used</div>
+            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 flex-1 md:w-40 backdrop-blur-md shadow-inner">
+              <div className="text-slate-400 text-sm mb-1 flex items-center gap-1.5"><FileText className="w-4 h-4 text-cyan-400" /> Total Credits Used</div>
               <div className="text-lg font-bold text-white">{lifetimeUsage.toLocaleString()}</div>
             </div>
           </div>
+        </div>
         </div>
       </div>
 

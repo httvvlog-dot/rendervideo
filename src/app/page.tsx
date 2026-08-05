@@ -8,8 +8,16 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       <header className="flex items-center justify-between px-6 py-4 border-b bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <HataraLogo className="h-8 w-8" />
-          <span className="font-bold text-xl tracking-tight">Hatara Studio</span>
+          <HataraLogo className="h-8 w-8 shrink-0" />
+          <div className="flex flex-col">
+            <span className="text-xl font-extrabold tracking-tight">
+              <span className="bg-gradient-to-br from-purple-500 via-fuchsia-500 to-blue-500 bg-clip-text text-transparent">Hatara</span>
+              <span className="text-slate-900 dark:text-slate-50 ml-1">Studio</span>
+            </span>
+            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-none">
+              AI Creative Platform
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/login" className="text-sm font-medium hover:text-indigo-600 transition-colors">

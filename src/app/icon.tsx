@@ -30,17 +30,17 @@ export default function Icon() {
         >
           <defs>
             <linearGradient id="hatara-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#4F46E5" />
-              <stop offset="100%" stopColor="#9333EA" />
+              <stop offset="0%" stopColor="#8B5CF6" />
+              <stop offset="33%" stopColor="#D946EF" />
+              <stop offset="66%" stopColor="#6366F1" />
+              <stop offset="100%" stopColor="#3B82F6" />
             </linearGradient>
           </defs>
-          <path 
-            d="M8 24V8M24 24V8M8 16h16" 
-            stroke="url(#hatara-grad)" 
-            strokeWidth="5" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          />
+          <g>
+            <rect x="5" y="4" width="7" height="24" rx="3.5" fill="url(#hatara-grad)" />
+            <rect x="20" y="4" width="7" height="24" rx="3.5" fill="url(#hatara-grad)" />
+            <rect x="8.5" y="12.5" width="15" height="7" rx="3.5" fill="url(#hatara-grad)" transform="rotate(-15 16 16)" opacity="0.95" />
+          </g>
         </svg>
       </div>
     ),

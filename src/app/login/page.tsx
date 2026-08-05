@@ -124,9 +124,15 @@ export default function LoginPage() {
           <div className="flex items-center justify-center">
             <HataraLogo className="h-12 w-12" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
-            Hatara Studio
-          </h1>
+          <div className="flex flex-col items-center">
+            <h1 className="text-3xl font-extrabold tracking-tight">
+              <span className="bg-gradient-to-br from-purple-500 via-fuchsia-500 to-blue-500 bg-clip-text text-transparent">Hatara</span>
+              <span className="text-slate-900 dark:text-slate-50 ml-2">Studio</span>
+            </h1>
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+              AI Creative Platform
+            </span>
+          </div>
         </div>
 
         <Suspense fallback={<div className="flex justify-center p-8"><Loader2 className="animate-spin text-blue-600" /></div>}>
