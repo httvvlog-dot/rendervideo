@@ -316,6 +316,31 @@ async function processJob(job: any) {
     console.error(`[${WORKER_NAME}] Job ${job.id} failed:`, err);
     console.error(err.cause);
     errorMessage = err.message || "Unknown error";
+    
+    // Attempt canonical billing release
+    try {
+      const { data: tx } = await supabase
+        .from("wallet_transactions")
+        .select("id")
+        .eq("reference_id", job.id)
+        .eq("status", "PENDING")
+        .maybeSingle();
+
+      if (tx && tx.id) {
+        const { error: releaseErr } = await supabase.rpc("release_credits", {
+          p_transaction_id: tx.id,
+          p_reason: `Render Failed: ${errorMessage.substring(0, 100)}`
+        });
+        if (releaseErr) {
+          console.error(`[${WORKER_NAME}] Failed to release credits for job ${job.id}:`, releaseErr);
+        } else {
+          console.log(`[${WORKER_NAME}] Successfully released credits for failed job ${job.id}`);
+        }
+      }
+    } catch (billingErr) {
+      console.error(`[${WORKER_NAME}] Exception during billing reconciliation for job ${job.id}:`, billingErr);
+    }
+
     await supabase.from("render_jobs").update({
       status: RENDER_JOB_STATUS.FAILED,
       error_message: errorMessage,
