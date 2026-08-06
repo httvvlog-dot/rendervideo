@@ -42,6 +42,19 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
         setFeatureEnabled(true); // Fallback to let the backend block it instead
         setCheckingFeature(false);
       });
+
+    // Listen for batch image generation completion scoped to this section
+    const handleMediaUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.sectionId === sectionId) {
+        void loadMedia();
+      }
+    };
+    
+    window.addEventListener("hatara:section-media-updated", handleMediaUpdated);
+    return () => {
+      window.removeEventListener("hatara:section-media-updated", handleMediaUpdated);
+    };
   }, [sectionId])
 
   async function loadMedia() {

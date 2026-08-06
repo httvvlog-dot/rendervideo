@@ -105,6 +105,13 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
                  continue;
              }
              
+             // Notify SectionMediaUploader to refresh its local state without a page reload
+             window.dispatchEvent(
+               new CustomEvent("hatara:section-media-updated", {
+                 detail: { sectionId: section.id }
+               })
+             )
+             
              toast.success(`Tạo thành công ảnh ${i + 1}/${missingSections.length}`, { id: toastId });
              successCount++;
          } catch (err: any) {
@@ -200,6 +207,13 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
 
   return (
     <div className="mt-6 space-y-4 min-w-0">
+      {isGeneratingAll && (
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-md text-amber-800 dark:text-amber-300 text-sm flex items-center shadow-sm">
+          <Loader2 className="h-4 w-4 mr-3 animate-spin shrink-0 text-amber-600 dark:text-amber-400" />
+          <span>Đang tự động tạo ảnh. <strong>Vui lòng không rời trang hoặc tải lại trang cho đến khi hoàn tất.</strong> Việc rời trang sẽ làm gián đoạn tiến trình.</span>
+        </div>
+      )}
+      
       <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between mb-4 gap-4 min-w-0">
         <div className="flex items-center flex-wrap gap-2 sm:gap-4 min-w-0">
           <h2 className="text-lg font-semibold flex items-center min-w-0 shrink-0">
