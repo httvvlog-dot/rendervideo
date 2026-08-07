@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/utils/auth-service"
 import { revalidatePath } from "next/cache"
 import { TransitionService } from "@/utils/timeline/TransitionService"
 import { TransitionEngine } from "@/utils/timeline/TransitionEngine"
+import { VoiceSyncService } from "@/utils/media/VoiceSyncService"
 
 export type TimelineActionResult =
   | { success: true; code: "TIMELINE_CREATED"; sceneCount: number; totalDurationMs: number }
@@ -186,50 +187,14 @@ export async function rebuildTimeline(projectId: string): Promise<TimelineAction
 }
 
 export async function syncVoiceDuration(projectId: string): Promise<{ success: boolean; message?: string }> {
-  const user = await getCurrentUser()
-  if (!user) return { success: false, message: "Unauthorized" }
+  const user = await getCurrentUser();
+  if (!user) return { success: false, message: "Unauthorized" };
 
-  const supabase = await createClient()
-
-  // 1. Get active script
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id, active_script_id")
-    .eq("id", projectId)
-    .single()
-
-  if (!project || !project.active_script_id) {
-    return { success: false, message: "Project or active script not found." }
+  const res = await VoiceSyncService.sync(projectId);
+  if (res.success) {
+    revalidatePath(`/projects/${projectId}`);
   }
-
-  // 2. Fetch voices
-  const { data: voices, error: voiceErr } = await supabase
-    .from("audio_assets")
-    .select("section_id, duration_ms")
-    .eq("project_id", projectId)
-    .eq("audio_type", "voice")
-
-  if (voiceErr || !voices || voices.length === 0) {
-    return { success: false, message: "No voices found to sync." }
-  }
-
-  // 3. Update sections (parallel updates for performance)
-  const updates = voices
-    .filter(v => v.section_id != null && v.duration_ms != null)
-    .map(v => 
-      supabase.from("script_sections")
-        .update({ voice_duration_ms: v.duration_ms })
-        .eq("id", v.section_id)
-        .eq("script_id", project.active_script_id)
-    )
-
-  const results = await Promise.all(updates)
-  if (results.some(r => r.error)) {
-    return { success: false, message: "Failed to update some section durations." }
-  }
-
-  revalidatePath(`/projects/${projectId}`)
-  return { success: true }
+  return res;
 }
 
 export async function updateTimelineDurations(projectId: string, updates: { id: string, durationMs: number, startTimeMs: number, endTimeMs: number }[]) {

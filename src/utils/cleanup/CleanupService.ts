@@ -22,6 +22,7 @@ export class CleanupService {
     // Get project_outputs IDs
     const { data: outputs } = await adminClient.from("project_outputs").select("id").eq("project_id", projectId);
     // Get audio_assets IDs
+    // @deprecated [LEGACY] DO NOT USE FOR NEW FEATURES - audio_assets is being phased out in favor of project_media
     const { data: audios } = await adminClient.from("audio_assets").select("id").eq("project_id", projectId);
     
     const entityIds = [
