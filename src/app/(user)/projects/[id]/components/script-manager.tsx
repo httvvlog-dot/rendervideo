@@ -12,6 +12,7 @@ import { createClient } from "@/utils/supabase/client"
 import { ScriptSectionList } from "./script-section-list"
 
 export function ScriptManager({ projectId, scripts, project }: { projectId: string, scripts: any[], project?: any }) {
+  console.log("[DIAG] 1. ScriptManager rendered", { projectId, activeScriptId: scripts.find(s => s.version === (scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0))?.id });
   const [isGenerating, setIsGenerating] = useState(false)
   const [activeVersion, setActiveVersion] = useState<number>(scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0)
   const [sections, setSections] = useState<any[]>([])
@@ -26,6 +27,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
 
   useEffect(() => {
     async function loadSections() {
+      console.log("[DIAG] 2. loadSections START");
       if (!activeScriptId) return
       
       // Only show full-page loader if we don't have sections for this script yet
@@ -40,8 +42,10 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
         .order('section_index', { ascending: true })
       
       if (!error && data) {
+        console.log("[DIAG] 3. loadSections SUCCESS", { "sections.length": data.length, "section ids": data.map(d => d.id) });
         setSections(data)
       } else {
+        console.log("[DIAG] 3. loadSections FAILED", { error });
         setSections([])
       }
       setIsLoadingSections(false)
@@ -51,11 +55,15 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
 
   useEffect(() => {
     async function checkMissing() {
+      console.log("[DIAG] 4. checkMissing START", { activeScriptId, "sections.length": sections.length });
       if (!activeScriptId) return
       try {
+         console.log("[DIAG] 5. Server Action request: getMissingImageSections()");
          const missing = await getMissingImageSections(activeScriptId);
+         console.log("[DIAG] 6. Server Action response:", { "missing count": missing.length, "section ids": missing.map((m: any) => m.id) });
          setMissingSectionsCount(missing.length);
       } catch(e) {
+         console.log("[DIAG] 7. catch executes FULL ERROR:", { message: (e as any).message, stack: (e as any).stack, digest: (e as any).digest, cause: (e as any).cause, full: e });
          setMissingSectionsCount(0);
       }
     }
@@ -208,6 +216,12 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
 
   return (
     <div className="mt-6 space-y-4 min-w-0">
+      {(() => {
+        const cond1 = missingSectionsCount !== null;
+        const cond2 = missingSectionsCount !== null && missingSectionsCount > 0;
+        console.log("[DIAG] 8. Before render:", { missingSectionsCount, "missingSectionsCount !== null": cond1, "missingSectionsCount > 0": (missingSectionsCount || 0) > 0, "Overall result": cond2 });
+        return null;
+      })()}
       {isGeneratingAll && (
         <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-md text-amber-800 dark:text-amber-300 text-sm flex items-center shadow-sm">
           <Loader2 className="h-4 w-4 mr-3 animate-spin shrink-0 text-amber-600 dark:text-amber-400" />
