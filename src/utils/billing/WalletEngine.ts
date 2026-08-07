@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { ChargeResult, EngineContext } from "./types";
 import { AnalyticsEngine } from "./AnalyticsEngine";
 
@@ -11,7 +11,7 @@ export class WalletEngine {
     description?: string,
     timeoutMinutes: number = 15
   ): Promise<{ success: boolean; transactionId?: string; availableCredits?: number }> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     
     const { data, error } = await supabase.rpc('reserve_credits', {
       p_user_id: context.userId,
@@ -49,7 +49,7 @@ export class WalletEngine {
     actualUsdCost?: number,
     projectId?: string
   ): Promise<boolean> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     
     const { data, error } = await supabase.rpc('commit_credits', {
       p_transaction_id: transactionId,
@@ -77,7 +77,7 @@ export class WalletEngine {
     transactionId: string,
     reason: string
   ): Promise<boolean> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     
     const { data, error } = await supabase.rpc('release_credits', {
       p_transaction_id: transactionId,

@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { ChargeResult, EngineContext, BillingFeature, TransactionStatus } from "./types";
 import { WalletEngine } from "./WalletEngine";
 import { ProviderCostCalculator } from "./ProviderCostCalculator";
@@ -22,7 +22,7 @@ export class BillingEngine {
     this.ruleCache.clear();
 
     // if (this.cacheInitialized) return;
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     
     console.log("=== BillingEngine Query ===");
     console.log(new Date().toISOString());
@@ -103,7 +103,7 @@ export class BillingEngine {
   }
 
   static async getChargeInfo(feature: BillingFeature, requestedProvider?: string, requestedModel?: string, userId?: string): Promise<ChargeResult> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     
     if (userId && feature === BillingFeature.IMAGE_GENERATION) {
       // 1. Fetch User Image Tier
@@ -287,7 +287,7 @@ export class BillingEngine {
   }
 
   private static async logAudit(log: any) {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     await supabase.from("billing_audit_logs").insert(log);
   }
 }

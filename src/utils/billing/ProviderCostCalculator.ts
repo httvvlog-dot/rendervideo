@@ -1,11 +1,11 @@
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { UsageMetadata } from "../provider-runtime/types";
 
 export class ProviderCostCalculator {
   static async calculateCost(usage: UsageMetadata): Promise<number> {
     if (usage.pricingType === "none") return 0;
     
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // Fetch Pricing
     const { data: pricing, error } = await supabase

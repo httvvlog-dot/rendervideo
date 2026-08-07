@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { UsageMetadata } from "../provider-runtime/types";
 
 export class AnalyticsEngine {
@@ -53,7 +53,7 @@ export class AnalyticsEngine {
     usage: UsageMetadata,
     apiCostUsd: number
   ) {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // 1. Insert into AI Usage Ledger (ai_usage_logs)
     await supabase.from("ai_usage_logs").insert({
