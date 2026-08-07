@@ -124,6 +124,7 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
       if (!data.url) throw new Error("No URL returned")
       setAiPreviewUrl(data.url)
       toast.dismiss(toastId)
+      window.dispatchEvent(new CustomEvent('hatara:wallet-updated'))
     } catch (err: any) {
       toast.error(err.message || "Failed to generate AI image", { id: toastId })
     } finally {

@@ -93,6 +93,7 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
                  continue; 
              }
              
+             window.dispatchEvent(new CustomEvent('hatara:wallet-updated'));
              toast.loading(`Đang lưu ảnh ${i + 1}/${missingSections.length}...`, { id: toastId });
              
              const data = res as { url: string; width: number; height: number; };

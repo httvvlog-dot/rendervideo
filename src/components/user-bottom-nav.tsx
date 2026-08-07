@@ -26,6 +26,15 @@ export function UserBottomNav() {
       }
     }
     loadWallet()
+
+    const handleWalletUpdated = () => {
+      loadWallet()
+    }
+    
+    window.addEventListener('hatara:wallet-updated', handleWalletUpdated)
+    return () => {
+      window.removeEventListener('hatara:wallet-updated', handleWalletUpdated)
+    }
   }, [])
 
   return (

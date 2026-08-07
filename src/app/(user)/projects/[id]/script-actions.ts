@@ -115,6 +115,7 @@ GOLDEN RULE FOR AI IMAGE PROMPT GENERATION:
 - Never use words like "sau đó", "tiếp theo", "chuyển sang", "rồi", "then", "next", "followed by", "transition".
 - First determine what the narration means. Then create the most relevant visual representation. The image prompt MUST support that specific narration. Avoid generic unrelated cinematic images.
 - Imagine pressing the PAUSE button on a movie. Describe exactly what appears in that one frame.
+- CRITICAL: The "image_prompt" field MUST ALWAYS be written entirely in ENGLISH, regardless of the project language or narration language. The semantic Subject and Scene descriptions must be translated into English.
 
 === OUTPUT FORMAT ===
 Do NOT output any chain-of-thought, hidden reasoning, or analysis. Plan internally, then output ONLY a valid JSON object matching exactly this schema:
@@ -128,7 +129,7 @@ Do NOT output any chain-of-thought, hidden reasoning, or analysis. Plan internal
       "narration": "Spoken text for this section.",
       "duration_seconds": 10,
       "visual_description": "Visual Story (Language: ${project.language}, describing camera angle, subjects, actions).",
-      "image_prompt": "Template Format:\\nSubject: ...\\nScene: ...\\nCamera: ${domain.camera_style}\\nLighting: ${domain.lighting_style}\\nComposition: ${domain.composition_style}\\nPhotorealistic commercial photography.\\n${canvasConfig.width}x${canvasConfig.height} ${canvasConfig.orientation}\\nNatural color grading.",
+      "image_prompt": "Template Format (MUST BE 100% ENGLISH ONLY):\\nSubject: [English translation of subject]...\\nScene: [English translation of scene]...\\nCamera: ${domain.camera_style}\\nLighting: ${domain.lighting_style}\\nComposition: ${domain.composition_style}\\nPhotorealistic commercial photography.\\n${canvasConfig.width}x${canvasConfig.height} ${canvasConfig.orientation}\\nNatural color grading.",
       "negative_prompt": {
         "style": ["cartoon", "anime"],
         "objects": ["watermark", "text"],

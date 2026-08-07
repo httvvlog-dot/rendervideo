@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Shield, User, Wallet, FolderKanban, Activity, History, CreditCard, CheckCircle2, XCircle } from "lucide-react"
-import { createClient } from "@/utils/supabase/server"
+import { createAdminClient } from "@/utils/supabase/admin"
 import { requireAdmin } from "@/utils/roles"
 import { notFound } from "next/navigation"
 import { GrantCreditsModal, AdjustCreditsModal } from "./credit-modals"
@@ -9,48 +9,64 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { InfoPopover } from "@/components/ui/info-popover"
 import { ImageTierForm } from "./image-tier-form"
+
 export default async function UserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
   await requireAdmin()
-  const supabase = await createClient()
+  const supabaseAdmin = createAdminClient()
   const { userId } = await params;
 
   // 1. Fetch Profile
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single()
+  const { data: profile } = await supabaseAdmin.from('profiles').select('*').eq('id', userId).single()
   if (!profile) notFound()
 
   // 2. Fetch Wallet
-  const { data: wallet } = await supabase.from('wallets').select('*').eq('user_id', userId).single()
+  const { data: wallet } = await supabaseAdmin.from('wallets').select('*').eq('user_id', userId).single()
   
   // 3. Fetch Buckets (Active)
-  const { data: buckets } = await supabase.from('wallet_credit_buckets')
+  const { data: buckets } = await supabaseAdmin.from('wallet_credit_buckets')
     .select('*')
     .eq('wallet_id', wallet?.id)
     .gt('balance', 0)
     .order('expires_at', { ascending: true })
     
-  // 4. Fetch Transactions
-  const { data: transactions } = await supabase.from('wallet_transactions')
+  // 4. Fetch All Completed Transactions for Aggregation & Latest for Display
+  const { data: allTransactions } = await supabaseAdmin.from('wallet_transactions')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(20)
+
+  const transactions = allTransactions?.slice(0, 20) || []
+  
+  const completedTxs = allTransactions?.filter(t => t.status === 'COMPLETED') || []
+  const lifetimeUsed = completedTxs.filter(t => t.amount < 0).reduce((acc, t) => acc + Math.abs(t.amount), 0)
+  const lifetimePurchased = completedTxs.filter(t => t.transaction_type === 'PURCHASE' && t.amount > 0).reduce((acc, t) => acc + t.amount, 0)
+  const lifetimeGranted = completedTxs.filter(t => (t.transaction_type === 'GRANT' || t.transaction_type === 'ADMIN_GRANT' || t.transaction_type === 'MANUAL_ADJUSTMENT') && t.amount > 0).reduce((acc, t) => acc + t.amount, 0)
+
+  // Calculate Feature Usage Summary
+  const featureUsage = completedTxs.filter(t => t.amount < 0).reduce((acc, t) => {
+    const f = t.feature || 'Other'
+    if (!acc[f]) acc[f] = { count: 0, credits: 0 }
+    acc[f].count += 1
+    acc[f].credits += Math.abs(t.amount)
+    return acc
+  }, {} as Record<string, { count: number, credits: number }>)
 
   // 5. Fetch Projects
-  const { data: projects } = await supabase.from('vw_project_lifecycle_status')
+  const { data: projects } = await supabaseAdmin.from('vw_project_lifecycle_status')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(10)
 
   // 6. Fetch Audit Logs
-  const { data: auditLogs } = await supabase.from('admin_audit_logs')
+  const { data: auditLogs } = await supabaseAdmin.from('admin_audit_logs')
     .select('*, admin:admin_id(email)')
     .eq('target_user_id', userId)
     .order('created_at', { ascending: false })
     .limit(20)
 
   // 7. Fetch Available Image Tiers
-  const { data: imageTiersData } = await supabase.from('ai_plan_profiles')
+  const { data: imageTiersData } = await supabaseAdmin.from('ai_plan_profiles')
     .select('plan_key')
     .eq('capability', 'IMAGE_GENERATION')
     .eq('is_active', true)
@@ -153,7 +169,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
         </TabsContent>
 
         <TabsContent value="wallet" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-5">
             <Card className="bg-indigo-50 dark:bg-indigo-950/20">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Available Balance</CardTitle>
@@ -170,7 +186,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
                 <CardTitle className="text-sm">Lifetime Used</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{Number(wallet?.lifetime_used || 0).toLocaleString()}</div>
+                <div className="text-2xl font-bold">{Number(lifetimeUsed || 0).toLocaleString()}</div>
               </CardContent>
             </Card>
             <Card>
@@ -178,7 +194,15 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
                 <CardTitle className="text-sm">Lifetime Purchased</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{Number(wallet?.total_purchased_credits || 0).toLocaleString()}</div>
+                <div className="text-2xl font-bold">{Number(lifetimePurchased || 0).toLocaleString()}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Lifetime Granted</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{Number(lifetimeGranted || 0).toLocaleString()}</div>
               </CardContent>
             </Card>
             <Card>
@@ -187,39 +211,75 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{Number(wallet?.reserved_credits || 0).toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">Currently locked by jobs</p>
+                <p className="text-xs text-muted-foreground">Currently locked</p>
               </CardContent>
             </Card>
           </div>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Credit Buckets</CardTitle>
-              <CardDescription>Breakdown of where credits come from and when they expire</CardDescription>
-            </CardHeader>
-            <CardContent>
-               <table className="w-full text-sm">
-                 <thead className="bg-slate-50 dark:bg-slate-900 border-b text-left">
-                   <tr>
-                     <th className="px-4 py-2">Type</th>
-                     <th className="px-4 py-2">Balance</th>
-                     <th className="px-4 py-2">Expires At</th>
-                   </tr>
-                 </thead>
-                 <tbody className="divide-y">
-                   {buckets && buckets.length > 0 ? buckets.map((b: any) => (
-                     <tr key={b.id}>
-                       <td className="px-4 py-2 font-medium">{b.bucket_type}</td>
-                       <td className="px-4 py-2">{Number(b.balance).toLocaleString()}</td>
-                       <td className="px-4 py-2">{b.expires_at ? new Date(b.expires_at).toLocaleDateString() : 'Never'}</td>
-                     </tr>
-                   )) : (
-                     <tr><td colSpan={3} className="px-4 py-4 text-center text-muted-foreground">No active buckets</td></tr>
-                   )}
-                 </tbody>
-               </table>
-            </CardContent>
-          </Card>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Feature Usage Summary</CardTitle>
+                <CardDescription>Aggregate of completed usage transactions by feature</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-900 border-b text-left">
+                    <tr>
+                      <th className="px-4 py-2">Feature</th>
+                      <th className="px-4 py-2">Jobs/Generations</th>
+                      <th className="px-4 py-2">Credits Used</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {Object.entries(featureUsage).length > 0 ? Object.entries(featureUsage).map(([feature, stats]: [string, any]) => (
+                      <tr key={feature}>
+                        <td className="px-4 py-2 font-medium">{feature}</td>
+                        <td className="px-4 py-2">{Number(stats.count).toLocaleString()}</td>
+                        <td className="px-4 py-2">{Number(stats.credits).toLocaleString()}</td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan={3} className="px-4 py-4 text-center text-muted-foreground">No feature usage recorded</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Credit Buckets</CardTitle>
+                <CardDescription>
+                  Legacy credit allocation system 
+                  <span className="block mt-1 text-xs text-amber-600 dark:text-amber-500">
+                    Note: Credit Buckets are not the primary balance source for Billing V4.
+                  </span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <table className="w-full text-sm opacity-80">
+                  <thead className="bg-slate-50 dark:bg-slate-900 border-b text-left">
+                    <tr>
+                      <th className="px-4 py-2">Type</th>
+                      <th className="px-4 py-2">Balance</th>
+                      <th className="px-4 py-2">Expires At</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {buckets && buckets.length > 0 ? buckets.map((b: any) => (
+                      <tr key={b.id}>
+                        <td className="px-4 py-2 font-medium">{b.bucket_type}</td>
+                        <td className="px-4 py-2">{Number(b.balance).toLocaleString()}</td>
+                        <td className="px-4 py-2">{b.expires_at ? new Date(b.expires_at).toLocaleDateString() : 'Never'}</td>
+                      </tr>
+                    )) : (
+                      <tr><td colSpan={3} className="px-4 py-4 text-center text-muted-foreground">No active buckets</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="projects">
@@ -268,25 +328,40 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
                  <thead className="bg-slate-50 dark:bg-slate-900 border-b">
                    <tr>
                      <th className="px-4 py-2">Date</th>
-                     <th className="px-4 py-2">Type</th>
+                     <th className="px-4 py-2">Feature / Type</th>
                      <th className="px-4 py-2 text-right">Amount</th>
                      <th className="px-4 py-2 text-right">Balance After</th>
-                     <th className="px-4 py-2">Description</th>
+                     <th className="px-4 py-2">Status</th>
+                     <th className="px-4 py-2">Details</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y">
-                   {transactions && transactions.length > 0 ? transactions.map((t: any) => (
-                     <tr key={t.id}>
-                       <td className="px-4 py-2 text-muted-foreground">{new Date(t.created_at).toLocaleString()}</td>
-                       <td className="px-4 py-2 text-xs">{t.transaction_type}</td>
-                       <td className={`px-4 py-2 text-right font-medium ${t.amount > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                         {t.amount > 0 ? '+' : ''}{Number(t.amount).toLocaleString()}
-                       </td>
-                       <td className="px-4 py-2 text-right font-medium">{Number(t.balance_after).toLocaleString()}</td>
-                       <td className="px-4 py-2 text-xs text-muted-foreground">{t.description || t.feature}</td>
-                     </tr>
-                   )) : (
-                     <tr><td colSpan={5} className="px-4 py-4 text-center text-muted-foreground">No transactions</td></tr>
+                   {transactions && transactions.length > 0 ? transactions.map((t: any) => {
+                     let statusColor = "text-muted-foreground"
+                     if (t.status === 'COMPLETED') statusColor = "text-emerald-500 font-medium"
+                     if (t.status === 'FAILED') statusColor = "text-red-500 font-medium"
+                     if (t.status === 'PENDING') statusColor = "text-amber-500 font-medium"
+
+                     return (
+                       <tr key={t.id}>
+                         <td className="px-4 py-2 text-muted-foreground">{new Date(t.created_at).toLocaleString()}</td>
+                         <td className="px-4 py-2">
+                           <div className="font-medium">{t.feature || t.transaction_type}</div>
+                           {t.provider && <div className="text-xs text-muted-foreground">{t.provider}</div>}
+                         </td>
+                         <td className={`px-4 py-2 text-right font-medium ${t.amount > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                           {t.amount > 0 ? '+' : ''}{Number(t.amount).toLocaleString()}
+                         </td>
+                         <td className="px-4 py-2 text-right font-medium">{Number(t.balance_after).toLocaleString()}</td>
+                         <td className={`px-4 py-2 text-xs ${statusColor}`}>{t.status}</td>
+                         <td className="px-4 py-2 text-xs text-muted-foreground">
+                           <div>{t.description}</div>
+                           {t.reference_id && <div className="text-[10px] opacity-70">Ref: {t.reference_type}</div>}
+                         </td>
+                       </tr>
+                     )
+                   }) : (
+                     <tr><td colSpan={6} className="px-4 py-4 text-center text-muted-foreground">No transactions</td></tr>
                    )}
                  </tbody>
                </table>
