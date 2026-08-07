@@ -15,7 +15,7 @@ export type TimelineActionResult =
   | { success: false; code: "INVALID_ACTIVE_SCRIPT" }
   | { success: false; code: "TIMELINE_VALIDATION_FAILED"; message: string }
 
-export class TimelineBuilder {
+class TimelineBuilder {
   static async composeTimeline(projectId: string, isRebuild: boolean = false): Promise<TimelineActionResult> {
   const user = await getCurrentUser()
   if (!user) return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: "Unauthorized" }

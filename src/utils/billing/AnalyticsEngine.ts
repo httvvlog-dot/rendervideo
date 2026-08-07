@@ -3,7 +3,7 @@ import { UsageMetadata } from "../provider-runtime/types";
 
 export class AnalyticsEngine {
   static async logProjectCredits(projectId: string, feature: string, credits: number) {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     
     // Check if project_usage exists
     const { data: existing } = await supabase
