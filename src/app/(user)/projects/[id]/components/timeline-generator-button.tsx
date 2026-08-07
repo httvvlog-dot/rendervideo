@@ -12,24 +12,28 @@ import { useWorkflowStep } from "./workflow-indicator"
 export function TimelineGeneratorButton({ 
   projectId, 
   hasExistingScenes,
-  allVoicesGenerated 
+  allVoicesGenerated,
+  allVoicesSynced,
+  hasAllRenderableMedia
 }: { 
   projectId: string;
   hasExistingScenes: boolean;
   allVoicesGenerated?: boolean;
+  allVoicesSynced?: boolean;
+  hasAllRenderableMedia?: boolean;
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [missingMediaConfirm, setMissingMediaConfirm] = useState<{ sectionId: string; sectionIndex: number; title: string | null }[] | null>(null)
   const router = useRouter()
-  const { activeStep, setStep } = useWorkflowStep(allVoicesGenerated ?? false, hasExistingScenes);
+  const { activeStep, setStep } = useWorkflowStep(allVoicesGenerated ?? false, allVoicesSynced ?? false, hasAllRenderableMedia ?? false, hasExistingScenes);
 
-  const handleGenerate = async (allowMissingMedia: boolean = false) => {
-    setStep(3);
+  const handleGenerate = async () => {
+    setStep(4);
     setIsGenerating(true)
     const toastId = toast.loading("Generating timeline...")
     try {
-      const res = await generateTimeline(projectId, allowMissingMedia)
+      const res = await generateTimeline(projectId)
       if (!res.success) {
         if (res.code === "TIMELINE_ALREADY_EXISTS") {
           toast.dismiss(toastId)
@@ -42,7 +46,7 @@ export function TimelineGeneratorButton({
         }
       } else {
         toast.success(`Timeline generated (${res.sceneCount} scenes)`, { id: toastId })
-        setStep(4); // Jump to Complete state
+        setStep(5); // Jump to Complete state
         router.refresh()
       }
     } catch (err: any) {
@@ -52,12 +56,12 @@ export function TimelineGeneratorButton({
     }
   }
 
-  const handleRebuild = async (allowMissingMedia: boolean = false) => {
-    setStep(3);
+  const handleRebuild = async () => {
+    setStep(4);
     setIsGenerating(true)
     const toastId = toast.loading("Rebuilding timeline...")
     try {
-      const res = await rebuildTimeline(projectId, allowMissingMedia)
+      const res = await rebuildTimeline(projectId)
       if (!res.success) {
         if (res.code === "SECTION_MEDIA_MISSING") {
           toast.dismiss(toastId)
@@ -68,7 +72,7 @@ export function TimelineGeneratorButton({
       } else {
         toast.success(`Timeline rebuilt (${res.sceneCount} scenes)`, { id: toastId })
         setShowConfirm(false)
-        setStep(4); // Jump to Complete state
+        setStep(5); // Jump to Complete state
         router.refresh()
       }
     } catch (err: any) {
@@ -92,7 +96,7 @@ export function TimelineGeneratorButton({
           <Button onClick={() => setShowConfirm(false)} variant="outline" size="sm" className="bg-white">
             Keep Current
           </Button>
-          <Button onClick={() => handleRebuild(false)} disabled={isGenerating} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+          <Button onClick={() => handleRebuild()} disabled={isGenerating} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
             {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Yes, Rebuild Timeline
           </Button>
@@ -116,25 +120,11 @@ export function TimelineGeneratorButton({
           </ul>
         </div>
         <p className="text-sm text-amber-700 dark:text-amber-500 mb-4 font-medium">
-          Bạn vẫn có thể tạo Timeline và bổ sung hình ảnh sau.
+          Bạn cần bổ sung hình ảnh hoặc video cho các section này trước khi Generate Timeline.
         </p>
         <div className="flex space-x-3">
           <Button onClick={() => setMissingMediaConfirm(null)} variant="outline" size="sm" className="bg-white">
-            Bổ sung ảnh
-          </Button>
-          <Button 
-            onClick={() => {
-              setMissingMediaConfirm(null);
-              if (showConfirm) {
-                handleRebuild(true);
-              } else {
-                handleGenerate(true);
-              }
-            }} 
-            disabled={isGenerating} size="sm" className="bg-amber-600 hover:bg-amber-700 text-white"
-          >
-            {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-            Vẫn Generate Timeline
+            Đã hiểu
           </Button>
         </div>
       </div>
@@ -143,12 +133,12 @@ export function TimelineGeneratorButton({
 
   return (
     <Button 
-      onClick={() => hasExistingScenes ? setShowConfirm(true) : handleGenerate(false)} 
-      disabled={isGenerating || (allVoicesGenerated === false)}
+      onClick={() => hasExistingScenes ? setShowConfirm(true) : handleGenerate()} 
+      disabled={isGenerating || !allVoicesSynced}
       className={`transition-all w-full sm:w-auto ${
-        (allVoicesGenerated !== false && activeStep === 3) 
+        (allVoicesSynced && activeStep === 4) 
         ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md ring-2 ring-blue-400" 
-        : (allVoicesGenerated !== false)
+        : (allVoicesSynced)
           ? "bg-slate-100 text-slate-500 opacity-60 hover:opacity-100 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
           : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed opacity-40"
       }`}

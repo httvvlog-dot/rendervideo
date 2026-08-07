@@ -85,6 +85,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const hasAnySections = activeSections.length > 0;
   const allVoicesGenerated = hasAnySections && activeSections.every(s => s.voice_media_id != null);
+  const allVoicesSynced = allVoicesGenerated && activeSections.every(s => s.voice_duration_ms != null);
+  
+  const renderableMedia = projectMediaRaw?.filter(m => m.asset_type === 'image' || m.asset_type === 'video') || [];
+  const hasAllRenderableMedia = hasAnySections && activeSections.every(s => 
+    renderableMedia.some(m => m.section_id === s.id)
+  );
+
   const hasVoicePending = hasAnySections && !allVoicesGenerated;
 
   return (
@@ -131,7 +138,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   />
                   <VoiceGeneratorButtons 
                     projectId={project.id} 
-                    allVoicesGenerated={allVoicesGenerated} 
+                    allVoicesGenerated={allVoicesGenerated}
+                    allVoicesSynced={allVoicesSynced} 
+                    hasAllRenderableMedia={hasAllRenderableMedia}
+                    hasExistingScenes={hasExistingScenes}
                     hasAnySections={hasAnySections}
                     hasVoiceAssigned={!!project.voice_preset_id}
                   />
@@ -139,11 +149,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     projectId={project.id} 
                     hasExistingScenes={hasExistingScenes} 
                     allVoicesGenerated={allVoicesGenerated}
+                    allVoicesSynced={allVoicesSynced}
+                    hasAllRenderableMedia={hasAllRenderableMedia}
                   />
                 </div>
               </div>
               <WorkflowIndicator 
-                allVoicesGenerated={allVoicesGenerated} 
+                allVoicesGenerated={allVoicesGenerated}
+                allVoicesSynced={allVoicesSynced}
+                hasAllRenderableMedia={hasAllRenderableMedia} 
                 hasExistingScenes={hasExistingScenes} 
               />
             </div>

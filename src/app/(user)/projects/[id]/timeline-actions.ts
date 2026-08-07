@@ -15,7 +15,8 @@ export type TimelineActionResult =
   | { success: false; code: "INVALID_ACTIVE_SCRIPT" }
   | { success: false; code: "TIMELINE_VALIDATION_FAILED"; message: string }
 
-async function buildTimelineCore(projectId: string, isRebuild: boolean = false, useVoiceDuration: boolean = false, allowMissingMedia: boolean = false): Promise<TimelineActionResult> {
+export class TimelineBuilder {
+  static async composeTimeline(projectId: string, isRebuild: boolean = false): Promise<TimelineActionResult> {
   const user = await getCurrentUser()
   if (!user) return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: "Unauthorized" }
 
@@ -53,12 +54,12 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
     return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: "No sections found in the active script." }
   }
 
-  // 3. Fetch all assigned media for this project
+  // 3. Fetch all assigned renderable media for this project
   const { data: mediaItems, error: mediaErr } = await supabase
     .from("project_media")
     .select("*")
     .eq("project_id", projectId)
-    .eq("asset_type", "image")
+    .in("asset_type", ["image", "video"])
     .not("section_id", "is", null)
     .order("section_sort_order", { ascending: true })
 
@@ -84,56 +85,18 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
     const sectionMedia = mediaBySectionId.get(section.id) || []
     
     if (sectionMedia.length === 0) {
-      if (!allowMissingMedia) {
-        missingSections.push({
-          sectionId: section.id,
-          sectionIndex: section.section_index,
-          title: section.title
-        })
-        continue
-      }
-
-      // Generate a single empty scene with no media
-      let sectionDurationMs = Math.round(Number(section.duration_seconds) * 1000)
-      if (useVoiceDuration) {
-        if (section.voice_duration_ms) {
-          sectionDurationMs = Number(section.voice_duration_ms)
-        }
-      }
-      expectedGlobalTotalMs += sectionDurationMs
-      
-      if (sectionDurationMs <= 0) {
-        return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: `Scene duration <= 0 calculated in section ${section.section_index}` }
-      }
-      
-      const startTimeMs = globalCursorMs
-      const endTimeMs = startTimeMs + sectionDurationMs
-      
-      newScenes.push({
-        media_id: null,
-        section_id: section.id,
-        duration: sectionDurationMs / 1000.0,
-        start_time: startTimeMs / 1000.0,
-        end_time: endTimeMs / 1000.0,
-        sort_order: globalSortOrder
+      missingSections.push({
+        sectionId: section.id,
+        sectionIndex: section.section_index,
+        title: section.title
       })
-      
-      globalCursorMs = endTimeMs
-      globalSortOrder++
       continue
     }
 
+    // Use voice_duration_ms if available, fallback to duration_seconds
     let sectionDurationMs = Math.round(Number(section.duration_seconds) * 1000)
-    
-    if (useVoiceDuration) {
-      if (section.voice_duration_ms) {
-        sectionDurationMs = Number(section.voice_duration_ms)
-      } else {
-        // If there's no voice, what to do? User requirement says:
-        // "Each section with voice must have at least one image scene." 
-        // If there is no voice, we probably fallback to AI duration so that timeline still generates.
-        // Wait, "Generate Voice -> Sync Timeline to Voice". We will just fallback to original duration if voice_duration_ms is missing.
-      }
+    if (section.voice_duration_ms) {
+      sectionDurationMs = Number(section.voice_duration_ms)
     }
     expectedGlobalTotalMs += sectionDurationMs
     
@@ -176,7 +139,7 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
     }
   }
 
-  if (missingSections.length > 0 && !allowMissingMedia) {
+  if (missingSections.length > 0) {
     return { success: false, code: "SECTION_MEDIA_MISSING", missingSections }
   }
 
@@ -211,18 +174,62 @@ async function buildTimelineCore(projectId: string, isRebuild: boolean = false, 
     return { success: true, code: "TIMELINE_REBUILT", sceneCount: newScenes.length, totalDurationMs: expectedGlobalTotalMs }
   }
   return { success: true, code: "TIMELINE_CREATED", sceneCount: newScenes.length, totalDurationMs: expectedGlobalTotalMs }
+  }
 }
 
-export async function generateTimeline(projectId: string, allowMissingMedia: boolean = false): Promise<TimelineActionResult> {
-  return await buildTimelineCore(projectId, false, false, allowMissingMedia)
+export async function generateTimeline(projectId: string): Promise<TimelineActionResult> {
+  return await TimelineBuilder.composeTimeline(projectId, false)
 }
 
-export async function rebuildTimeline(projectId: string, allowMissingMedia: boolean = false): Promise<TimelineActionResult> {
-  return await buildTimelineCore(projectId, true, false, allowMissingMedia)
+export async function rebuildTimeline(projectId: string): Promise<TimelineActionResult> {
+  return await TimelineBuilder.composeTimeline(projectId, true)
 }
 
-export async function syncTimelineToVoice(projectId: string, allowMissingMedia: boolean = false): Promise<TimelineActionResult> {
-  return await buildTimelineCore(projectId, true, true, allowMissingMedia)
+export async function syncVoiceDuration(projectId: string): Promise<{ success: boolean; message?: string }> {
+  const user = await getCurrentUser()
+  if (!user) return { success: false, message: "Unauthorized" }
+
+  const supabase = await createClient()
+
+  // 1. Get active script
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id, active_script_id")
+    .eq("id", projectId)
+    .single()
+
+  if (!project || !project.active_script_id) {
+    return { success: false, message: "Project or active script not found." }
+  }
+
+  // 2. Fetch voices
+  const { data: voices, error: voiceErr } = await supabase
+    .from("audio_assets")
+    .select("section_id, duration_ms")
+    .eq("project_id", projectId)
+    .eq("audio_type", "voice")
+
+  if (voiceErr || !voices || voices.length === 0) {
+    return { success: false, message: "No voices found to sync." }
+  }
+
+  // 3. Update sections (parallel updates for performance)
+  const updates = voices
+    .filter(v => v.section_id != null && v.duration_ms != null)
+    .map(v => 
+      supabase.from("script_sections")
+        .update({ voice_duration_ms: v.duration_ms })
+        .eq("id", v.section_id)
+        .eq("script_id", project.active_script_id)
+    )
+
+  const results = await Promise.all(updates)
+  if (results.some(r => r.error)) {
+    return { success: false, message: "Failed to update some section durations." }
+  }
+
+  revalidatePath(`/projects/${projectId}`)
+  return { success: true }
 }
 
 export async function updateTimelineDurations(projectId: string, updates: { id: string, durationMs: number, startTimeMs: number, endTimeMs: number }[]) {

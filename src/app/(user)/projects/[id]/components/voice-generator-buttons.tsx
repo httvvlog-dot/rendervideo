@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Mic, RefreshCw, Loader2 } from "lucide-react"
 import { generateMissingProjectVoice } from "../voice-actions"
-import { syncTimelineToVoice } from "../timeline-actions"
+import { syncVoiceDuration } from "../timeline-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
@@ -13,11 +13,17 @@ import { useWorkflowStep } from "./workflow-indicator"
 export function VoiceGeneratorButtons({ 
   projectId, 
   allVoicesGenerated, 
+  allVoicesSynced,
+  hasAllRenderableMedia,
+  hasExistingScenes,
   hasAnySections,
   hasVoiceAssigned
 }: { 
   projectId: string;
   allVoicesGenerated: boolean;
+  allVoicesSynced: boolean;
+  hasAllRenderableMedia: boolean;
+  hasExistingScenes: boolean;
   hasAnySections: boolean;
   hasVoiceAssigned: boolean;
 }) {
@@ -25,7 +31,7 @@ export function VoiceGeneratorButtons({
   const [isSyncing, setIsSyncing] = useState(false)
   const [isVoiceChanging, setIsVoiceChanging] = useState(false)
   const router = useRouter()
-  const { activeStep, setStep } = useWorkflowStep(allVoicesGenerated, true);
+  const { activeStep, setStep } = useWorkflowStep(allVoicesGenerated, allVoicesSynced, hasAllRenderableMedia, hasExistingScenes);
 
   useEffect(() => {
     const handleStart = () => setIsVoiceChanging(true);
@@ -71,19 +77,19 @@ export function VoiceGeneratorButtons({
     }
   }
 
-  const handleSyncTimeline = async () => {
+  const handleSyncVoice = async () => {
     setStep(2);
     setIsSyncing(true)
-    const toastId = toast.loading("Syncing timeline to voice...")
+    const toastId = toast.loading("Syncing voice duration...")
     try {
-      const res = await syncTimelineToVoice(projectId)
+      const res = await syncVoiceDuration(projectId)
       if (res.success) {
-        toast.success(`Timeline synced to voice duration`, { id: toastId })
-        // Jump to Step 3 (Rebuild Timeline)
+        toast.success(`Voice durations synced`, { id: toastId })
+        // Jump to Step 3 (Prepare Media)
         setStep(3);
         router.refresh()
       } else {
-        toast.error(('message' in res ? res.message : res.code) || "Failed to sync timeline", { id: toastId })
+        toast.error(res.message || "Failed to sync voice duration", { id: toastId })
       }
     } catch (err: any) {
       toast.error(err.message, { id: toastId })
@@ -127,8 +133,8 @@ export function VoiceGeneratorButtons({
 
       <Button 
         variant="outline" 
-        onClick={handleSyncTimeline} 
-        disabled={isGenerating || isSyncing || !allVoicesGenerated}
+        onClick={handleSyncVoice} 
+        disabled={isGenerating || isSyncing || !allVoicesGenerated || allVoicesSynced}
         className={`transition-all w-full sm:w-auto ${
           activeStep === 2 
           ? "border-blue-400 text-blue-700 dark:border-blue-500 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 shadow-md ring-2 ring-blue-400" 
@@ -136,7 +142,7 @@ export function VoiceGeneratorButtons({
         } disabled:opacity-40`}
       >
         {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-        Sync Timeline
+        {allVoicesSynced ? "Voice Synced" : "Sync Voice Duration"}
       </Button>
     </div>
   )
