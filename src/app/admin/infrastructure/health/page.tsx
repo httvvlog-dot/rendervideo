@@ -5,6 +5,7 @@ import { HealthStateV2 } from "@/utils/diagnostics";
 
 export default function HealthPage() {
   const [health, setHealth] = useState<HealthStateV2 | null>(null);
+  const [retention, setRetention] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
 
@@ -14,6 +15,12 @@ export default function HealthPage() {
       const res = await fetch(`/api/admin/health?force=true${runAll ? "&runAll=true" : ""}`);
       const data = await res.json();
       setHealth(data);
+      
+      // Fetch retention stats
+      const retRes = await fetch('/api/admin/retention');
+      if (retRes.ok) {
+        setRetention(await retRes.json());
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -101,6 +108,32 @@ export default function HealthPage() {
       </div>
 
       {renderTable("Infrastructure Health", health.infrastructure, "Details")}
+      
+      {/* Retention Card */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white border rounded-lg p-5 shadow-sm">
+          <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+            🕒 Retention Policy
+          </h3>
+          <div className="mt-4 space-y-3 text-sm">
+            <div className="flex justify-between items-center pb-2 border-b">
+              <span className="text-slate-500">Next Cleanup</span>
+              <span className="font-medium text-indigo-600">Top of the hour</span>
+            </div>
+            <div className="flex justify-between items-center pb-2 border-b">
+              <span className="text-slate-500">Projects Expiring</span>
+              <span className="font-medium text-amber-600">{retention?.projectsExpiring ?? '-'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500">Storage To Free</span>
+              <span className="font-medium text-emerald-600">
+                {retention ? (retention.storageToFreeBytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB' : '-'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {renderTable("Provider Health", health.providers, "Details")}
 
     </div>

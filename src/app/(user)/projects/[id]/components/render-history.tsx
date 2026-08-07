@@ -174,6 +174,11 @@ export function RenderHistory({ projectId }: { projectId: string }) {
               </Button>
             </div>
             </div>
+            <div className="mt-4 pt-3 border-t border-slate-700/50">
+              <p className="text-xs sm:text-sm text-emerald-400/90 text-center flex items-center justify-center gap-1.5 font-medium">
+                <CheckCircle className="w-3.5 h-3.5" /> Render completed. This project will be automatically removed within 24 hours of creation. Please download your MP4.
+              </p>
+            </div>
           </div>
         </div>
       )}

@@ -1,0 +1,5 @@
+export const RETENTION_CONFIG = {
+  RETENTION_HOURS: 24,
+  BATCH_SIZE: 20,
+  SLEEP_MS: 1000,
+};

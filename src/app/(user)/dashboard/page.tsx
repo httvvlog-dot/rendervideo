@@ -5,7 +5,7 @@ import { DeleteProjectButton } from "./components/delete-project-button"
 import Link from "next/link"
 import { getCurrentUser } from "@/utils/auth-service"
 import { createClient } from "@/utils/supabase/server"
-
+import { RETENTION_CONFIG } from "@/config/system"
 export default async function DashboardPage() {
   const user = await getCurrentUser()
   const supabase = await createClient()
@@ -26,6 +26,7 @@ export default async function DashboardPage() {
   // Fetch Credits Used
   const { data: wallet } = await supabase.from('wallets').select('lifetime_used').eq('user_id', user?.id).single()
   const creditsUsed = wallet?.lifetime_used || 0
+  const now = new Date()
 
   return (
     <div className="space-y-8">
@@ -145,6 +146,15 @@ export default async function DashboardPage() {
                         {project.lifecycle_status === 'COMPLETED' && project.latest_resolution && (
                           <span className="text-[10px] text-muted-foreground">{project.latest_resolution} • {Math.round(project.latest_output_duration / 1000)}s</span>
                         )}
+                        {(() => {
+                          const created = new Date(project.created_at);
+                          const expiresAt = new Date(created.getTime() + RETENTION_CONFIG.RETENTION_HOURS * 60 * 60 * 1000);
+                          const msLeft = expiresAt.getTime() - now.getTime();
+                          if (msLeft <= 0) return <span className="text-[10px] text-red-500 font-medium">Expired</span>;
+                          const hrs = Math.floor(msLeft / 3600000);
+                          const mins = Math.floor((msLeft % 3600000) / 60000);
+                          return <span className="text-[10px] text-amber-600 dark:text-amber-500 flex items-center gap-1 font-medium mt-0.5">🕒 Expires in {hrs}h {mins}m</span>;
+                        })()}
                       </div>
                       
                       {/* Separate Delete Button container. Needs higher z-index if overlay is present, but relative z-10 should be enough as it is a sibling to link content. */}

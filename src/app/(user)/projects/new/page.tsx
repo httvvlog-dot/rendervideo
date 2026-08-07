@@ -162,6 +162,9 @@ export default function NewProject() {
           )}
 
         </CardContent>
+        <div className="px-6 pb-2 text-amber-600 dark:text-amber-500 text-sm flex items-center justify-center text-center">
+          <span>⚠ Projects are temporary. All assets are automatically deleted 24 hours after project creation. Please download your final MP4.</span>
+        </div>
         <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t p-6">
           <Button 
             className="w-full text-lg h-12 bg-indigo-600 hover:bg-indigo-700" 
