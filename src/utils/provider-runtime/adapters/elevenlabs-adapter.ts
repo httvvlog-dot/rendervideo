@@ -63,7 +63,8 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, Eleven
         } else if (res.status === 429) {
           return { status: "VALID", runtimeStatus: "RATE_LIMITED", latency, provider: "elevenlabs", message: "Rate Limited (429)." };
         }
-        return { status: "VALID", runtimeStatus: "NETWORK_ERROR", latency, provider: "elevenlabs", message: `API Error: ${res.status}` };
+        const errorText = await res.text().catch(() => "");
+        return { status: "VALID", runtimeStatus: "NETWORK_ERROR", latency, provider: "elevenlabs", message: `API Error: ${res.status} - ${errorText}` };
       }
       return { status: "VALID", runtimeStatus: "HEALTHY", latency, provider: "elevenlabs", message: "Connection successful" };
     } catch (e: any) {
