@@ -19,12 +19,17 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = SUPABASE_URL;
 process.env.SUPABASE_SERVICE_ROLE_KEY = SUPABASE_SERVICE_ROLE_KEY;
 
 async function check() {
-  const { data: creds, error } = await supabase.from("provider_credentials").select("created_at, updated_at, credential_name, provider_id, config_json").eq("provider_id", "4c675cfb-264f-4d1d-9ebd-31c4b760ae2e");
+  const { data: creds, error } = await supabase
+    .from('provider_credentials')
+    .select('*, provider:providers(provider_key)')
+    .eq('provider.provider_key', 'elevenlabs');
   if (creds && creds.length > 0) {
     const c = creds[0];
     console.log("ElevenLabs Credential:");
     console.log("created_at:", c.created_at);
     console.log("updated_at:", c.updated_at);
+    console.log("health_status:", c.health_status);
+    console.log("last_health_check_at:", c.last_health_check_at);
     console.log("credential_name:", c.credential_name);
     console.log("provider_id:", c.provider_id);
     
