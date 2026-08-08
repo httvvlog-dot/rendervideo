@@ -36,8 +36,13 @@ async function check() {
     if (!keyVal) classification = "empty";
     else if (keyVal.startsWith("sk_")) classification = "secret API key";
     else if (keyVal.length === 64 && /^[0-9a-f]+$/i.test(keyVal)) classification = "key_id";
+    else classification = "unknown";
     
     console.log("API Key Classification:", classification);
+    if (keyVal) {
+       console.log("Length:", keyVal.length);
+       console.log("Prefix:", keyVal.substring(0, 3));
+    }
   } else {
     console.log("No ElevenLabs credentials found");
   }

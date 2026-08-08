@@ -23,13 +23,13 @@ export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, Eleven
 
   validateCredential(config: any): TestConnectionResult {
     const apiKey = config.apiKey || config.api_key;
-    if (!apiKey || typeof apiKey !== 'string' || !apiKey.startsWith('sk_')) {
+    if (!apiKey || typeof apiKey !== 'string') {
       return {
         status: "INVALID",
         runtimeStatus: "UNKNOWN",
         latency: 0,
         provider: "elevenlabs",
-        message: "ElevenLabs API Key must start with 'sk_'"
+        message: "ElevenLabs API Key is missing or invalid"
       };
     }
     return {
