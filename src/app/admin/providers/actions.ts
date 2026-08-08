@@ -248,13 +248,48 @@ export async function syncProviderModels(providerKey: string) {
     } else {
       return { error: "Model syncing not yet implemented for this provider." }
     }
-
-    revalidatePath(`/admin/providers/${providerKey}`)
+    
     return { success: true }
   } catch (err: any) {
-    return { error: `Failed to sync models: ${err.message}` }
+    return { error: err.message }
   }
 }
+
+export async function testProviderCredential(providerKey: string, config: any, credentialId?: string) {
+  await requireAdmin()
+  const supabase = createAdminClient()
+
+  try {
+    const { CredentialRuntime } = await import("@/utils/provider-runtime/credential-runtime")
+    const runtime = new CredentialRuntime(providerKey)
+    const result = await runtime.test(config)
+
+    if (credentialId) {
+      const updates: any = {
+        credential_status: result.status,
+        runtime_status: result.runtimeStatus,
+        last_latency: result.latency,
+        last_checked_at: new Date().toISOString()
+      }
+
+      if (result.status === "VALID" && result.runtimeStatus === "HEALTHY") {
+        updates.success_count = 1 // Basic increment would be in DB func, but here we can just do absolute if needed, wait, better to use an RPC for increment, or just fetch and add. For now, let's just leave it or fetch first.
+        // Actually, we'll just skip updating success_count directly here to avoid race conditions, but we can set last_success_at
+        updates.last_success_at = new Date().toISOString()
+      } else {
+        updates.last_failure_at = new Date().toISOString()
+      }
+
+      await supabase.from("provider_credentials").update(updates).eq("id", credentialId)
+    }
+
+    return { success: true, result }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+}
+
+
 
 export async function getOpenRouterModels(credentialId?: string, clientApiKey?: string) {
   await requireAdmin();

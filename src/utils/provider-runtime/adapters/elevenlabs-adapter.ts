@@ -1,4 +1,4 @@
-import { ProviderAdapter, ProviderExecutionResult } from "../types"
+import { ProviderAdapter, ProviderExecutionResult, CredentialAdapter, TestConnectionResult } from "../types"
 
 export interface ElevenLabsArgs {
   text: string
@@ -12,26 +12,64 @@ export interface ElevenLabsArgs {
 
 export type ElevenLabsResult = ArrayBuffer
 
-export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ElevenLabsResult> {
-  async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) {
-    const { credential, mode = "quick" } = options;
+export class ElevenLabsAdapter implements ProviderAdapter<ElevenLabsArgs, ElevenLabsResult>, CredentialAdapter {
+  normalizeConfig(config: any) {
+    const newConfig = { ...config };
+    if (typeof newConfig.apiKey === 'string') {
+      newConfig.apiKey = newConfig.apiKey.trim().replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/[\r\n]+/g, '');
+    }
+    return newConfig;
+  }
+
+  validateCredential(config: any): TestConnectionResult {
+    const apiKey = config.apiKey || config.api_key;
+    if (!apiKey || typeof apiKey !== 'string' || !apiKey.startsWith('sk_')) {
+      return {
+        status: "INVALID",
+        runtimeStatus: "UNKNOWN",
+        latency: 0,
+        provider: "elevenlabs",
+        message: "ElevenLabs API Key must start with 'sk_'"
+      };
+    }
+    return {
+      status: "VALID",
+      runtimeStatus: "UNKNOWN",
+      latency: 0,
+      provider: "elevenlabs"
+    };
+  }
+
+  async testConnection(options: { credential: any }): Promise<TestConnectionResult> {
+    const { credential } = options;
     const config = credential.config_json || {};
-    const apiKey = credential.encrypted_key || config.apiKey || config.api_key;
-    if (!apiKey) return { success: false, error: "ELEVENLABS_AUTH_FAILED: Missing API Key", latency: 0 };
+    const apiKey = config.apiKey || config.api_key;
+    
+    if (!apiKey) {
+      return { status: "INVALID", runtimeStatus: "UNKNOWN", latency: 0, provider: "elevenlabs", message: "Missing API Key" };
+    }
 
     const startTime = Date.now();
     try {
       const res = await fetch("https://api.elevenlabs.io/v1/voices", { 
-        headers: { "xi-api-key": apiKey.trim() },
-        cache: "no-store"
+        headers: { "xi-api-key": apiKey },
+        cache: "no-store",
+        signal: AbortSignal.timeout(10000)
       });
       const latency = Date.now() - startTime;
       if (!res.ok) {
-        return { success: false, error: `API returned status ${res.status}`, status: res.status, latency };
+        if (res.status === 401) {
+          return { status: "UNAUTHORIZED", runtimeStatus: "HEALTHY", latency, provider: "elevenlabs", message: "Unauthorized (401). Invalid API Key." };
+        } else if (res.status === 429) {
+          return { status: "VALID", runtimeStatus: "RATE_LIMITED", latency, provider: "elevenlabs", message: "Rate Limited (429)." };
+        }
+        return { status: "VALID", runtimeStatus: "NETWORK_ERROR", latency, provider: "elevenlabs", message: `API Error: ${res.status}` };
       }
-      return { success: true, latency, status: res.status };
+      return { status: "VALID", runtimeStatus: "HEALTHY", latency, provider: "elevenlabs", message: "Connection successful" };
     } catch (e: any) {
-      return { success: false, error: e.message, latency: Date.now() - startTime };
+      let runtimeStatus: "TIMEOUT" | "NETWORK_ERROR" = "NETWORK_ERROR";
+      if (e.name === "TimeoutError") runtimeStatus = "TIMEOUT";
+      return { status: "VALID", runtimeStatus, latency: Date.now() - startTime, provider: "elevenlabs", message: e.message };
     }
   }
 

@@ -12,6 +12,25 @@ export const PROVIDER_HEALTH_STATUS = {
 
 export type ProviderHealthStatus = typeof PROVIDER_HEALTH_STATUS[keyof typeof PROVIDER_HEALTH_STATUS];
 
+export type CredentialHealthStatus = "VALID" | "INVALID" | "UNAUTHORIZED" | "UNKNOWN" | "DISABLED";
+export type RuntimeStatus = "HEALTHY" | "RATE_LIMITED" | "TIMEOUT" | "NETWORK_ERROR" | "UNKNOWN";
+
+export interface TestConnectionResult {
+  status: CredentialHealthStatus;
+  runtimeStatus: RuntimeStatus;
+  latency: number;       // ms
+  provider: string;      
+  message?: string;
+  capabilities?: string[];
+  details?: any;
+}
+
+export interface CredentialAdapter {
+  normalizeConfig(config: any): any;
+  validateCredential(config: any): TestConnectionResult;
+  testConnection(options: { credential: any }): Promise<TestConnectionResult>;
+}
+
 export interface ProviderRuntimeOptions {
   retryCount?: number;
   retryDelay?: number; // ms
@@ -39,7 +58,6 @@ export interface ProviderExecutionResult<T = any> {
 
 export interface ProviderAdapter<TArgs = any, TResult = any> {
   execute(credential: any, args: TArgs): Promise<ProviderExecutionResult<TResult>>;
-  testConnection?(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }): Promise<{ success: boolean; message?: string; error?: string; latency: number; status?: number; details?: any }>;
   listModels?(credential: any): Promise<{ id: string; name: string }[]>;
 }
 

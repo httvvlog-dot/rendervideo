@@ -1,19 +1,65 @@
 "use client"
 
-import { useState } from "react"
-import { saveCredential, syncProviderModels } from "../../../actions"
+import { useState, useRef } from "react"
+import { saveCredential, syncProviderModels, testProviderCredential } from "../../../actions"
 import { toast } from "sonner"
-import { Activity, RefreshCw } from "lucide-react"
+import { Activity, RefreshCw, CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 import { SecretInput } from "../../../components/secret-input"
 
 export function ElevenLabsForm({ providerId, credential, onSuccess, providerModels = [] }: { providerId: string, credential?: any, onSuccess: () => void, providerModels?: any[] }) {
   const [isSaving, setIsSaving] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [isTesting, setIsTesting] = useState(false)
+  const [testResult, setTestResult] = useState<any>(null)
   
+  const formRef = useRef<HTMLFormElement>(null)
   const config = credential?.config_json || {}
+
+  const handleTest = async () => {
+    if (!formRef.current) return;
+    const formData = new FormData(formRef.current);
+    const apiKey = formData.get("apiKey") as string;
+    
+    if (!apiKey) {
+      toast.error("Please enter an API Key to test");
+      return;
+    }
+
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      // Simulate form payload structure
+      const testConfig = { apiKey };
+      const res = await testProviderCredential("elevenlabs", testConfig, credential?.id);
+      
+      if (res.error) {
+        toast.error(res.error);
+      } else {
+        setTestResult(res.result);
+        if (res.result.status === "VALID" && res.result.runtimeStatus === "HEALTHY") {
+          toast.success("Connection valid!");
+        } else if (res.result.status === "INVALID") {
+          toast.error("Invalid API Key format");
+        } else {
+          toast.warning("Key format is valid, but runtime test failed");
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsTesting(false);
+    }
+  }
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    
+    // Prevent save if testing or if the format is explicitly invalid
+    if (testResult?.status === "INVALID") {
+      toast.error("Cannot save invalid credential format.");
+      return;
+    }
+
     setIsSaving(true)
     const formData = new FormData(e.currentTarget)
     
@@ -58,7 +104,7 @@ export function ElevenLabsForm({ providerId, credential, onSuccess, providerMode
   }
 
   return (
-    <form onSubmit={handleSave} className="space-y-5">
+    <form ref={formRef} onSubmit={handleSave} className="space-y-5">
       <div>
         <label className="block text-sm font-medium mb-1">Credential Name <span className="text-red-500">*</span></label>
         <input 
@@ -97,8 +143,49 @@ export function ElevenLabsForm({ providerId, credential, onSuccess, providerMode
       <div className="border-t pt-4 space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">API Key <span className="text-red-500">*</span></label>
-          <SecretInput name="apiKey" defaultValue={config.apiKey} placeholder="xi-..." />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <SecretInput name="apiKey" defaultValue={config.apiKey} placeholder="sk_..." />
+            </div>
+            <button
+              type="button"
+              onClick={handleTest}
+              disabled={isTesting}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 border whitespace-nowrap"
+            >
+              {isTesting && <Activity className="w-4 h-4 animate-spin" />}
+              Test Connection
+            </button>
+          </div>
         </div>
+
+        {testResult && (
+          <div className={`p-4 rounded-lg border text-sm ${
+            testResult.status === "VALID" && testResult.runtimeStatus === "HEALTHY" ? "bg-green-50 border-green-200 dark:bg-green-900/20" :
+            testResult.status === "INVALID" ? "bg-red-50 border-red-200 dark:bg-red-900/20" : 
+            "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20"
+          }`}>
+            <div className="flex items-center gap-2 font-medium mb-2">
+              {testResult.status === "VALID" && testResult.runtimeStatus === "HEALTHY" && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+              {testResult.status === "INVALID" && <XCircle className="w-4 h-4 text-red-600" />}
+              {testResult.status === "VALID" && testResult.runtimeStatus !== "HEALTHY" && <AlertTriangle className="w-4 h-4 text-yellow-600" />}
+              
+              <span>
+                {testResult.status === "INVALID" ? "Invalid Format" : 
+                 testResult.runtimeStatus === "HEALTHY" ? "Connection Successful" : 
+                 `Runtime Issue: ${testResult.runtimeStatus}`}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 mt-2 text-xs opacity-80">
+              <div><span className="font-semibold">Provider:</span> {testResult.provider}</div>
+              <div><span className="font-semibold">Latency:</span> {testResult.latency}ms</div>
+              {testResult.message && <div className="col-span-2"><span className="font-semibold">Message:</span> {testResult.message}</div>}
+              {testResult.capabilities && <div className="col-span-2"><span className="font-semibold">Capabilities:</span> {testResult.capabilities.join(", ")}</div>}
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium mb-1">Fallback Voice ID (Optional)</label>
           <input 
@@ -145,8 +232,8 @@ export function ElevenLabsForm({ providerId, credential, onSuccess, providerMode
       <div className="pt-4 flex justify-end">
         <button 
           type="submit" 
-          disabled={isSaving}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 w-full justify-center"
+          disabled={isSaving || testResult?.status === "INVALID"}
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving && <Activity className="h-4 w-4 animate-spin" />}
           Save Credential
