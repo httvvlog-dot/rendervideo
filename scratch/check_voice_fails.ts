@@ -20,7 +20,27 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = SUPABASE_URL;
 process.env.SUPABASE_SERVICE_ROLE_KEY = SUPABASE_SERVICE_ROLE_KEY;
 
 async function check() {
-  const { data: creds, error: mediaErr } = await supabase.from("provider_credentials").select("*").eq("provider_id", "4c675cfb-264f-4d1d-9ebd-31c4b760ae2e");
-  console.log("ELEVENLABS CREDS:", creds);
+  const { data: creds, error } = await supabase.from("provider_credentials").select("created_at, updated_at, credential_name, provider_id, config_json").eq("provider_id", "4c675cfb-264f-4d1d-9ebd-31c4b760ae2e");
+  if (creds && creds.length > 0) {
+    const c = creds[0];
+    console.log("ElevenLabs Credential:");
+    console.log("created_at:", c.created_at);
+    console.log("updated_at:", c.updated_at);
+    console.log("credential_name:", c.credential_name);
+    console.log("provider_id:", c.provider_id);
+    
+    const config = c.config_json || {};
+    console.log("config_json KEYS ONLY:", Object.keys(config));
+    
+    const keyVal = config.apiKey;
+    let classification = "unknown";
+    if (!keyVal) classification = "empty";
+    else if (keyVal.startsWith("sk_")) classification = "secret API key";
+    else if (keyVal.length === 64 && /^[0-9a-f]+$/i.test(keyVal)) classification = "key_id";
+    
+    console.log("API Key Classification:", classification);
+  } else {
+    console.log("No ElevenLabs credentials found");
+  }
 }
 check().catch(console.error);
