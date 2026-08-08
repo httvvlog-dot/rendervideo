@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
-import * as fs from 'fs';
 import * as path from 'path';
 
 const envFile = fs.readFileSync(path.resolve('.env.local'), 'utf-8');
