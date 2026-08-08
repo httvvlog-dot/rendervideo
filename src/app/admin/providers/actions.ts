@@ -351,53 +351,44 @@ export async function testCredentialConnection(credential_id: string, mode: "qui
   const config = cred.config_json || {};
 
   try {
-    const startTime = Date.now();
-    const adapter = AdapterRegistry.get(providerKey);
+    const { CredentialRuntime } = await import("@/utils/provider-runtime/credential-runtime");
+    const runtime = new CredentialRuntime(providerKey);
+    const result = await runtime.test(config);
 
-    if (adapter && adapter.testConnection) {
-      const result = await adapter.testConnection({ credential: cred, mode });
-      if (result.success) {
-        await supabase.from("provider_credentials").update({ 
-          health_status: PROVIDER_HEALTH_STATUS.HEALTHY, 
-          latency: result.latency, 
-          last_error: null, 
-          last_checked_at: new Date().toISOString(),
-          last_success_at: new Date().toISOString(),
-          consecutive_failures: 0
-        }).eq("id", credential_id);
-        return { 
-          success: true, 
-          latency: result.latency, 
-          status: "Healthy",
-          provider: providerKey
-        };
-      } else {
-        const newFailures = (cred.consecutive_failures || 0) + 1;
-        await supabase.from("provider_credentials").update({ 
-          health_status: newFailures >= 3 ? PROVIDER_HEALTH_STATUS.OFFLINE : PROVIDER_HEALTH_STATUS.WARNING, 
-          last_error: result.error || result.message || "Connection Failed", 
-          last_checked_at: new Date().toISOString(),
-          last_failure_at: new Date().toISOString(),
-          consecutive_failures: newFailures
-        }).eq("id", credential_id);
-        return { success: false, error: result.error || result.message, status: result.status, details: result.details };
-      }
+    const updates: any = {
+      credential_status: result.status,
+      runtime_status: result.runtimeStatus,
+      last_latency: result.latency,
+      last_checked_at: new Date().toISOString()
+    };
+
+    if (result.status === "VALID" && result.runtimeStatus === "HEALTHY") {
+      updates.last_success_at = new Date().toISOString();
+      updates.consecutive_failures = 0;
     } else {
-      await supabase.from("provider_credentials").update({ 
-        health_status: PROVIDER_HEALTH_STATUS.HEALTHY, 
-        latency: 0, 
-        last_error: null, 
-        last_checked_at: new Date().toISOString(),
-        last_success_at: new Date().toISOString(),
-        consecutive_failures: 0
-      }).eq("id", credential_id);
+      const newFailures = (cred.consecutive_failures || 0) + 1;
+      updates.last_failure_at = new Date().toISOString();
+      updates.consecutive_failures = newFailures;
+    }
+
+    // Keep legacy fields updated for compatibility
+    updates.health_status = result.status === "VALID" && result.runtimeStatus === "HEALTHY" 
+      ? PROVIDER_HEALTH_STATUS.HEALTHY 
+      : (updates.consecutive_failures >= 3 ? PROVIDER_HEALTH_STATUS.OFFLINE : PROVIDER_HEALTH_STATUS.WARNING);
+    updates.last_error = result.message || null;
+    updates.latency = result.latency || 0;
+
+    await supabase.from("provider_credentials").update(updates).eq("id", credential_id);
+
+    if (result.status === "VALID" && result.runtimeStatus === "HEALTHY") {
       return { 
         success: true, 
-        message: "Credential format looks valid. Deep test not implemented for this provider yet.", 
-        latency: 0,
+        latency: result.latency, 
         status: "Healthy",
         provider: providerKey
       };
+    } else {
+      return { success: false, error: result.message, status: result.runtimeStatus, details: result.details };
     }
   } catch (err: any) {
     const newFailures = (cred?.consecutive_failures || 0) + 1;

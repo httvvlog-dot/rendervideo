@@ -5,7 +5,7 @@ export class CredentialRuntime {
   constructor(private providerKey: string) {}
 
   private getAdapter(): CredentialAdapter {
-    const adapter = AdapterRegistry.getAdapter(this.providerKey)
+    const adapter = AdapterRegistry.get(this.providerKey)
     if (!adapter) throw new Error(`Adapter not found for provider: ${this.providerKey}`)
     return adapter as any as CredentialAdapter
   }

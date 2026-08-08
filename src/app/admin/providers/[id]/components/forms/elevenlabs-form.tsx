@@ -34,7 +34,7 @@ export function ElevenLabsForm({ providerId, credential, onSuccess, providerMode
       
       if (res.error) {
         toast.error(res.error);
-      } else {
+      } else if (res.result) {
         setTestResult(res.result);
         if (res.result.status === "VALID" && res.result.runtimeStatus === "HEALTHY") {
           toast.success("Connection valid!");
@@ -43,6 +43,8 @@ export function ElevenLabsForm({ providerId, credential, onSuccess, providerMode
         } else {
           toast.warning("Key format is valid, but runtime test failed");
         }
+      } else {
+        toast.error("An unknown error occurred during testing.");
       }
     } catch (err: any) {
       toast.error(err.message);
