@@ -5,6 +5,7 @@ import { Activity, Edit, Trash2, Power, PowerOff, CheckCircle2, AlertTriangle, X
 import { PROVIDER_HEALTH_STATUS } from "@/utils/provider-runtime/types"
 import { toggleCredential, deleteCredential, setDefaultCredential, testCredentialConnection } from "../../actions"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 export function CredentialCard({ credential, providerKey, providerModels, onEdit }: { credential: any, providerKey: string, providerModels?: any[], onEdit: (c: any) => void }) {
   const [isToggling, setIsToggling] = useState(false)
@@ -34,6 +35,8 @@ export function CredentialCard({ credential, providerKey, providerModels, onEdit
     else toast.success("Set as Default")
   }
 
+  const router = useRouter()
+
   const handleTest = async () => {
     setIsTesting(true)
     const res = await testCredentialConnection(credential.id)
@@ -42,6 +45,7 @@ export function CredentialCard({ credential, providerKey, providerModels, onEdit
     }
     else toast.error(`Failed: ${res.error}`)
     setIsTesting(false)
+    router.refresh()
   }
 
   return (

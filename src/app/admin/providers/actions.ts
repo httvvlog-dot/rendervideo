@@ -259,6 +259,15 @@ export async function testProviderCredential(providerKey: string, config: any, c
   await requireAdmin()
   const supabase = createAdminClient()
 
+  if (credentialId) {
+    const { data: existing } = await supabase.from("provider_credentials").select("config_json").eq("id", credentialId).single()
+    if (existing?.config_json) {
+      if (config.apiKey === "••••••••••••••••" || config.apiKey === "") config.apiKey = existing.config_json.apiKey;
+      if (config.secretKey === "••••••••••••••••" || config.secretKey === "") config.secretKey = existing.config_json.secretKey;
+      if (config.secretAccessKey === "••••••••••••••••" || config.secretAccessKey === "") config.secretAccessKey = existing.config_json.secretAccessKey;
+    }
+  }
+
   try {
     const { CredentialRuntime } = await import("@/utils/provider-runtime/credential-runtime")
     const runtime = new CredentialRuntime(providerKey)
@@ -283,6 +292,7 @@ export async function testProviderCredential(providerKey: string, config: any, c
       await supabase.from("provider_credentials").update(updates).eq("id", credentialId)
     }
 
+    revalidatePath("/admin/providers", "layout")
     return { success: true, result }
   } catch (err: any) {
     return { success: false, error: err.message }
@@ -379,6 +389,7 @@ export async function testCredentialConnection(credential_id: string, mode: "qui
     updates.latency = result.latency || 0;
 
     await supabase.from("provider_credentials").update(updates).eq("id", credential_id);
+    revalidatePath("/admin/providers", "layout");
 
     if (result.status === "VALID" && result.runtimeStatus === "HEALTHY") {
       return { 
@@ -399,6 +410,7 @@ export async function testCredentialConnection(credential_id: string, mode: "qui
       last_failure_at: new Date().toISOString(),
       consecutive_failures: newFailures 
     }).eq("id", credential_id);
+    revalidatePath("/admin/providers", "layout");
     return { success: false, error: err.message };
   }
 }

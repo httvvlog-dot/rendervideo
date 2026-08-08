@@ -5,6 +5,7 @@ import { saveCredential, syncProviderModels, testProviderCredential } from "../.
 import { toast } from "sonner"
 import { Activity, RefreshCw, CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 import { SecretInput } from "../../../components/secret-input"
+import { useRouter } from "next/navigation"
 
 export function ElevenLabsForm({ providerId, credential, onSuccess, providerModels = [] }: { providerId: string, credential?: any, onSuccess: () => void, providerModels?: any[] }) {
   const [isSaving, setIsSaving] = useState(false)
@@ -14,6 +15,7 @@ export function ElevenLabsForm({ providerId, credential, onSuccess, providerMode
   
   const formRef = useRef<HTMLFormElement>(null)
   const config = credential?.config_json || {}
+  const router = useRouter()
 
   const handleTest = async () => {
     if (!formRef.current) return;
@@ -50,6 +52,7 @@ export function ElevenLabsForm({ providerId, credential, onSuccess, providerMode
       toast.error(err.message);
     } finally {
       setIsTesting(false);
+      router.refresh();
     }
   }
 
