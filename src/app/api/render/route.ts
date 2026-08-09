@@ -142,7 +142,7 @@ export async function POST(req: Request) {
       .from('render_jobs')
       .insert({
         project_id: projectId,
-        status: RENDER_JOB_STATUS.PENDING,
+        status: RENDER_JOB_STATUS.QUEUED,
         progress: 0,
         timeline_snapshot: validatedTimeline,
         preset_snapshot: presetSnapshot,
