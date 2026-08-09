@@ -136,15 +136,17 @@ export class FFmpegAdapter implements RenderAdapter {
 
     // Transition Mapping and Fallback
     const mapTransition = (type: string) => {
-      const validXfade = ["fade", "fadeblack", "fadeout", "slideleft", "slideright", "slideup", "slidedown", "zoomin", "zoomout", "wipeleft", "wiperight", "wipeup", "wipedown", "squeezeh", "squeezev", "pixelize", "rectcrop", "circlecrop", "circleclose", "circleopen", "horzclose", "horzopen", "vertclose", "vertopen", "diagbl", "diagbr", "diagtl", "diagtr"];
+      const validXfade = ["fade", "fadeblack", "slideleft", "slideright", "slideup", "slidedown", "zoomin", "wipeleft", "wiperight", "wipeup", "wipedown", "squeezeh", "squeezev", "pixelize", "rectcrop", "circlecrop", "circleclose", "circleopen", "horzclose", "horzopen", "vertclose", "vertopen", "diagbl", "diagbr", "diagtl", "diagtr", "dissolve"];
       
-      let mapped = (type || 'none').toLowerCase();
-      if (mapped === "crossfade" || mapped === "blur") mapped = "fade";
+      let mapped = (type || 'none').toLowerCase().replace(/_/g, '-');
+      if (mapped === "cross-fade" || mapped === "crossfade" || mapped === "blur") mapped = "fade";
       if (mapped === "slide-left") mapped = "slideleft";
       if (mapped === "slide-right") mapped = "slideright";
+      if (mapped === "slide-up") mapped = "slideup";
+      if (mapped === "slide-down") mapped = "slidedown";
       if (mapped === "push-left") mapped = "fade"; // fallback since pushleft is unsupported
       if (mapped === "push-right") mapped = "fade"; // fallback since pushright is unsupported
-      if (mapped === "zoom-in") mapped = "zoomin";
+      if (mapped === "zoom-in" || mapped === "zoom") mapped = "zoomin";
       if (mapped === "zoom-out") mapped = "zoomout";
 
       return validXfade.includes(mapped) ? mapped : "fade";
@@ -275,12 +277,25 @@ export class FFmpegAdapter implements RenderAdapter {
     console.log(`FFmpeg Command: ${this.ffmpegPath} ${args.join(" ")}`);
 
     return new Promise((resolve, reject) => {
-      const child = spawn(this.ffmpegPath, args);
+      const spawnTime = Date.now();
+      
+      const child = spawn(this.ffmpegPath, args, {
+        stdio: ['ignore', 'ignore', 'pipe']
+      });
 
       let totalDurationSec = this.timeline!.totalDurationMs / 1000;
+      let stderrBuffer = "";
 
       child.stderr.on("data", (data) => {
         const text = data.toString();
+        
+        stderrBuffer += text;
+        if (stderrBuffer.length > 20000) {
+           const first2000 = stderrBuffer.substring(0, 2000);
+           const last10000 = stderrBuffer.substring(stderrBuffer.length - 10000);
+           stderrBuffer = first2000 + "\n...[TRUNCATED]...\n" + last10000;
+        }
+
         console.error("[FFmpeg stderr]:", text); // Temporarily added to debug crash
         // Parse time=00:00:05.12 to get progress
         const timeMatch = text.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);
@@ -297,17 +312,39 @@ export class FFmpegAdapter implements RenderAdapter {
         }
       });
 
-      child.on("close", (code) => {
-        console.log(`[FFmpeg] Process exited with code ${code}`);
+      let spawnError: Error | null = null;
+      child.on("error", (err) => {
+        spawnError = err;
+      });
+
+      child.on("close", (code, signal) => {
+        const exitTime = Date.now();
+        const runtime = exitTime - spawnTime;
+        
+        console.log(`[FFmpeg] Process exited with code ${code} signal ${signal} runtime ${runtime}ms`);
+        
         if (code === 0) {
           resolve(this.outputFilePath);
         } else {
-          reject(new Error(`FFmpeg process exited with code ${code}`));
-        }
-      });
+          let stderrFirst = stderrBuffer.length > 0 ? stderrBuffer.substring(0, 2000) : "";
+          let stderrLast = stderrBuffer.length > 2000 ? stderrBuffer.substring(Math.max(2000, stderrBuffer.length - 10000)) : "";
+          
+          const diagnosticMessage = `FFmpeg process exited with code ${code}
 
-      child.on("error", (err) => {
-        reject(err);
+PID: ${child.pid}
+Signal: ${signal}
+Runtime: ${runtime} ms
+
+stderr_first: 
+${stderrFirst}
+
+stderr_last: 
+${stderrLast}
+
+spawn_error: ${spawnError ? (spawnError.name + ': ' + spawnError.message + '\n' + spawnError.stack) : 'null'}
+`;
+          reject(new Error(diagnosticMessage));
+        }
       });
     });
   }
