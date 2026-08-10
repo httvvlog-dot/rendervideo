@@ -10,6 +10,7 @@ import * as mm from 'music-metadata'
 import crypto from 'crypto'
 import { revalidatePath } from "next/cache"
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { resolveSubscriptionTier, assertFeatureAccess, Feature } from "@/utils/entitlement"
 
 
 
@@ -53,6 +54,17 @@ export async function generateMissingProjectVoice(projectId: string, voicePreset
     }
     userId = user.id;
   }
+
+  // Entitlement Check
+  if (!overrideSupabase) {
+    const tier = await resolveSubscriptionTier(supabase, userId);
+    const entitlement = assertFeatureAccess(tier, Feature.AI_VOICE);
+    if (!entitlement.allowed) {
+      console.log(`[${TRACE_ID}] Entitlement FAIL: ${entitlement.message}`);
+      return { success: false, code: entitlement.code || "PLAN_FEATURE_LOCKED", message: entitlement.message || "Feature locked" };
+    }
+  }
+
   console.log(`[${TRACE_ID}] User: ${userId}`);
 
   const query = supabase

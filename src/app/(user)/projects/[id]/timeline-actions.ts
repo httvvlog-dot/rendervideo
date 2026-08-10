@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 import { TransitionService } from "@/utils/timeline/TransitionService"
 import { TransitionEngine } from "@/utils/timeline/TransitionEngine"
 import { VoiceSyncService } from "@/utils/media/VoiceSyncService"
+import { resolveSubscriptionTier, assertFeatureAccess, Feature } from "@/utils/entitlement"
 
 export type TimelineActionResult =
   | { success: true; code: "TIMELINE_CREATED"; sceneCount: number; totalDurationMs: number }
@@ -22,6 +23,12 @@ class TimelineBuilder {
   if (!user) return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: "Unauthorized" }
 
   const supabase = await createClient()
+
+  const tier = await resolveSubscriptionTier(supabase, user.id);
+  const entitlement = assertFeatureAccess(tier, Feature.TIMELINE);
+  if (!entitlement.allowed) {
+    return { success: false, code: "TIMELINE_VALIDATION_FAILED", message: entitlement.message || "Feature locked" }
+  }
 
   // 1. Verify project and active script securely
   const { data: project } = await supabase

@@ -5,6 +5,7 @@ import { compileTimeline } from "@/utils/render/compile-timeline"
 import { RENDER_JOB_STATUS } from "@/utils/render/core"
 import { z } from "zod"
 import { calculateRenderCost } from "@/utils/billing/render-cost"
+import { resolveSubscriptionTier, assertFeatureAccess, Feature } from "@/utils/entitlement"
 
 const TransformSchema = z.object({
   startScale: z.number(),
@@ -67,6 +68,17 @@ export async function POST(req: Request) {
     }
 
     const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const tier = await resolveSubscriptionTier(supabase, user.id);
+    const entitlement = assertFeatureAccess(tier, Feature.RENDER);
+    if (!entitlement.allowed) {
+      return NextResponse.json({ error: entitlement.message, code: entitlement.code }, { status: 403 })
+    }
     
     // compileTimeline handles user auth, ownership validation, and DB reading
     const timeline = await compileTimeline(supabase, projectId)

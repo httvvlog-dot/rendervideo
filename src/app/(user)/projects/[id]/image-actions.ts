@@ -14,6 +14,7 @@ import { ImageProviderAdapter } from "@/utils/provider-runtime/adapters/image-ad
 import { generateCorrelationId, Logger } from "@/utils/logger"
 import { AppError } from "@/utils/errors"
 import { getProjectCanvas } from "@/lib/project-canvas"
+import { resolveSubscriptionTier, assertFeatureAccess, Feature } from "@/utils/entitlement"
 
 export async function generateAIImage(projectId: string, sectionId: string) {
   const correlationId = generateCorrelationId('img');
@@ -21,6 +22,12 @@ export async function generateAIImage(projectId: string, sectionId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Unauthorized" }
+
+  const tier = await resolveSubscriptionTier(supabase, user.id);
+  const entitlement = assertFeatureAccess(tier, Feature.AI_IMAGE);
+  if (!entitlement.allowed) {
+    return { success: false, code: entitlement.code, message: entitlement.message, error: entitlement.message };
+  }
 
   const context: EngineContext = {
     userId: user.id,

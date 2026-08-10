@@ -8,6 +8,7 @@ import { extractJSONObject } from "@/utils/extract-json-object"
 import { z } from "zod"
 import { normalizeDurations } from "./duration-normalization"
 import { getProjectCanvas } from "@/lib/project-canvas"
+import { resolveSubscriptionTier, assertFeatureAccess, assertQuota, Feature } from "@/utils/entitlement"
 
 const ScriptSectionSchema = z.object({
   section_index: z.number(),
@@ -37,6 +38,13 @@ export async function generateScript(projectId: string): Promise<{ success?: boo
   if (!user) throw new Error("Unauthorized")
 
   const supabase = await createClient()
+  
+  const tier = await resolveSubscriptionTier(supabase, user.id);
+  const entitlement = assertFeatureAccess(tier, Feature.SCRIPT_GENERATE);
+  if (!entitlement.allowed) return { success: false, error: entitlement.message };
+
+  const quota = await assertQuota(supabase, user.id, tier, Feature.SCRIPT_GENERATE);
+  if (!quota.allowed) return { success: false, error: quota.message };
 
   const { data: project } = await supabase.from("projects").select("*").eq("id", projectId).single()
   if (!project) throw new Error("Project not found")
