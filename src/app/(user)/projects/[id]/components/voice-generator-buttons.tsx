@@ -7,6 +7,8 @@ import { generateMissingProjectVoice } from "../voice-actions"
 import { syncVoiceDuration } from "../timeline-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Lock } from "lucide-react"
 
 import { useWorkflowStep } from "./workflow-indicator"
 
@@ -17,7 +19,8 @@ export function VoiceGeneratorButtons({
   hasAllRenderableMedia,
   hasExistingScenes,
   hasAnySections,
-  hasVoiceAssigned
+  hasVoiceAssigned,
+  canGenerateVoice = true
 }: { 
   projectId: string;
   allVoicesGenerated: boolean;
@@ -26,6 +29,7 @@ export function VoiceGeneratorButtons({
   hasExistingScenes: boolean;
   hasAnySections: boolean;
   hasVoiceAssigned: boolean;
+  canGenerateVoice?: boolean;
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -100,36 +104,58 @@ export function VoiceGeneratorButtons({
 
   return (
     <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-      <Button 
-        variant="secondary" 
-        onClick={() => handleGenerateVoice(false)} 
-        disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections || allVoicesGenerated || !hasVoiceAssigned}
-        className={`transition-all w-full sm:w-auto ${
-          activeStep === 1 && !allVoicesGenerated 
-          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 shadow-md ring-2 ring-emerald-400" 
-          : "bg-slate-100 text-slate-500 opacity-60 hover:opacity-100 dark:bg-slate-800 dark:text-slate-400"
-        } disabled:opacity-40`}
-      >
-        {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mic className="w-4 h-4 mr-2" />}
-        {allVoicesGenerated ? "Voices Ready" : "Generate Missing Voice"}
-      </Button>
+      <TooltipProvider delay={200}>
+        <Tooltip>
+          <TooltipTrigger render={<span className="inline-block w-full sm:w-auto" />}>
+            <Button 
+              variant="secondary" 
+              onClick={() => handleGenerateVoice(false)} 
+              disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections || allVoicesGenerated || !hasVoiceAssigned || !canGenerateVoice}
+              className={`transition-all w-full sm:w-auto ${
+                activeStep === 1 && !allVoicesGenerated 
+                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 shadow-md ring-2 ring-emerald-400" 
+                : "bg-slate-100 text-slate-500 opacity-60 hover:opacity-100 dark:bg-slate-800 dark:text-slate-400"
+              } disabled:opacity-40`}
+            >
+              {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : !canGenerateVoice ? <Lock className="w-4 h-4 mr-2" /> : <Mic className="w-4 h-4 mr-2" />}
+              {allVoicesGenerated ? "Voices Ready" : "Generate Missing Voice"}
+            </Button>
+          </TooltipTrigger>
+          {!canGenerateVoice && (
+            <TooltipContent>
+              <p>AI Voice Generation is a PRO feature.</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
       
-      <Button 
-        variant="outline" 
-        onClick={() => {
-          if(confirm("This will overwrite ALL existing voices in the script with the newly selected voice. Continue?")) {
-            handleGenerateVoice(true);
-          }
-        }} 
-        disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections || !hasVoiceAssigned}
-        className={`transition-all w-full sm:w-auto ${
-          activeStep === 1 
-          ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 border-orange-300 dark:border-orange-700 shadow-md ring-1 ring-orange-400" 
-          : "text-slate-500 border-slate-200 opacity-60 hover:opacity-100 dark:border-slate-800 dark:text-slate-400"
-        } disabled:opacity-40`}
-      >
-        Regenerate All Voices
-      </Button>
+      <TooltipProvider delay={200}>
+        <Tooltip>
+          <TooltipTrigger render={<span className="inline-block w-full sm:w-auto" />}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                if(confirm("This will overwrite ALL existing voices in the script with the newly selected voice. Continue?")) {
+                  handleGenerateVoice(true);
+                }
+              }} 
+              disabled={isGenerating || isSyncing || isVoiceChanging || !hasAnySections || !hasVoiceAssigned || !canGenerateVoice}
+              className={`transition-all w-full sm:w-auto ${
+                activeStep === 1 
+                ? "text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 border-orange-300 dark:border-orange-700 shadow-md ring-1 ring-orange-400" 
+                : "text-slate-500 border-slate-200 opacity-60 hover:opacity-100 dark:border-slate-800 dark:text-slate-400"
+              } disabled:opacity-40`}
+            >
+              {!canGenerateVoice && <Lock className="w-4 h-4 mr-2" />} Regenerate All Voices
+            </Button>
+          </TooltipTrigger>
+          {!canGenerateVoice && (
+            <TooltipContent>
+              <p>AI Voice Generation is a PRO feature.</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
 
       <Button 
         variant="outline" 

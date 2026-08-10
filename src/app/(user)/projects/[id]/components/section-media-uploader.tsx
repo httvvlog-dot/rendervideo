@@ -6,7 +6,10 @@ import { generateAIImage, saveAIImage } from "../image-actions"
 import { toast } from "sonner"
 import { UploadCloud, X, Loader2, Image as ImageIcon, Trash2, Sparkles, Download, Maximize2, Plus } from "lucide-react"
 
-export function SectionMediaUploader({ sectionId, projectId, recommendedCount }: { sectionId: string, projectId: string, recommendedCount: number }) {
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Lock } from "lucide-react"
+
+export function SectionMediaUploader({ sectionId, projectId, recommendedCount, canGenerateImage = true }: { sectionId: string, projectId: string, recommendedCount: number, canGenerateImage?: boolean }) {
   const [media, setMedia] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
@@ -249,20 +252,31 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
                 <div className="text-4xl mb-3 opacity-80 group-hover:opacity-100 transition-opacity">🖼️</div>
                 <div className="text-sm font-medium text-slate-400 mb-6">No Image Yet</div>
                 <div className="flex flex-col gap-2 w-full max-w-[200px]">
-                  <button 
-                    onClick={handleGenerateAI}
-                    disabled={isGenerating || isUploading || !featureEnabled}
-                    title={featureReason || ""}
-                    className="flex flex-col items-center justify-center py-2 px-4 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-md border border-indigo-500/30 transition-all text-sm font-medium disabled:opacity-50"
-                  >
-                    <div className="flex items-center gap-2">
-                      {checkingFeature ? <Loader2 className="w-4 h-4 animate-spin" /> : isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      {checkingFeature ? "Checking..." : featureEnabled ? "✨ Generate AI Image" : "Unavailable"}
-                    </div>
-                    {!featureEnabled && !checkingFeature && featureReason && (
-                      <div className="text-[10px] text-red-400 mt-1 max-w-full truncate">{featureReason}</div>
-                    )}
-                  </button>
+                  <TooltipProvider delay={200}>
+                    <Tooltip>
+                        <TooltipTrigger render={<span className="flex flex-col w-full max-w-[200px]" />}>
+                          <button 
+                            onClick={handleGenerateAI}
+                            disabled={isGenerating || isUploading || !featureEnabled || !canGenerateImage}
+                            title={featureReason || ""}
+                            className="flex flex-col items-center justify-center py-2 px-4 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-md border border-indigo-500/30 transition-all text-sm font-medium disabled:opacity-50"
+                          >
+                            <div className="flex items-center gap-2">
+                              {checkingFeature ? <Loader2 className="w-4 h-4 animate-spin" /> : isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : !canGenerateImage ? <Lock className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                              {checkingFeature ? "Checking..." : featureEnabled ? "✨ Generate AI Image" : "Unavailable"}
+                            </div>
+                            {!featureEnabled && !checkingFeature && featureReason && (
+                              <div className="text-[10px] text-red-400 mt-1 max-w-full truncate">{featureReason}</div>
+                            )}
+                          </button>
+                        </TooltipTrigger>
+                      {!canGenerateImage && (
+                        <TooltipContent>
+                          <p>AI Image Generation is a PRO feature.</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                   <button 
                     onClick={handleUploadClick}
                     disabled={isGenerating || isUploading}
@@ -299,14 +313,25 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount }:
                     >
                       <Maximize2 className="w-3.5 h-3.5" />
                     </button>
-                    <button 
-                      title={checkingFeature ? "Checking..." : !featureEnabled ? featureReason || "Unavailable" : "Generate More"}
-                      onClick={handleGenerateAI}
-                      disabled={!featureEnabled}
-                      className="p-1.5 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-md transition-colors ml-1 disabled:opacity-50"
-                    >
-                      {checkingFeature ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                    </button>
+                    <TooltipProvider delay={200}>
+                      <Tooltip>
+                        <TooltipTrigger render={<span className="inline-block ml-1" />}>
+                          <button 
+                            title={checkingFeature ? "Checking..." : !featureEnabled ? featureReason || "Unavailable" : "Generate More"}
+                            onClick={handleGenerateAI}
+                            disabled={!featureEnabled || !canGenerateImage}
+                            className="p-1.5 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-md transition-colors disabled:opacity-50"
+                          >
+                            {checkingFeature ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : !canGenerateImage ? <Lock className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+                          </button>
+                        </TooltipTrigger>
+                        {!canGenerateImage && (
+                          <TooltipContent>
+                            <p>AI Image Generation is a PRO feature.</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                     <button 
                       title="Replace/Upload"
                       onClick={handleUploadClick}

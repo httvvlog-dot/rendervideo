@@ -16,6 +16,7 @@ import { VoiceSelector } from "./components/voice-selector"
 import { ProjectSaveProvider } from "./components/project-save-context"
 import { ProjectBackButton } from "./components/project-back-button"
 import { ProjectSaveStatus } from "./components/project-save-status"
+import { resolveSubscriptionTier, assertFeatureAccess, assertQuota, Feature } from "@/utils/entitlement"
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser()
@@ -42,6 +43,18 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     .single()
 
   if (!project) notFound()
+  if (!user) notFound()
+
+  // --- ENTITLEMENT EVALUATION ---
+  const tier = await resolveSubscriptionTier(supabase, user.id);
+  const scriptQuota = await assertQuota(supabase, user.id, tier, Feature.SCRIPT_GENERATE);
+  
+  const canGenerateScript = assertFeatureAccess(tier, Feature.SCRIPT_GENERATE).allowed && scriptQuota.allowed;
+  const canGenerateImage = assertFeatureAccess(tier, Feature.AI_IMAGE).allowed;
+  const canGenerateVoice = assertFeatureAccess(tier, Feature.AI_VOICE).allowed;
+  const canGenerateTimeline = assertFeatureAccess(tier, Feature.TIMELINE).allowed;
+  const canRender = assertFeatureAccess(tier, Feature.RENDER).allowed;
+  // ------------------------------
 
   const { data: scripts } = await supabase
     .from('scripts')
@@ -120,7 +133,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         {/* Main Workspace (Assets + Timeline) */}
         <div className="space-y-6 min-w-0">
           
-          <ScriptManager projectId={project.id} scripts={scripts || []} project={project} />
+          <ScriptManager 
+            projectId={project.id} 
+            scripts={scripts || []} 
+            project={project} 
+            canGenerateScript={canGenerateScript}
+            canGenerateImage={canGenerateImage}
+          />
           
           {/* Global Media Assets (for non-section specific logic) */}
           <ProjectMedia projectId={project.id} initialMedia={projectMedia || []} targetDuration={project.video_length} />
@@ -144,6 +163,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     hasExistingScenes={hasExistingScenes}
                     hasAnySections={hasAnySections}
                     hasVoiceAssigned={!!project.voice_preset_id}
+                    canGenerateVoice={canGenerateVoice}
                   />
                   <TimelineGeneratorButton 
                     projectId={project.id} 
@@ -151,6 +171,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     allVoicesGenerated={allVoicesGenerated}
                     allVoicesSynced={allVoicesSynced}
                     hasAllRenderableMedia={hasAllRenderableMedia}
+                    canGenerateTimeline={canGenerateTimeline}
                   />
                 </div>
               </div>
@@ -172,6 +193,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 aspectRatio={project.aspect_ratio}
                 exportPresets={exportPresets || []}
                 activePresetId={project.render_preset_id}
+                canRender={canRender}
               />
             ) : (
               <div className="p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-800 text-slate-500">

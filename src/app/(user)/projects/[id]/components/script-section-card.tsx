@@ -9,7 +9,7 @@ import { updateScriptSection } from "../script-actions"
 import { toast } from "sonner"
 import { SectionMediaUploader } from "./section-media-uploader"
 
-export function ScriptSectionCard({ section, projectId, startTime }: { section: any, projectId: string, startTime: number }) {
+export function ScriptSectionCard({ section, projectId, startTime, canGenerateImage = true }: { section: any, projectId: string, startTime: number, canGenerateImage?: boolean }) {
   const sectionHeaderRef = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -192,6 +192,7 @@ export function ScriptSectionCard({ section, projectId, startTime }: { section: 
                 sectionId={section.id} 
                 projectId={projectId} 
                 recommendedCount={section.recommended_image_count} 
+                canGenerateImage={canGenerateImage}
               />
               <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/50 p-2 rounded-md border border-slate-200 dark:border-slate-700/50">
                 <span className="font-semibold text-slate-600 dark:text-slate-300">🎬 Transition:</span>

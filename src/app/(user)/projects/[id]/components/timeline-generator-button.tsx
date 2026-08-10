@@ -6,6 +6,8 @@ import { Loader2, Film, RefreshCw, AlertCircle } from "lucide-react"
 import { generateTimeline, rebuildTimeline } from "../timeline-actions"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Lock } from "lucide-react"
 
 import { useWorkflowStep } from "./workflow-indicator"
 
@@ -14,13 +16,15 @@ export function TimelineGeneratorButton({
   hasExistingScenes,
   allVoicesGenerated,
   allVoicesSynced,
-  hasAllRenderableMedia
+  hasAllRenderableMedia,
+  canGenerateTimeline = true
 }: { 
   projectId: string;
   hasExistingScenes: boolean;
   allVoicesGenerated?: boolean;
   allVoicesSynced?: boolean;
   hasAllRenderableMedia?: boolean;
+  canGenerateTimeline?: boolean;
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -132,21 +136,34 @@ export function TimelineGeneratorButton({
   }
 
   return (
-    <Button 
-      onClick={() => hasExistingScenes ? setShowConfirm(true) : handleGenerate()} 
-      disabled={isGenerating || !allVoicesSynced}
-      className={`transition-all w-full sm:w-auto ${
-        (allVoicesSynced && activeStep === 4) 
-        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md ring-2 ring-blue-400" 
-        : (allVoicesSynced)
-          ? "bg-slate-100 text-slate-500 opacity-60 hover:opacity-100 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
-          : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed opacity-40"
-      }`}
-    >
-      {isGenerating ? 
-        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {hasExistingScenes ? "Rebuilding..." : "Generating..."}</> : 
-        <><Film className="mr-2 h-4 w-4" /> {hasExistingScenes ? "Rebuild Timeline" : "Generate Timeline"}</>
-      }
-    </Button>
+    <TooltipProvider delay={200}>
+      <Tooltip>
+        <TooltipTrigger render={<span className="inline-block w-full sm:w-auto" />}>
+          <Button 
+            onClick={() => hasExistingScenes ? setShowConfirm(true) : handleGenerate()} 
+            disabled={isGenerating || !allVoicesSynced || !canGenerateTimeline}
+            className={`transition-all w-full sm:w-auto ${
+              (allVoicesSynced && activeStep === 4) 
+              ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md ring-2 ring-blue-400" 
+              : (allVoicesSynced)
+                ? "bg-slate-100 text-slate-500 opacity-60 hover:opacity-100 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed opacity-40"
+            }`}
+          >
+            {isGenerating ? 
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {hasExistingScenes ? "Rebuilding..." : "Generating..."}</> : 
+              !canGenerateTimeline ? 
+              <><Lock className="mr-2 h-4 w-4" /> {hasExistingScenes ? "Rebuild Timeline" : "Generate Timeline"}</> :
+              <><Film className="mr-2 h-4 w-4" /> {hasExistingScenes ? "Rebuild Timeline" : "Generate Timeline"}</>
+            }
+          </Button>
+        </TooltipTrigger>
+        {!canGenerateTimeline && (
+          <TooltipContent>
+            <p>Timeline Generation is a PRO feature.</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
   )
 }

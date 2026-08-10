@@ -11,7 +11,10 @@ import { toast } from "sonner"
 import { createClient } from "@/utils/supabase/client"
 import { ScriptSectionList } from "./script-section-list"
 
-export function ScriptManager({ projectId, scripts, project }: { projectId: string, scripts: any[], project?: any }) {
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Lock } from "lucide-react"
+
+export function ScriptManager({ projectId, scripts, project, canGenerateScript = true, canGenerateImage = true }: { projectId: string, scripts: any[], project?: any, canGenerateScript?: boolean, canGenerateImage?: boolean }) {
   console.log("[DIAG] 1. ScriptManager rendered", { projectId, activeScriptId: scripts.find(s => s.version === (scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0))?.id });
   const [isGenerating, setIsGenerating] = useState(false)
   const [activeVersion, setActiveVersion] = useState<number>(scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0)
@@ -205,9 +208,20 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
             <FileText className="h-10 w-10 text-indigo-400 mb-4 opacity-80" />
             <h2 className="text-lg font-semibold">No Script Generated</h2>
             <p className="text-sm text-muted-foreground mt-1 mb-4">Start the AI pipeline by generating the initial video script.</p>
-            <Button onClick={handleGenerate} disabled={isGenerating} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 shadow-md shadow-indigo-500/20 active:scale-[0.98] transition-all duration-200">
-              {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : <><Play className="mr-2 h-4 w-4" /> Generate Script</>}
-            </Button>
+            <TooltipProvider delay={200}>
+              <Tooltip>
+                <TooltipTrigger render={<span className="inline-block" />}>
+                  <Button onClick={handleGenerate} disabled={isGenerating || !canGenerateScript} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 shadow-md shadow-indigo-500/20 active:scale-[0.98] transition-all duration-200">
+                    {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : !canGenerateScript ? <><Lock className="mr-2 h-4 w-4" /> Generate Script</> : <><Play className="mr-2 h-4 w-4" /> Generate Script</>}
+                  </Button>
+                </TooltipTrigger>
+                {!canGenerateScript && (
+                  <TooltipContent>
+                    <p>You have reached your script quota for the FREE plan. Please upgrade to PRO.</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </CardContent>
         </Card>
       </div>
@@ -255,21 +269,39 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
             ))}
           </select>
           <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto hide-scrollbar shrink-0">
-            {missingSectionsCount !== null && missingSectionsCount > 0 && (
-              <Button onClick={handleGenerateAllImages} disabled={isGeneratingAll || isGenerating} variant="default" size="sm" className="bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all duration-200 shadow-md shadow-indigo-500/20 whitespace-nowrap shrink-0 hidden lg:flex">
-                 {isGeneratingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageIcon className="mr-2 h-4 w-4" />}
-                 Generate All Images ({missingSectionsCount})
-              </Button>
-            )}
-            {missingSectionsCount !== null && missingSectionsCount > 0 && (
-              <Button onClick={handleGenerateAllImages} disabled={isGeneratingAll || isGenerating} variant="default" size="icon" className="bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all duration-200 shadow-md shadow-indigo-500/20 shrink-0 lg:hidden" title={`Generate All Images (${missingSectionsCount})`}>
-                 {isGeneratingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-              </Button>
-            )}
-            <Button onClick={handleGenerate} disabled={isGenerating || isGeneratingAll} variant="outline" size="sm" className="flex-1 sm:flex-none active:scale-[0.98] transition-all duration-200 whitespace-nowrap">
-               {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
-               Regenerate
-            </Button>
+            <TooltipProvider delay={200}>
+              {missingSectionsCount !== null && missingSectionsCount > 0 && (
+                <Tooltip>
+                  <TooltipTrigger render={<span className="inline-block" />}>
+                    <Button onClick={handleGenerateAllImages} disabled={isGeneratingAll || isGenerating || !canGenerateImage} variant="default" size="sm" className="bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all duration-200 shadow-md shadow-indigo-500/20 whitespace-nowrap shrink-0 hidden lg:flex">
+                       {isGeneratingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : !canGenerateImage ? <Lock className="mr-2 h-4 w-4" /> : <ImageIcon className="mr-2 h-4 w-4" />}
+                       Generate All Images ({missingSectionsCount})
+                    </Button>
+                  </TooltipTrigger>
+                  {!canGenerateImage && (
+                    <TooltipContent>
+                      <p>AI Image Generation is a PRO feature.</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+            </TooltipProvider>
+            
+            <TooltipProvider delay={200}>
+              <Tooltip>
+                <TooltipTrigger render={<span className="inline-block" />}>
+                  <Button onClick={handleGenerate} disabled={isGenerating || isGeneratingAll || !canGenerateScript} variant="outline" size="sm" className="whitespace-nowrap shrink-0 active:scale-[0.98] transition-all duration-200">
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : !canGenerateScript ? <Lock className="mr-2 h-4 w-4" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                    Regenerate Script
+                  </Button>
+                </TooltipTrigger>
+                {!canGenerateScript && (
+                  <TooltipContent>
+                    <p>You have reached your script quota for the FREE plan. Please upgrade to PRO.</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
             <Button onClick={handleDelete} variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 shrink-0 hidden sm:flex" title="Delete">
                <Trash className="h-4 w-4" />
             </Button>
@@ -292,7 +324,11 @@ export function ScriptManager({ projectId, scripts, project }: { projectId: stri
                 <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
               </div>
             ) : sections.length > 0 && project ? (
-              <ScriptSectionList project={project} sections={sections} />
+              <ScriptSectionList 
+                project={project}
+                sections={sections} 
+                canGenerateImage={canGenerateImage}
+              />
             ) : (
               <textarea 
                 readOnly 

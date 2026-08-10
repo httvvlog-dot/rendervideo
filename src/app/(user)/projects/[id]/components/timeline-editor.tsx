@@ -13,6 +13,9 @@ import { globalAudioEngine } from "@/utils/audio/audio-engine"
 import { AudioDiagnosticsPanel } from "./audio-diagnostics-panel"
 import { updateTimelineDurations } from "../timeline-actions"
 import { ExportSettingsModal } from "./export-settings-modal"
+
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Lock } from "lucide-react"
 import { useProjectSave, SaveState } from "./project-save-context"
 
 interface Scene {
@@ -59,7 +62,8 @@ export function TimelineEditor({
   sections = [],
   aspectRatio,
   exportPresets = [],
-  activePresetId = null
+  activePresetId = null,
+  canRender = true
 }: { 
   initialScenes: Scene[], 
   media?: any[], 
@@ -68,7 +72,8 @@ export function TimelineEditor({
   sections?: any[],
   aspectRatio?: string,
   exportPresets?: any[],
-  activePresetId?: string | null
+  activePresetId?: string | null,
+  canRender?: boolean
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [renderJobId, setRenderJobId] = useState<string | undefined>(undefined)
@@ -522,34 +527,45 @@ export function TimelineEditor({
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative rounded-[7px] p-[1px] bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 shadow-[0_0_15px_rgba(139,92,246,0.2)] max-sm:shadow-none flex-1 sm:flex-none">
-              <Button 
-                size="sm" 
-                className="w-full h-full bg-slate-950 hover:bg-slate-900 text-white border-0 active:scale-[0.98] transition-all duration-200"
-          onClick={async () => {
-            shouldScrollToRenderRef.current = true;
-            try {
-              const res = await fetch('/api/render', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projectId })
-              });
-              const data = await res.json();
-              if (data.jobId) {
-                setRenderJobId(data.jobId);
-              } else if (data.error) {
-                toast.error(data.error);
-              } else {
-                toast.error("Render failed with unknown error");
-              }
-            } catch (err: any) {
-              console.error(err);
-              toast.error(err.message || "Failed to trigger render");
-            }
-          }}
-          disabled={!!renderJobId}
-        >
-          <Download className="w-4 h-4 mr-2" /> Render Video (MP4)
-        </Button>
+          <TooltipProvider delay={200}>
+            <Tooltip>
+              <TooltipTrigger render={<span className="inline-block w-full h-full" />}>
+                <Button 
+                  size="sm" 
+                  className="w-full h-full bg-slate-950 hover:bg-slate-900 text-white border-0 active:scale-[0.98] transition-all duration-200"
+                  onClick={async () => {
+                    shouldScrollToRenderRef.current = true;
+                    try {
+                      const res = await fetch('/api/render', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ projectId })
+                      });
+                      const data = await res.json();
+                      if (data.jobId) {
+                        setRenderJobId(data.jobId);
+                      } else if (data.error) {
+                        toast.error(data.error);
+                      } else {
+                        toast.error("Render failed with unknown error");
+                      }
+                    } catch (err: any) {
+                      console.error(err);
+                      toast.error(err.message || "Failed to trigger render");
+                    }
+                  }}
+                  disabled={!!renderJobId || !canRender}
+                >
+                  {!canRender ? <Lock className="w-4 h-4 mr-2" /> : <Download className="w-4 h-4 mr-2" />} Render Video (MP4)
+                </Button>
+              </TooltipTrigger>
+              {!canRender && (
+                <TooltipContent>
+                  <p>Video Rendering is a PRO feature.</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <ExportSettingsModal 
           projectId={projectId} 
