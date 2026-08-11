@@ -46,7 +46,7 @@ export function WalletClientPage({
     alert(`Mock Payment Triggered for Package ${pkgId}! In real implementation this redirects to the payment gateway.`);
   };
 
-  const balance = wallet.available_credits || 0;
+  const balance = wallet.balance_credits || 0;
   const balanceVnd = balance * CREDIT_TO_VND;
   const lifetimeUsage = wallet.total_consumed_credits || wallet.lifetime_used || 0;
 
@@ -133,7 +133,7 @@ export function WalletClientPage({
             </div>
           ) : (
             packages.map(pkg => (
-              <div key={pkg.id} className={`group relative rounded-2xl transition-all hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(99,102,241,0.1)] border overflow-hidden bg-white dark:bg-transparent ${pkg.is_featured ? 'border-indigo-500 shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/20 hover:border-transparent' : 'border-slate-200 dark:border-slate-800 hover:border-transparent'}`}>
+              <div key={pkg.id} className={`group relative rounded-2xl transition-all hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(99,102,241,0.1)] border bg-white dark:bg-transparent ${pkg.is_featured ? 'border-indigo-500 shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/20 hover:border-transparent' : 'border-slate-200 dark:border-slate-800 hover:border-transparent'}`}>
                 {/* Hover Gradient Border Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0">
                   <div className="bg-white dark:bg-slate-900 w-full h-full rounded-[15px]"></div>
@@ -141,12 +141,12 @@ export function WalletClientPage({
                 
                 <div className="relative z-10 flex flex-col h-full p-6">
                   {pkg.is_featured && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap z-20">
                       <Star className="w-3 h-3 mr-1 fill-white" /> POPULAR
                     </div>
                   )}
                   {pkg.bonus_credits > 20 && !pkg.is_featured && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap z-20">
                       🔥 BEST VALUE
                     </div>
                   )}
