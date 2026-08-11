@@ -313,16 +313,6 @@ export function ScriptManager({ projectId, scripts, project, canGenerateScript =
         <Card className="border-0 shadow-none sm:border sm:shadow-sm">
             <div className="border-b bg-slate-50 dark:bg-slate-900 px-4 py-2 flex items-center overflow-x-auto hide-scrollbar whitespace-nowrap gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
               <span className="flex items-center shrink-0">
-                <Zap className="h-3.5 w-3.5 mr-1" /> 
-                {activeScript.cost || 0} Credit
-              </span>
-              <span className="shrink-0 font-bold text-slate-300">·</span>
-              <span className="flex items-center shrink-0">
-                <DollarSign className="h-3.5 w-3.5 mr-0.5" /> 
-                {((activeScript.cost || 0) * 1000).toLocaleString('vi-VN')}đ
-              </span>
-              <span className="shrink-0 font-bold text-slate-300">·</span>
-              <span className="flex items-center shrink-0">
                 <FileText className="h-3.5 w-3.5 mr-1" />
                 {activeScript.word_count} words
               </span>
