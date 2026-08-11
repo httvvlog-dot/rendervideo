@@ -1,3 +1,5 @@
+export const VOICE_GAP_MS = 300;
+
 export const RENDER_JOB_STATUS = {
   PENDING: 'pending',
   QUEUED: 'queued',

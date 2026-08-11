@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@supabase/supabase-js"
-import { TimelineJSON, RenderScene, RenderAudioTrack } from "./core"
+import { RenderScene, RenderAudioTrack, TimelineJSON, VOICE_GAP_MS } from "./core"
 import { getProjectCanvas } from "@/lib/project-canvas"
 
 export async function compileTimeline(supabase: SupabaseClient, projectId: string, bypassAuth: boolean = false): Promise<TimelineJSON> {
@@ -188,6 +188,19 @@ export async function compileTimeline(supabase: SupabaseClient, projectId: strin
                 durationMs: Number(section.voice_duration_ms) || 0
               })
             }
+          }
+        }
+
+        // Apply minimal VOICE_GAP_MS to prevent overlapping voice tracks
+        audioTracks.sort((a, b) => a.startTimeMs - b.startTimeMs);
+        for (let i = 1; i < audioTracks.length; i++) {
+          const prev = audioTracks[i - 1];
+          const curr = audioTracks[i];
+          
+          const expectedMinStart = prev.startTimeMs + prev.durationMs + VOICE_GAP_MS;
+          
+          if (curr.startTimeMs < expectedMinStart) {
+            curr.startTimeMs = expectedMinStart;
           }
         }
       }

@@ -11,6 +11,7 @@ import { ClientPreviewPlayer } from "./client-preview-player"
 import { AudioPlaybackManager } from "./audio-playback-manager"
 import { globalAudioEngine } from "@/utils/audio/audio-engine"
 import { AudioDiagnosticsPanel } from "./audio-diagnostics-panel"
+import { VOICE_GAP_MS } from "@/utils/render/core"
 import { updateTimelineDurations } from "../timeline-actions"
 import { ExportSettingsModal } from "./export-settings-modal"
 
@@ -193,6 +194,20 @@ export function TimelineEditor({
         }
       }
     }
+
+    // Apply minimal VOICE_GAP_MS to prevent overlapping voice tracks
+    blocks.sort((a, b) => a.startMs - b.startMs);
+    for (let i = 1; i < blocks.length; i++) {
+      const prev = blocks[i - 1];
+      const curr = blocks[i];
+      
+      const expectedMinStart = prev.startMs + prev.durationMs + VOICE_GAP_MS;
+      
+      if (curr.startMs < expectedMinStart) {
+        curr.startMs = expectedMinStart;
+      }
+    }
+
     return blocks
   }, [sections, previewScenes, voiceMedia])
 
