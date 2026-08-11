@@ -46,7 +46,7 @@ export function WalletClientPage({
     alert(`Mock Payment Triggered for Package ${pkgId}! In real implementation this redirects to the payment gateway.`);
   };
 
-  const balance = wallet.balance_credits || 0;
+  const balance = wallet.available_credits || 0;
   const balanceVnd = balance * CREDIT_TO_VND;
   const lifetimeUsage = wallet.total_consumed_credits || wallet.lifetime_used || 0;
 
@@ -122,21 +122,21 @@ export function WalletClientPage({
       {/* 2. Buy Credits */}
       <div id="buy-credits-section">
         <div className="mb-4">
-          <h2 className="text-xl font-bold flex items-center gap-2"><CreditCard className="w-5 h-5 text-indigo-400" /> Buy Credits</h2>
-          <p className="text-slate-400 text-sm mt-1">1 Credit = 1.000 VNĐ</p>
+          <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white"><CreditCard className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Buy Credits</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">1 Credit = 1.000 VNĐ</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {packages.length === 0 ? (
-            <div className="col-span-1 md:col-span-3 flex flex-col items-center justify-center h-32 sm:h-40 border border-slate-800 rounded-xl border-dashed bg-slate-900/30">
-              <CreditCard className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-400 mb-2 opacity-40" />
+            <div className="col-span-1 md:col-span-3 flex flex-col items-center justify-center h-32 sm:h-40 border border-slate-200 dark:border-slate-800 rounded-xl border-dashed bg-slate-50 dark:bg-slate-900/30">
+              <CreditCard className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-500 dark:text-indigo-400 mb-2 opacity-40" />
               <div className="text-slate-500 font-medium text-sm">No active credit packages available.</div>
             </div>
           ) : (
             packages.map(pkg => (
-              <div key={pkg.id} className={`group relative rounded-2xl transition-all hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(99,102,241,0.1)] border overflow-hidden ${pkg.is_featured ? 'border-indigo-500 shadow-lg shadow-indigo-500/20 hover:border-transparent' : 'border-slate-800 hover:border-transparent'}`}>
+              <div key={pkg.id} className={`group relative rounded-2xl transition-all hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(99,102,241,0.1)] border overflow-hidden bg-white dark:bg-transparent ${pkg.is_featured ? 'border-indigo-500 shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/20 hover:border-transparent' : 'border-slate-200 dark:border-slate-800 hover:border-transparent'}`}>
                 {/* Hover Gradient Border Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0">
-                  <div className="bg-slate-900 w-full h-full rounded-[15px]"></div>
+                  <div className="bg-white dark:bg-slate-900 w-full h-full rounded-[15px]"></div>
                 </div>
                 
                 <div className="relative z-10 flex flex-col h-full p-6">
@@ -152,14 +152,14 @@ export function WalletClientPage({
                   )}
                   
                   <div className="text-center mt-4 mb-4">
-                    <h3 className="text-slate-400 font-medium mb-1">{pkg.name}</h3>
-                    <div className="text-3xl font-bold text-white">{pkg.price_vnd.toLocaleString('vi-VN')} VNĐ</div>
+                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-1">{pkg.name}</h3>
+                    <div className="text-3xl font-bold text-slate-900 dark:text-white">{pkg.price_vnd.toLocaleString('vi-VN')} VNĐ</div>
                   </div>
                   
-                  <div className="bg-slate-950 rounded-xl p-4 mb-4 text-center border border-slate-800/50">
-                    <div className="text-2xl font-bold text-indigo-400">{pkg.credits?.toLocaleString()} <span className="text-sm font-normal text-slate-400">Credits</span></div>
+                  <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 mb-4 text-center border border-slate-200 dark:border-slate-800/50">
+                    <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{pkg.credits?.toLocaleString()} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">Credits</span></div>
                     {pkg.bonus_credits > 0 ? (
-                      <div className="text-emerald-400 text-xs font-medium mt-1">🎁 +{pkg.bonus_credits?.toLocaleString()} Bonus</div>
+                      <div className="text-emerald-600 dark:text-emerald-400 text-xs font-medium mt-1">🎁 +{pkg.bonus_credits?.toLocaleString()} Bonus</div>
                     ) : (
                       <div className="text-slate-500 text-xs mt-1">Standard rate</div>
                     )}
@@ -170,11 +170,11 @@ export function WalletClientPage({
                       size="sm"
                       onClick={() => handleCheckout(pkg.id)} 
                       disabled={isProcessing}
-                      className="w-full bg-slate-800/50 text-slate-400 text-sm h-10 border border-slate-700/50 opacity-70 cursor-not-allowed"
+                      className="w-full bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-sm h-10 border border-slate-200 dark:border-slate-700/50 opacity-70 cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800/50"
                     >
                       Coming Soon
                     </Button>
-                    <div className="text-[10px] text-slate-500 text-center mt-2 font-medium tracking-wide">
+                    <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center mt-2 font-medium tracking-wide">
                       QR • MoMo • VNPay • Stripe
                     </div>
                   </div>
