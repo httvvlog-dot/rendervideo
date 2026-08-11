@@ -10,12 +10,14 @@ export function ExportSettingsModal({
   projectId, 
   activePresetId, 
   presets,
-  totalDurationMs = 0
+  totalDurationMs = 0,
+  servicePricing
 }: { 
   projectId: string, 
   activePresetId: string | null, 
   presets: any[],
-  totalDurationMs?: number
+  totalDurationMs?: number,
+  servicePricing?: any
 }) {
   const defaultSelected = activePresetId || presets.find(p => p.is_default)?.id || (presets.length > 0 ? presets[0].id : null);
   const [selected, setSelected] = useState<string | null>(defaultSelected);
@@ -129,7 +131,11 @@ export function ExportSettingsModal({
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="flex items-center text-slate-400"><Coins className="w-3 h-3 mr-1"/> Est. Cost</span>
-                          <span className="text-amber-400">{cost.credits} Credits</span>
+                          {servicePricing && servicePricing['VIDEO'] ? (
+                            <span className="text-amber-400">⚡ {servicePricing['VIDEO'].selling_price_vnd.toLocaleString('vi-VN')}đ</span>
+                          ) : (
+                            <span className="text-amber-400">{cost.credits} Credits</span>
+                          )}
                         </div>
                       </div>
                     </div>

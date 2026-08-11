@@ -64,7 +64,8 @@ export function TimelineEditor({
   aspectRatio,
   exportPresets = [],
   activePresetId = null,
-  canRender = true
+  canRender = true,
+  servicePricing
 }: { 
   initialScenes: Scene[], 
   media?: any[], 
@@ -74,13 +75,21 @@ export function TimelineEditor({
   aspectRatio?: string,
   exportPresets?: any[],
   activePresetId?: string | null,
-  canRender?: boolean
+  canRender?: boolean,
+  servicePricing?: any
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [renderJobId, setRenderJobId] = useState<string | undefined>(undefined)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+  const [currentPresetId, setCurrentPresetId] = useState(activePresetId)
   
   const renderStatusRef = useRef<HTMLDivElement>(null)
   const shouldScrollToRenderRef = useRef(false)
+
+  const handleSaveExportSettings = (presetId: string) => {
+    setCurrentPresetId(presetId);
+    setIsExportModalOpen(false);
+  }
 
   useEffect(() => {
     if (renderJobId && shouldScrollToRenderRef.current && renderStatusRef.current) {
@@ -586,6 +595,7 @@ export function TimelineEditor({
           projectId={projectId} 
           activePresetId={activePresetId || null} 
           presets={exportPresets || []}
+          servicePricing={servicePricing}
           totalDurationMs={totalDurationMs}
         />
         </div>

@@ -20,7 +20,8 @@ export function VoiceGeneratorButtons({
   hasExistingScenes,
   hasAnySections,
   hasVoiceAssigned,
-  canGenerateVoice = true
+  canGenerateVoice = true,
+  servicePricing
 }: { 
   projectId: string;
   allVoicesGenerated: boolean;
@@ -30,6 +31,7 @@ export function VoiceGeneratorButtons({
   hasAnySections: boolean;
   hasVoiceAssigned: boolean;
   canGenerateVoice?: boolean;
+  servicePricing?: any;
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
@@ -117,8 +119,17 @@ export function VoiceGeneratorButtons({
                 : "bg-slate-100 text-slate-500 opacity-60 hover:opacity-100 dark:bg-slate-800 dark:text-slate-400"
               } disabled:opacity-40`}
             >
-              {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : !canGenerateVoice ? <Lock className="w-4 h-4 mr-2" /> : <Mic className="w-4 h-4 mr-2" />}
-              {allVoicesGenerated ? "Voices Ready" : "Generate Missing Voice"}
+              <div className="flex flex-col items-center justify-center">
+                <div className="flex items-center">
+                  {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : !canGenerateVoice ? <Lock className="w-4 h-4 mr-2" /> : <Mic className="w-4 h-4 mr-2" />}
+                  {allVoicesGenerated ? "Voices Ready" : "Generate Missing Voice"}
+                </div>
+                {!allVoicesGenerated && servicePricing && servicePricing['VOICE'] && (
+                  <div className="text-[10px] opacity-80 mt-0.5">
+                    ⚡ {servicePricing['VOICE'].selling_price_vnd.toLocaleString('vi-VN')}đ
+                  </div>
+                )}
+              </div>
             </Button>
           </TooltipTrigger>
           {!canGenerateVoice && (
@@ -146,7 +157,16 @@ export function VoiceGeneratorButtons({
                 : "text-slate-500 border-slate-200 opacity-60 hover:opacity-100 dark:border-slate-800 dark:text-slate-400"
               } disabled:opacity-40`}
             >
-              {!canGenerateVoice && <Lock className="w-4 h-4 mr-2" />} Regenerate All Voices
+              <div className="flex flex-col items-center justify-center">
+                <div className="flex items-center">
+                  {!canGenerateVoice && <Lock className="w-4 h-4 mr-2" />} Regenerate All Voices
+                </div>
+                {servicePricing && servicePricing['VOICE'] && (
+                  <div className="text-[10px] opacity-80 mt-0.5">
+                    ⚡ {servicePricing['VOICE'].selling_price_vnd.toLocaleString('vi-VN')}đ
+                  </div>
+                )}
+              </div>
             </Button>
           </TooltipTrigger>
           {!canGenerateVoice && (

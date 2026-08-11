@@ -62,6 +62,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     .eq('project_id', id)
     .order('version', { ascending: true })
 
+  const { data: servicePricingRaw } = await supabase
+    .from('service_pricing')
+    .select('*')
+    .eq('is_active', true)
+    
+  const servicePricing = (servicePricingRaw || []).reduce((acc: any, curr: any) => {
+    acc[curr.service_key] = curr;
+    return acc;
+  }, {})
+
   const { data: scenes } = await supabase
     .from('project_scenes')
     .select('*')
@@ -131,76 +141,79 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_16rem] gap-6 min-w-0">
         
         {/* Main Workspace (Assets + Timeline) */}
-        <div className="space-y-6 min-w-0">
-          
-          <ScriptManager 
-            projectId={project.id} 
-            scripts={scripts || []} 
-            project={project} 
-            canGenerateScript={canGenerateScript}
-            canGenerateImage={canGenerateImage}
-          />
-          
-          {/* Global Media Assets (for non-section specific logic) */}
-          <ProjectMedia projectId={project.id} initialMedia={projectMedia || []} targetDuration={project.video_length} />
-          
-          {/* Timeline Generation & Editor */}
-          <div className="mt-8">
-            <div className="flex flex-col mb-4">
-              <div className="flex flex-col xl:flex-row xl:items-center justify-between mb-2 gap-3">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Timeline Editor</h2>
-                <div className="flex flex-wrap items-center gap-2">
-                  <VoiceSelector 
-                    projectId={project.id}
-                    voices={activeVoices || []} 
-                    defaultVoiceId={project.voice_preset_id} 
-                  />
-                  <VoiceGeneratorButtons 
+        <div className="flex-1 w-full min-w-0">
+                  <ScriptManager 
                     projectId={project.id} 
-                    allVoicesGenerated={allVoicesGenerated}
-                    allVoicesSynced={allVoicesSynced} 
-                    hasAllRenderableMedia={hasAllRenderableMedia}
-                    hasExistingScenes={hasExistingScenes}
-                    hasAnySections={hasAnySections}
-                    hasVoiceAssigned={!!project.voice_preset_id}
-                    canGenerateVoice={canGenerateVoice}
+                    scripts={scripts || []} 
+                    project={project} 
+                    canGenerateScript={canGenerateScript}
+                    canGenerateImage={canGenerateImage}
+                    servicePricing={servicePricing}
                   />
-                  <TimelineGeneratorButton 
-                    projectId={project.id} 
-                    hasExistingScenes={hasExistingScenes} 
-                    allVoicesGenerated={allVoicesGenerated}
-                    allVoicesSynced={allVoicesSynced}
-                    hasAllRenderableMedia={hasAllRenderableMedia}
-                    canGenerateTimeline={canGenerateTimeline}
-                  />
-                </div>
-              </div>
-              <WorkflowIndicator 
-                allVoicesGenerated={allVoicesGenerated}
-                allVoicesSynced={allVoicesSynced}
-                hasAllRenderableMedia={hasAllRenderableMedia} 
-                hasExistingScenes={hasExistingScenes} 
-              />
-            </div>
+                  
+                  {/* Global Media Assets (for non-section specific logic) */}
+                  <ProjectMedia projectId={project.id} initialMedia={projectMedia || []} targetDuration={project.video_length} />
+                  
+                  {/* Timeline Generation & Editor */}
+                  <div className="mt-8">
+                    <div className="flex flex-col mb-4">
+                      <div className="flex flex-col xl:flex-row xl:items-center justify-between mb-2 gap-3">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Timeline Editor</h2>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <VoiceSelector 
+                            projectId={project.id}
+                            voices={activeVoices || []} 
+                            defaultVoiceId={project.voice_preset_id} 
+                          />
+                          <VoiceGeneratorButtons 
+                            projectId={project.id} 
+                            allVoicesGenerated={allVoicesGenerated}
+                            allVoicesSynced={allVoicesSynced} 
+                            hasAllRenderableMedia={hasAllRenderableMedia}
+                            hasExistingScenes={hasExistingScenes}
+                            hasAnySections={hasAnySections}
+                            hasVoiceAssigned={!!project.voice_preset_id}
+                            canGenerateVoice={canGenerateVoice}
+                            servicePricing={servicePricing}
+                          />
+                          <TimelineGeneratorButton 
+                            projectId={project.id} 
+                            hasExistingScenes={hasExistingScenes} 
+                            allVoicesGenerated={allVoicesGenerated}
+                            allVoicesSynced={allVoicesSynced}
+                            hasAllRenderableMedia={hasAllRenderableMedia}
+                            canGenerateTimeline={canGenerateTimeline}
+                          />
+                        </div>
+                      </div>
+                      <WorkflowIndicator 
+                        allVoicesGenerated={allVoicesGenerated}
+                        allVoicesSynced={allVoicesSynced}
+                        hasAllRenderableMedia={hasAllRenderableMedia} 
+                        hasExistingScenes={hasExistingScenes} 
+                      />
+                    </div>
 
-            {hasExistingScenes ? (
-              <TimelineEditor 
-                projectId={project.id}
-                initialScenes={scenes || []}
-                media={projectMedia}
-                voiceMedia={voiceMedia}
-                sections={activeSections}
-                aspectRatio={project.aspect_ratio}
-                exportPresets={exportPresets || []}
-                activePresetId={project.render_preset_id}
-                canRender={canRender}
-              />
-            ) : (
-              <div className="p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-800 text-slate-500">
-                No timeline generated yet. Upload media to your script sections and click "Generate Timeline".
-              </div>
-            )}
-          </div>
+                    {hasExistingScenes ? (
+                      <TimelineEditor 
+                        projectId={project.id}
+                        initialScenes={scenes || []}
+                        media={projectMedia}
+                        voiceMedia={voiceMedia}
+                        sections={activeSections}
+                        aspectRatio={project.aspect_ratio}
+                        exportPresets={exportPresets || []}
+                        activePresetId={project.render_preset_id}
+                        canRender={canRender}
+                        servicePricing={servicePricing}
+                      />
+                    ) : (
+                      <div className="p-8 text-center border-2 border-dashed rounded-xl border-slate-200 dark:border-slate-800 text-slate-500">
+                        No timeline generated yet. Upload media to your script sections and click "Generate Timeline".
+                      </div>
+                    )}
+                  </div>
+                </div>
 
         </div>
         
@@ -213,7 +226,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </form>
           </div>
         </div>
-      </div>
       </div>
     </ProjectSaveProvider>
   )

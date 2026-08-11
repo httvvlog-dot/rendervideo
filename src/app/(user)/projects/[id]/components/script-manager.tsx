@@ -14,7 +14,7 @@ import { ScriptSectionList } from "./script-section-list"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Lock } from "lucide-react"
 
-export function ScriptManager({ projectId, scripts, project, canGenerateScript = true, canGenerateImage = true }: { projectId: string, scripts: any[], project?: any, canGenerateScript?: boolean, canGenerateImage?: boolean }) {
+export function ScriptManager({ projectId, scripts, project, canGenerateScript = true, canGenerateImage = true, servicePricing }: { projectId: string, scripts: any[], project?: any, canGenerateScript?: boolean, canGenerateImage?: boolean, servicePricing?: any }) {
   console.log("[DIAG] 1. ScriptManager rendered", { projectId, activeScriptId: scripts.find(s => s.version === (scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0))?.id });
   const [isGenerating, setIsGenerating] = useState(false)
   const [activeVersion, setActiveVersion] = useState<number>(scripts.length > 0 ? Math.max(...scripts.map(s => s.version)) : 0)
@@ -312,6 +312,15 @@ export function ScriptManager({ projectId, scripts, project, canGenerateScript =
       {activeScript && (
         <Card className="border-0 shadow-none sm:border sm:shadow-sm">
             <div className="border-b bg-slate-50 dark:bg-slate-900 px-4 py-2 flex items-center overflow-x-auto hide-scrollbar whitespace-nowrap gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+              {servicePricing && servicePricing['SCRIPT'] && (
+                <>
+                  <span className="flex items-center shrink-0">
+                    <Zap className="h-3.5 w-3.5 mr-1" />
+                    {servicePricing['SCRIPT'].selling_price_vnd.toLocaleString('vi-VN')}đ
+                  </span>
+                  <span className="shrink-0 font-bold text-slate-300">·</span>
+                </>
+              )}
               <span className="flex items-center shrink-0">
                 <FileText className="h-3.5 w-3.5 mr-1" />
                 {activeScript.word_count} words

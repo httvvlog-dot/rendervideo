@@ -3,7 +3,7 @@
 import { ScriptOverview } from "./script-overview"
 import { ScriptSectionCard } from "./script-section-card"
 
-export function ScriptSectionList({ project, sections, canGenerateImage = true }: { project: any, sections: any[], canGenerateImage?: boolean }) {
+export function ScriptSectionList({ project, sections, canGenerateImage = true, servicePricing }: { project: any, sections: any[], canGenerateImage?: boolean, servicePricing?: any }) {
   if (!sections || sections.length === 0) return null
 
   const wordCount = sections.reduce((acc, s) => acc + s.narration.trim().split(/\s+/).filter((w: string) => w.length > 0).length, 0)
@@ -30,6 +30,7 @@ export function ScriptSectionList({ project, sections, canGenerateImage = true }
               projectId={project.id} 
               startTime={startTime} 
               canGenerateImage={canGenerateImage}
+              servicePricing={servicePricing}
             />
           )
         })}

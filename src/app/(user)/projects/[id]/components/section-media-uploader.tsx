@@ -9,7 +9,7 @@ import { UploadCloud, X, Loader2, Image as ImageIcon, Trash2, Sparkles, Download
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Lock } from "lucide-react"
 
-export function SectionMediaUploader({ sectionId, projectId, recommendedCount, canGenerateImage = true }: { sectionId: string, projectId: string, recommendedCount: number, canGenerateImage?: boolean }) {
+export function SectionMediaUploader({ sectionId, projectId, recommendedCount, canGenerateImage = true, servicePricing }: { sectionId: string, projectId: string, recommendedCount: number, canGenerateImage?: boolean, servicePricing?: any }) {
   const [media, setMedia] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
@@ -265,6 +265,11 @@ export function SectionMediaUploader({ sectionId, projectId, recommendedCount, c
                               {checkingFeature ? <Loader2 className="w-4 h-4 animate-spin" /> : isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : !canGenerateImage ? <Lock className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                               {checkingFeature ? "Checking..." : featureEnabled ? "✨ Generate AI Image" : "Unavailable"}
                             </div>
+                            {featureEnabled && !isGenerating && servicePricing && servicePricing['IMAGE'] && (
+                              <div className="text-[10px] opacity-80 mt-1">
+                                ⚡ {servicePricing['IMAGE'].selling_price_vnd.toLocaleString('vi-VN')}đ
+                              </div>
+                            )}
                             {!featureEnabled && !checkingFeature && featureReason && (
                               <div className="text-[10px] text-red-400 mt-1 max-w-full truncate">{featureReason}</div>
                             )}
