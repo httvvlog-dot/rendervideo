@@ -1,15 +1,54 @@
-export default function LogsPage() {
+import Link from "next/link";
+import { requireAdmin } from "@/utils/roles";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { AdminAuditLogs } from "./components/admin-audit-logs";
+import { AIUsageLogs } from "./components/ai-usage-logs";
+
+export default async function LogsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | undefined }>
+}) {
+  await requireAdmin();
+  
+  const resolvedParams = await searchParams;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Logs</h1>
-      </div>
-      <div className="border border-dashed border-slate-300 dark:border-slate-800 rounded-lg h-[400px] flex items-center justify-center bg-slate-50 dark:bg-slate-900/50">
-        <div className="text-center text-slate-500 dark:text-slate-400">
-          <p className="text-lg font-medium">Logs module is under construction</p>
-          <p className="text-sm mt-1">This section will be implemented in the upcoming sprint.</p>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">System Logs</h1>
+          <p className="text-muted-foreground mt-1">Monitor administrative actions and AI usage across the platform.</p>
         </div>
       </div>
+
+      <Tabs defaultValue={resolvedParams.tab || "audit"} className="w-full">
+        <TabsList className="mb-4 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <TabsTrigger value="audit" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 cursor-pointer">
+            Admin Audit Logs
+          </TabsTrigger>
+          <TabsTrigger value="usage" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 cursor-pointer">
+            AI Usage Logs
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="audit" className="m-0">
+          <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+            <CardContent className="p-4 sm:p-6">
+              <AdminAuditLogs searchParams={resolvedParams} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="usage" className="m-0">
+          <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+            <CardContent className="p-4 sm:p-6">
+              <AIUsageLogs searchParams={resolvedParams} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

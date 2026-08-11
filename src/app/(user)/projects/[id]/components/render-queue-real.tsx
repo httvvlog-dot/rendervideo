@@ -109,17 +109,11 @@ export function RenderQueueReal({ jobId, onRenderAgain, onComplete }: { jobId?: 
           <div className="flex flex-wrap gap-3 justify-end">
             {outputUrl && (
               <>
-                <Button className="bg-white text-slate-900 hover:bg-slate-200 shadow-lg" onClick={() => window.open(outputUrl, '_blank')}>
+                <Button className="bg-white text-slate-900 hover:bg-slate-200 shadow-lg" onClick={() => window.open(`/api/render/${jobId}/download?action=play`, '_blank')}>
                   <Play className="w-4 h-4 mr-2" /> Play
                 </Button>
                 <Button className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg" onClick={() => {
-                  const a = document.createElement('a')
-                  a.href = outputUrl
-                  a.download = `taovideo-${jobId}.mp4`
-                  a.target = '_blank'
-                  document.body.appendChild(a)
-                  a.click()
-                  document.body.removeChild(a)
+                  window.location.href = `/api/render/${jobId}/download?action=download`
                 }}>
                   <Download className="w-4 h-4 mr-2" /> Download
                 </Button>

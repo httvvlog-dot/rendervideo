@@ -12,15 +12,21 @@ CREATE TABLE IF NOT EXISTS public.transitions (
 -- Enable RLS
 ALTER TABLE public.transitions ENABLE ROW LEVEL SECURITY;
 
--- Allow read access for everyone (Worker/Timeline API)
-CREATE POLICY "Allow public read access to active transitions" ON public.transitions
-    FOR SELECT
-    USING (is_active = true);
-    
--- Allow admins full access
-CREATE POLICY "Admins can manage transitions" ON public.transitions
-    FOR ALL
-    USING ( public.is_admin() );
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'transitions' AND policyname = 'Allow public read access to active transitions'
+    ) THEN
+        CREATE POLICY "Allow public read access to active transitions" ON public.transitions FOR SELECT USING (is_active = true);
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'transitions' AND policyname = 'Admins can manage transitions'
+    ) THEN
+        CREATE POLICY "Admins can manage transitions" ON public.transitions FOR ALL USING ( public.is_admin() );
+    END IF;
+END
+$$;
 
 -- Seed basic transitions
 INSERT INTO public.transitions (code, name, is_builtin) VALUES
