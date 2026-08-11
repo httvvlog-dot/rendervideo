@@ -311,13 +311,22 @@ export function ScriptManager({ projectId, scripts, project, canGenerateScript =
 
       {activeScript && (
         <Card className="border-0 shadow-none sm:border sm:shadow-sm">
-          <div className="border-b bg-slate-50 dark:bg-slate-900 px-4 py-2 flex items-center overflow-x-auto hide-scrollbar whitespace-nowrap gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
-            <span className="flex items-center shrink-0"><Zap className="h-3.5 w-3.5 mr-1" /> {activeScript.model}</span>
-            <span className="flex items-center shrink-0"><Clock className="h-3.5 w-3.5 mr-1" /> {activeScript.latency_ms}ms</span>
-            <span className="shrink-0">Tokens: {activeScript.tokens_input} in / {activeScript.tokens_output} out</span>
-            <span className="flex items-center shrink-0"><DollarSign className="h-3.5 w-3.5 mr-0.5" /> {activeScript.cost || 0}</span>
-            <span className="shrink-0">{activeScript.word_count} words</span>
-          </div>
+            <div className="border-b bg-slate-50 dark:bg-slate-900 px-4 py-2 flex items-center overflow-x-auto hide-scrollbar whitespace-nowrap gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <span className="flex items-center shrink-0">
+                <Zap className="h-3.5 w-3.5 mr-1" /> 
+                {activeScript.cost || 0} Credit
+              </span>
+              <span className="shrink-0 font-bold text-slate-300">·</span>
+              <span className="flex items-center shrink-0">
+                <DollarSign className="h-3.5 w-3.5 mr-0.5" /> 
+                {((activeScript.cost || 0) * 1000).toLocaleString('vi-VN')}đ
+              </span>
+              <span className="shrink-0 font-bold text-slate-300">·</span>
+              <span className="flex items-center shrink-0">
+                <FileText className="h-3.5 w-3.5 mr-1" />
+                {activeScript.word_count} words
+              </span>
+            </div>
           <CardContent className="p-0 sm:p-4 bg-slate-100/50 dark:bg-slate-900/20">
             {isLoadingSections ? (
               <div className="flex items-center justify-center h-40">
