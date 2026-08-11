@@ -49,6 +49,7 @@ export function WalletClientPage({
   const balance = wallet.balance_credits || 0;
   const balanceVnd = balance * CREDIT_TO_VND;
   const lifetimeUsage = wallet.total_consumed_credits || wallet.lifetime_used || 0;
+  const bonusCredits = wallet.total_bonus_credits || wallet.lifetime_bonus || 0;
 
   // Helpers
   const getFeatureIcon = (feature: string) => {
@@ -106,11 +107,17 @@ export function WalletClientPage({
           </div>
           
           <div className="flex gap-3 sm:gap-4 w-full md:w-auto mt-2 md:mt-0">
-            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3 sm:p-4 flex-1 md:w-40 backdrop-blur-md shadow-inner flex flex-col justify-center">
+            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3 sm:p-4 flex-1 md:w-32 backdrop-blur-md shadow-inner flex flex-col justify-center">
               <div className="text-slate-400 text-xs sm:text-sm mb-1 flex items-center gap-1.5"><Zap className="w-[14px] h-[14px] sm:w-4 sm:h-4 text-purple-400" /> Current Plan</div>
               <div className="text-base sm:text-lg font-bold text-white leading-none">{userPlan}</div>
             </div>
-            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3 sm:p-4 flex-1 md:w-40 backdrop-blur-md shadow-inner flex flex-col justify-center">
+            {bonusCredits > 0 && (
+              <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3 sm:p-4 flex-1 md:w-32 backdrop-blur-md shadow-inner flex flex-col justify-center">
+                <div className="text-slate-400 text-xs sm:text-sm mb-1 flex items-center gap-1.5"><Star className="w-[14px] h-[14px] sm:w-4 sm:h-4 text-amber-400" /> Bonus</div>
+                <div className="text-base sm:text-lg font-bold text-white leading-none">{bonusCredits.toLocaleString()}</div>
+              </div>
+            )}
+            <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3 sm:p-4 flex-1 md:w-32 backdrop-blur-md shadow-inner flex flex-col justify-center">
               <div className="text-slate-400 text-xs sm:text-sm mb-1 flex items-center gap-1.5"><FileText className="w-[14px] h-[14px] sm:w-4 sm:h-4 text-cyan-400" /> Total Used</div>
               <div className="text-base sm:text-lg font-bold text-white leading-none">{lifetimeUsage.toLocaleString()}</div>
             </div>
