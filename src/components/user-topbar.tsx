@@ -3,7 +3,8 @@
 import { useTheme } from "next-themes"
 import { Moon, Sun, Menu, Bell } from "lucide-react"
 import { Button, buttonVariants } from "./ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "./ui/dropdown-menu"
+import Link from "next/link"
 import { Avatar, AvatarFallback } from "./ui/avatar"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
@@ -54,9 +55,14 @@ export function UserTopbar() {
       </div>
       
       <div className="ml-auto flex items-center space-x-4">
-        <Button variant="ghost" size="icon" className="relative active:scale-[0.98] transition-all duration-200">
-          <Bell className="h-5 w-5" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative active:scale-[0.98] transition-all duration-200")}>
+            <Bell className="h-5 w-5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[300px] p-4 text-center">
+            <p className="text-sm text-slate-500 dark:text-slate-400">No new notifications</p>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger className={buttonVariants({ variant: "ghost", size: "icon" })}>
@@ -87,14 +93,26 @@ export function UserTopbar() {
                 <div className="mt-2 text-xs rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 w-fit">{profile?.role || "user"}</div>
               </div>
             </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/profile" className="cursor-pointer">Profile</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => {
               console.log("Change Password Click")
               setIsPasswordModalOpen(true)
             }}>
               Change Password
             </DropdownMenuItem>
-            <DropdownMenuItem asChild className="text-red-500 cursor-pointer">
-              <a href="/api/logout">Sign out</a>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="text-red-500 cursor-pointer" 
+              onClick={async () => {
+                const supabase = createClient()
+                await supabase.auth.signOut()
+                window.location.href = "/login"
+              }}
+            >
+              Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
