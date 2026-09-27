@@ -126,10 +126,68 @@ export class BillingEngine {
       console.log("ai_plan_profile fetched:", profile);
         
       if (profile && profile.providers && profile.ai_models) {
-        const providerKey = Array.isArray(profile.providers) ? profile.providers[0]?.provider_key : (profile.providers as any).provider_key;
-        const apiSlug = Array.isArray(profile.ai_models) ? profile.ai_models[0]?.api_slug : (profile.ai_models as any).api_slug;
+        let providerKey = Array.isArray(profile.providers) ? profile.providers[0]?.provider_key : (profile.providers as any).provider_key;
+        let apiSlug = Array.isArray(profile.ai_models) ? profile.ai_models[0]?.api_slug : (profile.ai_models as any).api_slug;
         
-        console.log("-> Using new AI Models configuration");
+        // --- CAPABILITY-BASED MODEL OVERRIDE ---
+        let resolvedCredits = profile.credits_per_unit;
+        let actualPricingVersion = 1;
+        
+        try {
+          // Import here to avoid circular dependency
+          const { ProviderRuntime } = await import("@/utils/provider-runtime");
+          const runtime = new ProviderRuntime(providerKey, { retryCount: 1 });
+          const capabilityMap: Record<BillingFeature, string> = {
+            [BillingFeature.IMAGE_GENERATION]: "IMAGE",
+            [BillingFeature.SCRIPT_GENERATION]: "SCRIPT",
+            [BillingFeature.VIDEO_RENDER]: "VIDEO",
+            [BillingFeature.VOICE_GENERATION]: "VOICE"
+          };
+          
+          const capabilityKey = capabilityMap[feature];
+          const dynamicModel = await runtime.getDefaultModel(capabilityKey);
+          
+          if (dynamicModel && dynamicModel !== apiSlug) {
+            console.log(`[BillingEngine] Capability model override detected: ${dynamicModel} (was ${apiSlug})`);
+            apiSlug = dynamicModel;
+            
+            // Dynamic Pricing Resolution
+            await this.initCache();
+            const cacheKey = `${providerKey}/${apiSlug}`;
+            const pricing = this.pricingCache.get(cacheKey);
+            
+            if (!pricing) {
+              throw new AppError({
+                code: "BILLING_PRICING_MISSING",
+                category: "BILLING",
+                severity: "CRITICAL",
+                message: `Pricing not configured for dynamically resolved model ${apiSlug}. Admin must configure pricing in provider_model_pricing.`,
+                retryable: false
+              });
+            }
+            
+            const ruleKey = `${feature}_${pricing.id}`;
+            const rule = this.ruleCache.get(ruleKey);
+            if (!rule) {
+              throw new AppError({
+                code: "BILLING_RULE_MISSING",
+                category: "BILLING",
+                severity: "CRITICAL",
+                message: `Credit rule not configured for dynamically resolved model ${apiSlug} (Feature: ${feature}).`,
+                retryable: false
+              });
+            }
+            
+            resolvedCredits = rule.credit_cost;
+            actualPricingVersion = pricing.version;
+          }
+        } catch (err: any) {
+           if (err instanceof AppError) throw err;
+           console.warn("[BillingEngine] Dynamic capability model resolution failed, falling back to plan profile:", err.message);
+        }
+        // ----------------------------------------
+        
+        console.log("-> Using AI Models configuration");
         console.log("providerKey:", providerKey);
         console.log("apiSlug:", apiSlug);
         
@@ -141,11 +199,11 @@ export class BillingEngine {
         console.log(`[Trace] 5. Quantity: ${quantity}`);
 
         return {
-          credits: profile.credits_per_unit * quantity,
+          credits: resolvedCredits * quantity,
           apiCost: 0, // Calculated post-execution
           provider: providerKey,
           model: apiSlug,
-          pricingVersion: 1,
+          pricingVersion: actualPricingVersion,
           creditRuleVersion: 1,
           currency: 'USD',
         };

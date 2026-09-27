@@ -337,6 +337,7 @@ export async function getOpenRouterModels(credentialId?: string, clientApiKey?: 
         name: m.name,
         provider: provider,
         contextLength: m.context_length,
+        architecture: m.architecture,
         pricing: {
           prompt: m.pricing?.prompt,
           completion: m.pricing?.completion

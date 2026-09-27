@@ -23,7 +23,7 @@ const ValidationSchema = z.object({
 export class PromptValidator {
   async validate(visualStory: string, imagePrompt: string, projectId: string): Promise<PromptValidationResult> {
     const runtime = new ProviderRuntime("openrouter", { retryCount: 1 });
-    const model = await runtime.getDefaultModel() || "openai/gpt-4o-mini";
+    const model = await runtime.getDefaultModel("SCRIPT") || "openai/gpt-4o-mini";
 
     const systemPrompt = `You are an AI Prompt Validator for an Image Generation Platform.
 Your job is to compare a Vietnamese 'Visual Story' against an English 'Image Prompt'.

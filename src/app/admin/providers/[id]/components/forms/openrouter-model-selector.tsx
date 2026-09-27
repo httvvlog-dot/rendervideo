@@ -8,6 +8,9 @@ export interface OpenRouterModel {
   name: string;
   provider: string;
   contextLength?: number;
+  architecture?: {
+    modality?: string;
+  };
   pricing?: {
     prompt?: string;
     completion?: string;

@@ -17,6 +17,8 @@ export function OpenRouterForm({ providerId, credential, onSuccess }: { provider
   
   const initialDefaultModel = config.default_model || config.defaultModel || ""
   const [selectedModel, setSelectedModel] = useState<string>(initialDefaultModel)
+  const [scriptModel, setScriptModel] = useState<string>(config.models?.SCRIPT || "")
+  const [imageModel, setImageModel] = useState<string>(config.models?.IMAGE || "")
   const [apiKeyInput, setApiKeyInput] = useState<string>(config.apiKey || "")
 
   // Initial load if we have a saved credential
@@ -77,7 +79,11 @@ export function OpenRouterForm({ providerId, credential, onSuccess }: { provider
         apiKey: formData.get("apiKey"),
         siteUrl: formData.get("siteUrl"),
         siteName: formData.get("siteName"),
-        default_model: selectedModel
+        default_model: selectedModel,
+        models: {
+          SCRIPT: scriptModel,
+          IMAGE: imageModel
+        }
       }
     }
 
@@ -157,17 +163,41 @@ export function OpenRouterForm({ providerId, credential, onSuccess }: { provider
           </div>
         </div>
 
-        <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-          <label className="block text-sm font-medium mb-2">Default Model <span className="text-red-500">*</span></label>
-          <OpenRouterModelSelector 
-            models={models} 
-            selectedModelId={selectedModel} 
-            onSelect={setSelectedModel} 
-            isLoading={isLoadingModels} 
-          />
-          <p className="text-[10px] text-slate-500 mt-2">
-            Load models using the API key, then search and select a model.
-          </p>
+        <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Model Configuration</h3>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">📝 Script / Text</label>
+            <OpenRouterModelSelector 
+              models={models.filter(m => !m.architecture?.modality?.includes("image"))} 
+              selectedModelId={scriptModel} 
+              onSelect={setScriptModel} 
+              isLoading={isLoadingModels} 
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">🖼️ AI Image</label>
+            <OpenRouterModelSelector 
+              models={models} 
+              selectedModelId={imageModel} 
+              onSelect={setImageModel} 
+              isLoading={isLoadingModels} 
+            />
+          </div>
+
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+            <label className="block text-sm font-medium mb-2">Fallback Model <span className="text-red-500">*</span></label>
+            <OpenRouterModelSelector 
+              models={models} 
+              selectedModelId={selectedModel} 
+              onSelect={setSelectedModel} 
+              isLoading={isLoadingModels} 
+            />
+            <p className="text-[10px] text-slate-500 mt-2">
+              Used when a capability model is not set. Load models using the API key, then search and select.
+            </p>
+          </div>
         </div>
 
         <div>

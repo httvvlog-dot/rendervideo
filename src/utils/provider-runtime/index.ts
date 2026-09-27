@@ -21,11 +21,16 @@ export class ProviderRuntime {
     this.selector = new CredentialSelector(providerKey);
     this.engine = new RetryEngine(defaultOptions);
   }
-  async getDefaultModel(): Promise<string | null> {
+  async getDefaultModel(capability?: string): Promise<string | null> {
     const credentials = await this.selector.getActiveCredentials();
     if (!credentials || credentials.length === 0) return null;
-    // Attempt to parse config_json to find the default model
+    // Attempt to parse config_json to find the model based on capability or fallback
     const config = credentials[0].config_json || {};
+    
+    if (capability && config.models && config.models[capability]) {
+      return config.models[capability];
+    }
+    
     return config.defaultModel || config.default_model || null;
   }
 

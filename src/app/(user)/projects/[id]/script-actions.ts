@@ -182,7 +182,7 @@ Important:
     failureThreshold: 3 
   });
 
-  const defaultModel = await runtime.getDefaultModel() || "openai/gpt-4o-mini";
+  const defaultModel = await runtime.getDefaultModel("SCRIPT") || "openai/gpt-4o-mini";
 
   try {
     const { BillingEngine, BillingFeature } = await import("@/utils/billing");
@@ -195,12 +195,13 @@ Important:
 
         if (requiresCurrentData(project.topic)) {
           console.log("Triggering Web Search for topic:", project.topic);
+          const researchModel = await runtime.getDefaultModel("RESEARCH") || "perplexity/sonar";
           const searchResult = await runtime.execute(new OpenRouterAdapter(), {
             step: "RESEARCH",
             projectId: projectId,
             args: { 
               prompt: `Provide the latest news, market data, and verified facts about: ${project.topic}. Include dates and sources. Keep it dense and informative.`,
-              model: "perplexity/sonar"
+              model: researchModel
             }
           });
           
