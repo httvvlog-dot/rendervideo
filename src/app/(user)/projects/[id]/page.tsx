@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/utils/auth-service"
 import { createClient } from "@/utils/supabase/server"
+export const maxDuration = 60;
 import { notFound, redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Settings, Save } from "lucide-react"

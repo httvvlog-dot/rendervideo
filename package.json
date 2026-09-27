@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "worker:render": "node --env-file=.env.worker --import tsx src/worker/render-worker.ts",
+    "worker:image": "node --env-file=.env.worker --import tsx src/worker/image-worker.ts",
     "worker:check": "node --env-file=.env.worker --import tsx src/worker/render-check.ts",
     "admin": "node --env-file=.env.local --import tsx scripts/system-admin.ts",
     "doctor": "node --env-file=.env.local --import tsx scripts/system-doctor.ts"

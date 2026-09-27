@@ -136,7 +136,8 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         // Update Job state to PROCESSING
         if (jobId) {
           try {
-            await supabase.from("image_jobs").update({
+            const adminDb = await import("@/utils/supabase/admin").then(m => m.createAdminClient());
+            await adminDb.from("image_jobs").update({
               status: 'PROCESSING',
               original_prompt: originalPrompt,
               validated_prompt: finalPrompt,
@@ -178,7 +179,8 @@ export async function generateAIImage(projectId: string, sectionId: string) {
         // Finalize Job
         if (jobId) {
           try {
-            await supabase.from("image_jobs").update({
+            const adminDb = await import("@/utils/supabase/admin").then(m => m.createAdminClient());
+            await adminDb.from("image_jobs").update({
               status: 'COMPLETED',
               credential_id: aiResult.credentialId,
               output_image_url: aiResult.result.url,

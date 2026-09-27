@@ -1,0 +1,60 @@
+Subject: [English translation of subject]...\\nScene: [English translation of scene]...\\nCamera: DSLR photography.\\nLighting: Soft natural lighting.\\nComposition: Cinematic composition.\\nPhotorealistic commercial photography.\\n1080x1920 portrait\\nNatural color grading.",
+      "negative_prompt": {
+        "style": ["cartoon", "anime"],
+        "objects": ["watermark", "text"],
+        "quality": ["blur"]
+      },
+      "recommended_image_count": 1,
+      "keywords": ["tag1", "tag2"]
+    }
+  ]
+}
+
+Important:
+- Return ONLY the JSON object, no markdown wrappers, no explanations.
+- The 'duration_seconds' field is an INITIAL ESTIMATE. Ensure the sum of duration_seconds roughly aligns with ${targetDuration} seconds.`;
+
+  let finalPrompt = promptText;
+  if (researchData) {
+    finalPrompt = finalPrompt.replace("=== PART A: CONTENT & NARRATION (PRIMARY PRIORITY) ===", `
+=== VERIFIED RESEARCH (CRITICAL CONTEXT) ===
+The following research data was retrieved from a real-time web search. You MUST use this data for all current facts:
+${researchData}
+
+CURRENT DATA RULES:
+1. Current numerical facts MUST come ONLY from VERIFIED RESEARCH.
+2. NEVER invent current prices.
+3. NEVER modify current prices.
+4. NEVER round current prices.
+5. NEVER introduce current statistics absent from Research.
+6. If Research does not contain a required current fact, say that the data is unavailable.
+7. Historical facts must be clearly treated as historical.
+8. Future forecasts MUST be expressed as scenarios.
+9. Never present a third-party forecast as a guaranteed fact.
+10. Never use model memory to replace missing current data.
+
+=== PART A: CONTENT & NARRATION (PRIMARY PRIORITY) ===`);
+  }
+
+  console.log("=== GPT REQUEST PROMPT ===");
+  console.log(finalPrompt);
+
+  const gptReq = {
+    model: "openai/gpt-4o-mini",
+    response_format: { type: "json_object" },
+    messages: [{ role: "user", content: finalPrompt }]
+  };
+
+  const gptRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${openRouterKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify(gptReq)
+  });
+  const gptRaw = await gptRes.json();
+  console.log("=== GPT RAW RESPONSE ===");
+  console.log(JSON.stringify(gptRaw, null, 2));
+
+  console.log("=== FINAL JSON ===");
+  console.log(gptRaw.choices?.[0]?.message?.content);
+}
+runTest().catch(console.error);

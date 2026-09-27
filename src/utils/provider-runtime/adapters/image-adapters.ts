@@ -7,19 +7,25 @@ export interface ImageGenerationArgs {
   negative_prompt?: string | Record<string, string[]>;
   width?: number;
   height?: number;
-  numImages?: number;
-  model?: string; // Model injected from BillingEngine / User Plan
+  numImages?: number; // num_images request
+  model?: string;
   seed?: number;
   guidance_scale?: number;
   num_inference_steps?: number;
   aspect_ratio?: string;
   output_format?: string;
+  character_reference?: string;
+  garment_reference?: string;
+  background_reference?: string;
+  reference_images?: any[]; // General references
 }
 
 export interface ImageGenerationResult {
-  url: string;
-  width: number;
-  height: number;
+  images: { url: string; width: number; height: number; index: number }[];
+  provider?: string;
+  model?: string;
+  request_id?: string;
+  metadata?: any;
 }
 
 export interface ImageEditArgs extends ImageGenerationArgs {
@@ -77,17 +83,27 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
       await new Promise(resolve => setTimeout(resolve, 2000));
       const width = args.width || 1080;
       const height = args.height || 1920;
+      const numImages = args.numImages || 1;
+      const images = [];
+      for (let i = 0; i < numImages; i++) {
+        images.push({
+          url: `https://fakeimg.pl/${width}x${height}/282828/eae0d0/?text=Mock+Image+${i+1}`,
+          width,
+          height,
+          index: i
+        });
+      }
       return {
         result: {
-          url: `https://fakeimg.pl/${width}x${height}/282828/eae0d0/?text=Mock+Image`,
-          width,
-          height
+          images,
+          provider: "openai",
+          model
         },
         usage: {
           provider: "openai",
           model,
           pricingType: "image",
-          images: args.numImages || 1,
+          images: numImages,
         },
         cost: 0
       };
@@ -114,11 +130,18 @@ export class OpenAIImageAdapter implements ImageProviderAdapter {
     if (!res.ok) throw new Error(`OpenAI API error: ${res.status}`);
 
     const data = await res.json();
+    const images = data.data.map((img: any, index: number) => ({
+      url: img.url,
+      width: args.width || 1024,
+      height: args.height || 1024,
+      index
+    }));
+
     return {
       result: {
-        url: data.data[0].url,
-        width: args.width || 1024,
-        height: args.height || 1024
+        images,
+        provider: "openai",
+        model
       },
       usage: {
         provider: "openai",
@@ -192,17 +215,27 @@ export class FalImageAdapter implements ImageProviderAdapter {
       await new Promise(resolve => setTimeout(resolve, 2000));
       const width = args.width || 1080;
       const height = args.height || 1920;
+      const numImages = args.numImages || 1;
+      const images = [];
+      for (let i = 0; i < numImages; i++) {
+        images.push({
+          url: `https://fakeimg.pl/${width}x${height}/282828/eae0d0/?text=Mock+Image+${i+1}`,
+          width,
+          height,
+          index: i
+        });
+      }
       return {
         result: {
-          url: `https://fakeimg.pl/${width}x${height}/282828/eae0d0/?text=Mock+Image`,
-          width,
-          height
+          images,
+          provider: "falai",
+          model
         },
         usage: {
           provider: "falai",
           model,
           pricingType: "image",
-          images: args.numImages || 1,
+          images: numImages,
         },
         cost: 0
       };
@@ -246,6 +279,11 @@ export class FalImageAdapter implements ImageProviderAdapter {
       num_images: args.numImages
     };
 
+    if (args.character_reference) payload.character_reference = args.character_reference;
+    if (args.garment_reference) payload.garment_reference = args.garment_reference;
+    if (args.background_reference) payload.background_reference = args.background_reference;
+    if (args.reference_images) payload.reference_images = args.reference_images;
+
     if (formattedNegativePrompt) {
       payload.negative_prompt = formattedNegativePrompt;
     }
@@ -256,11 +294,20 @@ export class FalImageAdapter implements ImageProviderAdapter {
       throw new Error("Không tìm thấy ảnh từ kết quả trả về.");
     }
 
+    const images = result.map((img: any, index: number) => ({
+      url: img.url,
+      width: img.width,
+      height: img.height,
+      index
+    }));
+
     return {
       result: {
-        url: result[0].url,
-        width: result[0].width,
-        height: result[0].height
+        images,
+        provider: "falai",
+        model,
+        request_id: (result as any).request_id || undefined,
+        metadata: result
       },
       usage: {
         provider: "falai",
@@ -269,8 +316,7 @@ export class FalImageAdapter implements ImageProviderAdapter {
         images: args.numImages || 1,
       },
       cost: 0,
-      // Pass original payload back so we can log it in image_jobs (we will handle this downstream)
-      ...(payload as any) // temporary hack to pass the payload up to ProviderRuntime result if we needed, but we don't need it on execute result, we can just log it from the provider runtime if we have to. Wait, the user wants provider_request / response.
+      ...(payload as any)
     };
   }
 }
@@ -284,7 +330,14 @@ export class ReplicateImageAdapter implements ImageProviderAdapter {
     const model = args.model || "black-forest-labs/flux-pro";
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      return { result: { url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920 }, usage: { provider: "replicate", model, pricingType: "image", images: 1 }, cost: 0 };
+      return { 
+        result: { 
+          images: [{ url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920, index: 0 }],
+          provider: "replicate", model 
+        }, 
+        usage: { provider: "replicate", model, pricingType: "image", images: 1 }, 
+        cost: 0 
+      };
     }
     throw new Error("Not implemented"); 
   }
@@ -302,7 +355,14 @@ export class IdeogramImageAdapter implements ImageProviderAdapter {
     const model = args.model || "ideogram-v3";
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      return { result: { url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920 }, usage: { provider: "ideogram", model, pricingType: "image", images: 1 }, cost: 0 };
+      return { 
+        result: { 
+          images: [{ url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920, index: 0 }],
+          provider: "ideogram", model 
+        }, 
+        usage: { provider: "ideogram", model, pricingType: "image", images: 1 }, 
+        cost: 0 
+      };
     }
     throw new Error("Not implemented"); 
   }
@@ -319,7 +379,14 @@ export class StabilityImageAdapter implements ImageProviderAdapter {
     const model = args.model || "stable-diffusion-3";
     if (process.env.IMAGE_PROVIDER_MODE === "mock") {
       await new Promise(resolve => setTimeout(resolve, 2000));
-      return { result: { url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920 }, usage: { provider: "stability", model, pricingType: "image", images: 1 }, cost: 0 };
+      return { 
+        result: { 
+          images: [{ url: `https://fakeimg.pl/${args.width || 1080}x${args.height || 1920}/282828/eae0d0/?text=Mock+Image`, width: args.width || 1080, height: args.height || 1920, index: 0 }],
+          provider: "stability", model 
+        }, 
+        usage: { provider: "stability", model, pricingType: "image", images: 1 }, 
+        cost: 0 
+      };
     }
     throw new Error("Not implemented"); 
   }

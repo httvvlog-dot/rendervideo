@@ -102,7 +102,7 @@ export class BillingEngine {
     return caps[0];
   }
 
-  static async getChargeInfo(feature: BillingFeature, requestedProvider?: string, requestedModel?: string, userId?: string): Promise<ChargeResult> {
+  static async getChargeInfo(feature: BillingFeature, requestedProvider?: string, requestedModel?: string, userId?: string, quantity: number = 1): Promise<ChargeResult> {
     const supabase = await createAdminClient();
     
     if (userId && feature === BillingFeature.IMAGE_GENERATION) {
@@ -138,9 +138,10 @@ export class BillingEngine {
         console.log(`[Trace] 2. Resolved Plan: ${planKey}`);
         console.log(`[Trace] 3. Resolved Provider: ${providerKey}`);
         console.log(`[Trace] 4. Resolved Model: ${apiSlug}`);
+        console.log(`[Trace] 5. Quantity: ${quantity}`);
 
         return {
-          credits: profile.credits_per_unit,
+          credits: profile.credits_per_unit * quantity,
           apiCost: 0, // Calculated post-execution
           provider: providerKey,
           model: apiSlug,
@@ -180,7 +181,7 @@ export class BillingEngine {
     }
 
     return {
-      credits: rule.credit_cost,
+      credits: rule.credit_cost * quantity,
       apiCost: pricing.api_cost,
       provider: pricing.provider,
       model: pricing.model,
@@ -199,13 +200,15 @@ export class BillingEngine {
       referenceId?: string;
       description?: string;
       correlationId?: string;
+      quantity?: number;
     },
     executeAI: (provider: string, model: string) => Promise<{ result: T; usage?: any; actualUsdCost?: number }>
   ): Promise<T> {
     const correlationId = options.correlationId;
     Logger.info(`Starting BillingEngine.executeAndCharge`, correlationId, { feature: context.feature, userId: context.userId });
     
-    const chargeResult = await this.getChargeInfo(context.feature, options.provider, options.model, context.userId);
+    const quantity = options.quantity || 1;
+    const chargeResult = await this.getChargeInfo(context.feature, options.provider, options.model, context.userId, quantity);
     const { provider, model } = chargeResult;
 
     // 1. Reserve
@@ -252,6 +255,14 @@ export class BillingEngine {
       auditStatus = TransactionStatus.COMPLETED;
     } catch (e: any) {
       Logger.error(`AI Execution Failed`, correlationId, e);
+      
+      // If it's a zombie worker, DO NOT rollback because the active worker owns the transaction
+      if (e.message?.includes('ZOMBIE_WORKER_FENCING')) {
+         auditStatus = TransactionStatus.FAILED;
+         errorMessage = e.message;
+         throw e; // Rethrow to abort the worker loop silently
+      }
+
       // 4. Rollback
       await WalletEngine.releaseCredits(reserve.transactionId, `AI Execution Failed: ${e.message}`);
       auditStatus = TransactionStatus.FAILED;

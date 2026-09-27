@@ -11,20 +11,28 @@ export default async function DashboardPage() {
   const supabase = await createClient()
 
   // Fetch unified dashboard statistics via RPC
-  const { data: statsRaw } = await supabase.rpc('get_user_project_statistics', { p_user_id: user?.id })
-  const stats = statsRaw as any || { summary: {}, metrics: {} }
-  const summary = stats.summary || {}
+  const statsPromise = supabase.rpc('get_user_project_statistics', { p_user_id: user?.id })
 
   // Fetch recent projects from the canonical lifecycle view
-  const { data: recentProjects } = await supabase
+  const recentProjectsPromise = supabase
     .from('vw_project_lifecycle_status')
-    .select('*')
+    .select('project_id, title, last_completed_at, created_at, lifecycle_status, latest_resolution, latest_output_duration, current_progress')
     .eq('user_id', user?.id)
     .order('created_at', { ascending: false })
     .limit(5)
 
   // Fetch Credits Used
-  const { data: wallet } = await supabase.from('wallets').select('lifetime_used').eq('user_id', user?.id).single()
+  const walletPromise = supabase.from('wallets').select('lifetime_used').eq('user_id', user?.id).single()
+
+  // Execute all promises in parallel
+  const [
+    { data: statsRaw },
+    { data: recentProjects },
+    { data: wallet }
+  ] = await Promise.all([statsPromise, recentProjectsPromise, walletPromise]);
+
+  const stats = statsRaw as any || { summary: {}, metrics: {} }
+  const summary = stats.summary || {}
   const creditsUsed = wallet?.lifetime_used || 0
   const now = new Date()
 

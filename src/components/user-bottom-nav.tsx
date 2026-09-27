@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, FolderKanban, Wallet } from "lucide-react"
+import { LayoutDashboard, FolderKanban, Wallet, Image as ImageIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 
 const navItems = [
   { name: "Home", href: "/dashboard", icon: LayoutDashboard },
   { name: "Projects", href: "/projects", icon: FolderKanban },
+  { name: "AI Ảnh", href: "/ai-image", icon: ImageIcon },
   { name: "Wallet", href: "/wallet", icon: Wallet },
 ]
 

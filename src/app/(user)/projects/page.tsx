@@ -12,7 +12,7 @@ export default async function ProjectsPage() {
   // Fetch completed projects from the canonical lifecycle view
   const { data: completedProjects } = await supabase
     .from('vw_project_lifecycle_status')
-    .select('*')
+    .select('project_id, title, last_completed_at, created_at, lifecycle_status, latest_resolution, latest_output_duration')
     .eq('user_id', user?.id)
     .eq('lifecycle_status', 'COMPLETED')
     .order('created_at', { ascending: false })

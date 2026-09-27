@@ -10,6 +10,16 @@ import { normalizeDurations } from "./duration-normalization"
 import { getProjectCanvas } from "@/lib/project-canvas"
 import { resolveSubscriptionTier, assertFeatureAccess, assertQuota, Feature } from "@/utils/entitlement"
 
+function requiresCurrentData(topic: string): boolean {
+  const keywords = [
+    "hiện nay", "hiện tại", "hôm nay", "mới nhất", "tin tức", 
+    "thị trường", "dự báo", "current", "news", "financial", 
+    "market", "price", "today", "recent", "latest", "now", "forecast"
+  ];
+  const t = topic.toLowerCase();
+  return keywords.some(k => t.includes(k));
+}
+
 const ScriptSectionSchema = z.object({
   section_index: z.number(),
   title: z.string().optional(),
@@ -72,11 +82,17 @@ export async function generateScript(projectId: string): Promise<{ success?: boo
   const minWords = Math.round(targetWords * 0.85);
   const maxWords = Math.round(targetWords * 1.15);
   const targetSections = Math.max(1, Math.round(targetDuration / 12));
+  const targetSectionDuration = Math.round(targetDuration / targetSections);
+  const targetWordsPerSection = Math.round(targetSectionDuration * wps);
   const currentDate = new Date().toISOString().split('T')[0];
 
   const promptText = `You are a Subject Matter Expert, Professional AI Cinematographer, and Script Director.
 
-Context: Today's date is ${currentDate}. (This date is contextual information only. You do NOT have live internet access. If the topic requires recent data or future forecasts, rely on historical trends and phrase your analysis as projections and scenarios rather than claiming definitive current statistics).
+Context: Today's date is ${currentDate}. You do NOT have live internet access.
+CRITICAL FINANCIAL & DATA GUARDRAILS:
+1. FACT / HISTORICAL DATA: You may use well-known historical facts up to your training data cutoff.
+2. CURRENT DATA: Do NOT invent, guess, or hallucinate current market prices, statistics, or events. If the topic requires exact current data, either state that live data is unavailable or anchor your analysis solely on historical trends.
+3. SCENARIO / FORECAST: When asked to forecast the future, you MUST use Scenario Analysis (e.g., Bull/Bear/Base cases). NEVER invent a specific definitive price target unless explicitly presented as a hypothetical scenario based on clear assumptions.
 
 Topic: ${project.topic}
 Language: ${project.language}
@@ -95,9 +111,10 @@ Internally recognize the type of content requested (Analysis, Education, Documen
 2. Narration Depth & Quality:
 Avoid generic filler, repeating the topic, empty motivational language, or unsupported statistics. Every sentence must add NEW informational value.
 
-3. Word Count Guidelines:
-Target a narration length around ${minWords} to ${maxWords} words (approximately ${targetWords} words).
-This is guidance, not an absolute limit. Prefer completing important ideas rather than cutting valuable content unnaturally.
+3. Word Count & Pacing Guidelines (CRITICAL):
+- TOTAL SCRIPT: You MUST strictly keep the total narration between ${minWords} and ${maxWords} words.
+- SECTION PACING: Do not write more than ${targetWordsPerSection + 5} words per section (assuming an average section duration of ${targetSectionDuration} seconds). 
+- DISTRIBUTE EVENLY: Distribute the narration evenly across all ${targetSections} sections. Do NOT cram too much text into Section 1.
 
 === PART B: VISUAL DIRECTION ===
 Your SECOND goal is to divide your narration into logical visual sections (approximately ${targetSections} sections, but this is just a guideline based on pacing). A complex video may require more sections; a slow emotional story may require fewer. Each section should represent ONE coherent content idea and ONE primary visual concept.
@@ -116,6 +133,12 @@ Rules for Visuals:
 8. If uncertain, stay conservative instead of hallucinating.
 
 GOLDEN RULE FOR AI IMAGE PROMPT GENERATION:
+- Visual Description MUST be generated from the actual narration of that section. DO NOT generate Visual Description merely from project.topic.
+- For every section: Narration -> Visual Description -> Image Prompt. The visual must represent the actual information being narrated.
+  Example: 
+  Narration: "Fed interest rates and global liquidity can affect Bitcoin's risk appetite."
+  Correct visual: financial dashboard showing Fed rate, liquidity indicators and BTC chart.
+  Incorrect: generic Bitcoin investment seminar.
 - One Section = One Scene.
 - One Scene = One Frozen Moment.
 - One Frozen Moment = One Image.
@@ -167,12 +190,61 @@ Important:
       { userId: user.id, projectId: projectId, feature: BillingFeature.SCRIPT_GENERATION },
       { provider: "openrouter", model: defaultModel },
       async (provider, model) => {
+        let researchData = "";
+        let searchCost = 0;
+
+        if (requiresCurrentData(project.topic)) {
+          console.log("Triggering Web Search for topic:", project.topic);
+          const searchResult = await runtime.execute(new OpenRouterAdapter(), {
+            step: "RESEARCH",
+            projectId: projectId,
+            args: { 
+              prompt: `Provide the latest news, market data, and verified facts about: ${project.topic}. Include dates and sources. Keep it dense and informative.`,
+              model: "perplexity/sonar"
+            }
+          });
+          
+          if (!searchResult || !searchResult.result || !searchResult.result.content) {
+            throw new Error("Không thể lấy dữ liệu mới nhất để thực hiện phân tích.");
+          }
+          researchData = searchResult.result.content;
+          searchCost = searchResult.result.cost || 0;
+          console.log("Search complete. Cost:", searchCost);
+        }
+
+        let finalPrompt = promptText;
+        if (researchData) {
+          finalPrompt = finalPrompt.replace("=== PART A: CONTENT & NARRATION (PRIMARY PRIORITY) ===", `
+=== VERIFIED RESEARCH (CRITICAL CONTEXT) ===
+The following research data was retrieved from a real-time web search. You MUST use this data for all current facts:
+${researchData}
+
+CURRENT DATA RULES:
+1. Current numerical facts MUST come ONLY from VERIFIED RESEARCH.
+2. NEVER invent current prices.
+3. NEVER modify current prices.
+4. NEVER round current prices.
+5. NEVER introduce current statistics absent from Research.
+6. If Research does not contain a required current fact, say that the data is unavailable.
+7. Historical facts must be clearly treated as historical.
+8. Future forecasts MUST be expressed as scenarios.
+9. Never present a third-party forecast as a guaranteed fact.
+10. Never use model memory to replace missing current data.
+
+=== PART A: CONTENT & NARRATION (PRIMARY PRIORITY) ===`);
+        }
+
         const aiResult = await runtime.execute(new OpenRouterAdapter(), {
           step: "SCRIPT",
           projectId: projectId,
-          args: { prompt: promptText }
+          args: { prompt: finalPrompt }
         });
-        return { result: aiResult.result, usage: aiResult.usage, actualUsdCost: aiResult.cost };
+        
+        return { 
+          result: aiResult.result, 
+          usage: aiResult.usage, 
+          actualUsdCost: (aiResult.result.cost || 0) + searchCost 
+        };
       }
     );
 

@@ -3,12 +3,13 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { LayoutDashboard, FolderKanban, Wallet } from "lucide-react"
+import { LayoutDashboard, FolderKanban, Wallet, Image as ImageIcon } from "lucide-react"
 import { HataraLogo } from "@/components/hatara-logo"
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Projects", href: "/projects", icon: FolderKanban },
+  { name: "AI Ảnh", href: "/ai-image", icon: ImageIcon },
   { name: "Wallet & Credits", href: "/wallet", icon: Wallet },
 ]
 

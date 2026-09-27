@@ -8,6 +8,10 @@ export interface FalRunOptions {
   aspect_ratio?: string;
   output_format?: string;
   num_images?: number;
+  character_reference?: string;
+  garment_reference?: string;
+  background_reference?: string;
+  reference_images?: string[];
 }
 
 export interface FalResponse {
@@ -20,7 +24,7 @@ export class FalClient {
   private apiKey: string;
   private maxPolls: number;
 
-  constructor(apiKey: string, maxPolls: number = 30) {
+  constructor(apiKey: string, maxPolls: number = 90) {
     this.apiKey = apiKey;
     this.maxPolls = maxPolls;
   }
@@ -40,6 +44,12 @@ export class FalClient {
       if (options.num_inference_steps !== undefined) payload.num_inference_steps = options.num_inference_steps;
       if (options.aspect_ratio) payload.aspect_ratio = options.aspect_ratio;
       if (options.output_format) payload.output_format = options.output_format;
+      
+      // ControlNet / LoRA references (specific payload keys depend on exact model)
+      if (options.character_reference) payload.character_reference = options.character_reference;
+      if (options.garment_reference) payload.garment_reference = options.garment_reference;
+      if (options.background_reference) payload.background_reference = options.background_reference;
+      if (options.reference_images) payload.reference_images = options.reference_images;
 
       // 1. Submit Request
       const res = await fetch(endpoint, {

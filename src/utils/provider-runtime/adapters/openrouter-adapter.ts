@@ -2,6 +2,7 @@ import { ProviderAdapter, ProviderExecutionResult } from "../types"
 
 export interface OpenRouterArgs {
   prompt: string | any[];
+  model?: string;
 }
 
 export interface OpenRouterResult {
@@ -68,7 +69,7 @@ export class OpenRouterAdapter implements ProviderAdapter<OpenRouterArgs, OpenRo
   async execute(credential: any, args: OpenRouterArgs): Promise<ProviderExecutionResult<OpenRouterResult>> {
     const config = credential.config_json || {};
     const apiKey = config.apiKey || config.api_key;
-    const model = config.defaultModel || config.default_model;
+    const model = args.model || config.defaultModel || config.default_model;
 
     if (!apiKey) throw new Error("API Key missing in OpenRouter credential");
     if (!model) throw new Error("default_model is missing in OpenRouter credential config_json");

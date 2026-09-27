@@ -181,4 +181,55 @@ export class MediaService {
             status: newAsset.status as AssetStatus
         };
     }
+
+    /**
+     * Deletes an asset from R2 and marks it DELETED in the database.
+     * Prevents deletion of ATTACHED assets to protect data integrity.
+     */
+    static async delete(assetId: string): Promise<boolean> {
+        const adminClient = createAdminClient();
+
+        // 1. Verify Ownership / Status
+        const { data: asset, error: fetchErr } = await adminClient
+            .from("storage_files")
+            .select("id, status, path, bucket, provider")
+            .eq("id", assetId)
+            .single();
+
+        if (fetchErr || !asset) {
+            console.warn(`[MediaService] Cannot delete asset ${assetId}: Not found`);
+            return false;
+        }
+
+        if (asset.status === 'ATTACHED') {
+            throw new Error(`[MediaService] Cannot delete ATTACHED asset ${assetId}. Detach it first.`);
+        }
+
+        if (asset.status === 'DELETED') {
+            return true; // Already deleted
+        }
+
+        // 2. Delete from R2
+        try {
+            if (asset.provider === 'cloudflare_r2') {
+                const runtime = new ProviderRuntime("cloudflare_r2");
+                await runtime.execute(new CloudflareR2Adapter(), {
+                    step: "UPLOAD", projectId: 'system', args: { action: "DELETE", objectKey: asset.path }
+                });
+            }
+        } catch (e: any) {
+            console.error(`[MediaService] R2 Delete failed for ${asset.path}:`, e.message);
+            // We continue to mark it deleted in DB? No, if R2 fails, we should retry later.
+            throw new Error(`R2 Deletion failed: ${e.message}`);
+        }
+
+        // 3. Update DB
+        await adminClient.from("storage_files").update({ 
+            status: 'DELETED',
+            orphaned_at: null // Clear orphaned timestamp
+        }).eq("id", assetId);
+
+        console.log(`[MediaService] Successfully deleted asset ${assetId}`);
+        return true;
+    }
 }

@@ -47,35 +47,42 @@ export default async function UserWalletPage({
   const endUtc = new Date(exclusiveEndVn.getTime() - 7 * 60 * 60 * 1000);
 
   // 1. Fetch Wallet
-  const { data: wallet } = await supabase
+  const walletPromise = supabase
     .from("wallets")
     .select("*")
     .eq("user_id", user.id)
     .single();
 
   // 2. Fetch User Profile for Plan
-  const { data: profile } = await supabase
+  const profilePromise = supabase
     .from("profiles")
     .select("image_tier")
     .eq("id", user.id)
     .single();
 
   // 3. Fetch Packages
-  const { data: packages } = await supabase
+  const packagesPromise = supabase
     .from("credit_packages")
-    .select("*")
+    .select("id, name, price_vnd, credits, bonus_credits, is_featured")
     .eq("is_active", true)
     .order("display_order", { ascending: true });
 
   // 4. Fetch Transactions for History (Filtered by date, max 100 for safety)
-  const { data: transactions } = await supabase
+  const transactionsPromise = supabase
     .from("wallet_transactions")
-    .select("*")
+    .select("id, created_at, feature, transaction_type, amount")
     .eq("user_id", user.id)
     .gte("created_at", startUtc.toISOString())
     .lt("created_at", endUtc.toISOString())
     .order("created_at", { ascending: false })
     .limit(100);
+
+  const [
+    { data: wallet },
+    { data: profile },
+    { data: packages },
+    { data: transactions }
+  ] = await Promise.all([walletPromise, profilePromise, packagesPromise, transactionsPromise]);
 
   return (
     <WalletClientPage 

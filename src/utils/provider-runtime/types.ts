@@ -1,4 +1,4 @@
-export type PipelineStep = "SCRIPT" | "VOICE" | "SCENE" | "IMAGE" | "RENDER" | "UPLOAD" | "TEST";
+export type PipelineStep = "SCRIPT" | "RESEARCH" | "VOICE" | "SCENE" | "IMAGE" | "RENDER" | "UPLOAD" | "TEST";
 
 export const PROVIDER_HEALTH_STATUS = {
   HEALTHY: "healthy",
