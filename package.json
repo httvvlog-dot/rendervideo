@@ -11,7 +11,8 @@
     "worker:image": "node --env-file=.env.worker --import tsx src/worker/image-worker.ts",
     "worker:check": "node --env-file=.env.worker --import tsx src/worker/render-check.ts",
     "admin": "node --env-file=.env.local --import tsx scripts/system-admin.ts",
-    "doctor": "node --env-file=.env.local --import tsx scripts/system-doctor.ts"
+    "doctor": "node --env-file=.env.local --import tsx scripts/system-doctor.ts",
+    "worker:image:prod": "node --import tsx src/worker/image-worker.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1088.0",
