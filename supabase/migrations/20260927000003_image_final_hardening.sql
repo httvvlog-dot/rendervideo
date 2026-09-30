@@ -1,4 +1,4 @@
-﻿-- Migration: Final Hardening for Image Jobs and Billing Idempotency
+-- Migration: Final Hardening for Image Jobs and Billing Idempotency
 
 -- 1. Client Idempotency
 ALTER TABLE public.image_jobs ADD COLUMN IF NOT EXISTS idempotency_key TEXT UNIQUE;
@@ -15,7 +15,9 @@ CREATE OR REPLACE FUNCTION public.reserve_credits(
     p_description TEXT DEFAULT NULL,
     p_metadata JSONB DEFAULT NULL,
     p_timeout_minutes INT DEFAULT 15
-) RETURNS TABLE (success BOOLEAN, transaction_id UUID, available_credits BIGINT) AS \$\$
+) RETURNS TABLE (success BOOLEAN, transaction_id UUID, available_credits BIGINT)
+LANGUAGE plpgsql
+AS $$
 DECLARE
     v_wallet_id UUID;
     v_balance_credits BIGINT;
@@ -115,14 +117,14 @@ BEGIN
 
     RETURN QUERY SELECT true, v_transaction_id, v_available_credits - p_amount;
 END;
-\$\$;
+$$;
 
 -- 3. recover_stuck_image_jobs logic
 CREATE OR REPLACE FUNCTION public.recover_stuck_image_jobs()
 RETURNS SETOF public.image_jobs
 LANGUAGE plpgsql
 SECURITY INVOKER
-AS \$\$
+AS $$
 BEGIN
     RETURN QUERY
     UPDATE public.image_jobs
@@ -132,4 +134,4 @@ BEGIN
     WHERE status = 'PROCESSING' AND lease_until < now()
     RETURNING *;
 END;
-\$\$;
+$$;

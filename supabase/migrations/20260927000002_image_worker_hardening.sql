@@ -1,4 +1,4 @@
-﻿-- Add worker hardening columns
+-- Add worker hardening columns
 ALTER TABLE public.image_jobs ADD COLUMN IF NOT EXISTS processing_started_at TIMESTAMPTZ;
 ALTER TABLE public.image_jobs ADD COLUMN IF NOT EXISTS lease_until TIMESTAMPTZ;
 ALTER TABLE public.image_jobs ADD COLUMN IF NOT EXISTS attempt_count INTEGER DEFAULT 0;
@@ -13,7 +13,7 @@ RETURNS public.image_jobs
 LANGUAGE plpgsql
 SECURITY INVOKER
 SET search_path = public, pg_temp
-AS \$\$
+AS $$
 DECLARE
     claimed_job public.image_jobs;
 BEGIN
@@ -41,4 +41,4 @@ BEGIN
 
     RETURN claimed_job;
 END;
-\$\$;
+$$;
