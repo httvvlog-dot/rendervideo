@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { BillingEngine } from '../utils/billing/BillingEngine';
-import { BillingFeature } from '../utils/billing/types';
+import { BillingFeature, IMAGE_JOB_REFERENCE_TYPE } from '../utils/billing/types';
 import { ProviderRuntime } from '../utils/provider-runtime';
 import { AdapterRegistry } from '../utils/provider-runtime/adapters';
 import { ImageProviderAdapter } from '../utils/provider-runtime/adapters/image-adapters';
@@ -37,7 +37,7 @@ export async function processImageJobs() {
       try {
         const finalImages = await BillingEngine.executeAndCharge(
           { feature: BillingFeature.IMAGE_GENERATION, userId: job.user_id, projectId: job.project_id || 'system' },
-          { quantity: job.num_images, description: 'AI Image Generation', referenceType: 'image_job', referenceId: job.id },
+          { quantity: job.num_images, description: 'AI Image Generation', referenceType: IMAGE_JOB_REFERENCE_TYPE, referenceId: job.id },
           async (provider, model) => {
             let runtimeRes: any;
             

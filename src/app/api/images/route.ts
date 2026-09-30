@@ -4,7 +4,7 @@ import { createAdminClient } from '@/utils/supabase/admin';
 import { getCurrentUser } from '@/utils/auth-service';
 import { BillingEngine } from '@/utils/billing/BillingEngine';
 import { WalletEngine } from '@/utils/billing/WalletEngine';
-import { BillingFeature } from '@/utils/billing/types';
+import { BillingFeature, IMAGE_JOB_REFERENCE_TYPE } from '@/utils/billing/types';
 import * as crypto from 'crypto';
 
 export async function POST(req: Request) {
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     const reserveResult = await WalletEngine.reserveCredits(
       { userId: user.id, feature: BillingFeature.IMAGE_GENERATION },
       chargeInfo,
-      "image_jobs",
+      IMAGE_JOB_REFERENCE_TYPE,
       jobId
     );
 

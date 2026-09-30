@@ -5,6 +5,8 @@ export enum BillingFeature {
   VIDEO_RENDER = 'VIDEO_RENDER'
 }
 
+export const IMAGE_JOB_REFERENCE_TYPE = "image_jobs";
+
 export enum TransactionStatus {
   RESERVED = 'RESERVED',
   COMPLETED = 'COMPLETED',
