@@ -91,7 +91,7 @@ export function ImageUploadCard({
       onDrop={handleDrop}
       aria-label={title}
       className={cn(
-        "relative overflow-hidden flex flex-col items-center justify-center w-full min-h-[180px] p-6 rounded-2xl border transition-all duration-300 ease-out cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+        "relative overflow-hidden flex flex-col items-center justify-center w-full h-48 md:h-56 p-6 rounded-2xl border transition-all duration-300 ease-out cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
         isDragging
           ? "border-primary bg-primary/5 shadow-lg scale-[1.02]"
           : "border-border hover:border-primary/40 hover:bg-slate-50 dark:hover:bg-slate-900 hover:shadow-lg hover:-translate-y-1",
@@ -114,12 +114,12 @@ export function ImageUploadCard({
       />
 
       {file && previewUrl ? (
-        <div className="absolute inset-0 w-full h-full group">
+        <div className="absolute inset-0 w-full h-full group bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewUrl}
             alt="Preview"
-            className="w-full h-full object-cover opacity-90 group-hover:opacity-30 transition-opacity duration-300"
+            className="w-full h-full object-contain opacity-90 group-hover:opacity-30 transition-opacity duration-300"
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 gap-3 bg-black/40">
             <button
