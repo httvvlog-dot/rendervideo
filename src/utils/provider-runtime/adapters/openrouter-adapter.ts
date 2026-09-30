@@ -1,4 +1,4 @@
-import { ProviderAdapter, ProviderExecutionResult } from "../types"
+import { ProviderAdapter, ProviderExecutionResult, TestConnectionResult } from "../types"
 
 export interface OpenRouterArgs {
   prompt: string | any[];
@@ -13,14 +13,14 @@ export interface OpenRouterResult {
 }
 
 export class OpenRouterAdapter implements ProviderAdapter<OpenRouterArgs, OpenRouterResult> {
-  async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }) {
+  async testConnection(options: { credential: any, mode?: "quick" | "deep", [key: string]: any }): Promise<TestConnectionResult> {
     const { credential, mode = "quick" } = options;
     const config = credential.config_json || {};
     const apiKey = credential.encrypted_key || config.apiKey || config.api_key;
     const defaultModel = config.default_model || config.defaultModel;
 
-    if (!apiKey) return { success: false, error: "OPENROUTER_AUTH_FAILED: Missing API Key", latency: 0 };
-    if (!defaultModel) return { success: false, error: "MODEL_NOT_SELECTED: Missing Default Model", latency: 0 };
+    if (!apiKey) return { status: "INVALID", runtimeStatus: "UNKNOWN", latency: 0, provider: "openrouter", message: "Missing API Key" };
+    if (!defaultModel) return { status: "INVALID", runtimeStatus: "UNKNOWN", latency: 0, provider: "openrouter", message: "Missing Default Model" };
 
     const startTime = Date.now();
     try {
@@ -42,27 +42,24 @@ export class OpenRouterAdapter implements ProviderAdapter<OpenRouterArgs, OpenRo
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         const errMsg = errData.error?.message || `Status ${res.status}`;
-        let structuredError = "OPENROUTER_CONNECTION_FAILED";
-        const lowerMsg = errMsg.toLowerCase();
+        let runtimeStatus: "HEALTHY" | "RATE_LIMITED" | "NETWORK_ERROR" | "UNKNOWN" = "NETWORK_ERROR";
+        let status: "VALID" | "INVALID" | "UNAUTHORIZED" | "UNKNOWN" = "VALID";
 
         if (res.status === 401) {
-           structuredError = "OPENROUTER_AUTH_FAILED";
-        } else if (res.status === 402 || lowerMsg.includes("credit") || lowerMsg.includes("balance")) {
-           structuredError = "OPENROUTER_INSUFFICIENT_CREDITS";
-        } else if (res.status === 403) {
-           structuredError = "MODEL_ACCESS_DENIED";
-        } else if (res.status === 404 || lowerMsg.includes("does not exist") || lowerMsg.includes("model")) {
-           structuredError = "MODEL_NOT_AVAILABLE";
+           status = "UNAUTHORIZED";
+           runtimeStatus = "UNKNOWN";
         } else if (res.status === 429) {
-           structuredError = "OPENROUTER_RATE_LIMITED";
+           runtimeStatus = "RATE_LIMITED";
         }
         
-        return { success: false, error: structuredError, status: res.status, details: errMsg, latency };
+        return { status, runtimeStatus, latency, provider: "openrouter", message: errMsg, details: errData };
       }
 
-      return { success: true, latency, status: res.status };
+      return { status: "VALID", runtimeStatus: "HEALTHY", latency, provider: "openrouter", message: "Connection successful" };
     } catch (e: any) {
-      return { success: false, error: e.message, latency: Date.now() - startTime };
+      let runtimeStatus: "TIMEOUT" | "NETWORK_ERROR" = "NETWORK_ERROR";
+      if (e.name === "TimeoutError") runtimeStatus = "TIMEOUT";
+      return { status: "VALID", runtimeStatus, latency: Date.now() - startTime, provider: "openrouter", message: e.message };
     }
   }
 
