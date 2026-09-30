@@ -149,7 +149,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
         </TabsList>
 
         <TabsContent value="wallet" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-md border-0 md:col-span-2">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-indigo-100">Unified Wallet Balance</CardTitle>
@@ -187,6 +187,18 @@ export default async function UserDetailPage({ params }: { params: Promise<{ use
                 <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{Number(lifetimePurchased || 0).toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                    <TrendingUp className="h-3 w-3 text-emerald-500" /> Lifetime top-up
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Granted</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{Number(lifetimeGranted || 0).toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                   <TrendingUp className="h-3 w-3 text-blue-500" /> Admin gifted
                 </p>
               </CardContent>
             </Card>

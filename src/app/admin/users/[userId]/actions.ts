@@ -13,7 +13,8 @@ export async function grantUserCreditsAction(
   description: string
 ) {
   await requireAdmin()
-  const supabase = await createClient()
+  const supabaseServer = await createClient()
+  const adminClient = createAdminClient()
 
   let expiresAt = null
   if (expireDays) {
@@ -22,7 +23,7 @@ export async function grantUserCreditsAction(
     expiresAt = d.toISOString()
   }
 
-  const { data, error } = await supabase.rpc('grant_credits', {
+  const { data, error } = await adminClient.rpc('grant_credits', {
     p_user_id: userId,
     p_amount: amount,
     p_bucket_type: bucketType,
@@ -31,11 +32,12 @@ export async function grantUserCreditsAction(
   })
 
   if (error) throw new Error(error.message)
+  if (!data) throw new Error("Failed to grant credits: wallet not found or grant rejected")
   
   // Log the action manually since the DB trigger might not capture the admin id perfectly without a custom claims setup
-  const admin = await supabase.auth.getUser()
+  const admin = await supabaseServer.auth.getUser()
   if (admin.data.user) {
-    await supabase.from('admin_audit_logs').insert({
+    await adminClient.from('admin_audit_logs').insert({
       admin_id: admin.data.user.id,
       target_user_id: userId,
       action: 'GRANT_CREDIT',
@@ -54,19 +56,21 @@ export async function adjustUserCreditsAction(
   description: string
 ) {
   await requireAdmin()
-  const supabase = await createClient()
+  const supabaseServer = await createClient()
+  const adminClient = createAdminClient()
 
-  const { data, error } = await supabase.rpc('admin_adjust_credits', {
+  const { data, error } = await adminClient.rpc('admin_adjust_credits', {
     p_user_id: userId,
     p_amount: amount,
     p_description: description
   })
 
   if (error) throw new Error(error.message)
+  if (!data) throw new Error("Failed to adjust credits: wallet not found or adjustment rejected")
     
-  const admin = await supabase.auth.getUser()
+  const admin = await supabaseServer.auth.getUser()
   if (admin.data.user) {
-    await supabase.from('admin_audit_logs').insert({
+    await adminClient.from('admin_audit_logs').insert({
       admin_id: admin.data.user.id,
       target_user_id: userId,
       action: 'ADJUST_CREDIT',
