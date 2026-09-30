@@ -5,10 +5,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Sparkles, Upload, Loader2, Image as ImageIcon, Download } from "lucide-react"
+import { Sparkles, Loader2, Image as ImageIcon, Download, User, Shirt, ImagePlus } from "lucide-react"
 import { uploadReferenceImage, getImagePricing } from "./actions"
 import { toast } from "sonner"
 import NextLink from "next/link"
+import { ImageUploadCard } from "./image-upload-card"
 
 const OUTFIT_PRESETS = ["Cổ trang", "Vest", "Váy", "Sơ mi", "Áo dài", "Casual"]
 const BG_PRESETS = ["Công viên", "Văn phòng", "Tòa nhà", "Khu du lịch", "Studio", "Bãi biển"]
@@ -164,12 +165,14 @@ export function AIImageClient({ userId }: { userId: string }) {
         <Card>
           <CardContent className="pt-6 space-y-4">
             <Label className="text-base font-semibold">1. Ảnh Nhân Vật</Label>
-            <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 cursor-pointer relative">
-              <Upload className="w-8 h-8 mb-2" />
-              <span className="text-sm text-center">Tải ảnh chân dung lên</span>
-              <Input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => setPersonFile(e.target.files?.[0] || null)} />
-            </div>
-            {personFile && <div className="text-xs text-green-500 font-medium truncate">Đã chọn: {personFile.name}</div>}
+            <ImageUploadCard
+              id="upload-character"
+              title="Tải ảnh nhân vật"
+              subtitle="Ảnh rõ mặt • JPG, PNG, WEBP"
+              icon={<User className="w-8 h-8" />}
+              file={personFile}
+              onFileChange={setPersonFile}
+            />
           </CardContent>
         </Card>
 
@@ -185,9 +188,14 @@ export function AIImageClient({ userId }: { userId: string }) {
               ))}
             </div>
             <div className="text-sm font-medium mt-4">Hoặc tải trang phục lên:</div>
-            <div className="relative">
-              <Input type="file" accept="image/*" onChange={(e) => { setOutfitFile(e.target.files?.[0] || null); setOutfitPreset(""); }} />
-            </div>
+            <ImageUploadCard
+              id="upload-garment"
+              title="Tải trang phục"
+              subtitle="Tải ảnh quần áo riêng nếu muốn"
+              icon={<Shirt className="w-8 h-8" />}
+              file={outfitFile}
+              onFileChange={(f) => { setOutfitFile(f); if (f) setOutfitPreset(""); }}
+            />
           </CardContent>
         </Card>
 
@@ -203,9 +211,14 @@ export function AIImageClient({ userId }: { userId: string }) {
               ))}
             </div>
             <div className="text-sm font-medium mt-4">Hoặc tải bối cảnh lên:</div>
-            <div className="relative">
-              <Input type="file" accept="image/*" onChange={(e) => { setBgFile(e.target.files?.[0] || null); setBgPreset(""); }} />
-            </div>
+            <ImageUploadCard
+              id="upload-background"
+              title="Tải bối cảnh"
+              subtitle="Tải ảnh bối cảnh riêng nếu muốn"
+              icon={<ImagePlus className="w-8 h-8" />}
+              file={bgFile}
+              onFileChange={(f) => { setBgFile(f); if (f) setBgPreset(""); }}
+            />
           </CardContent>
         </Card>
 
