@@ -319,7 +319,10 @@ export async function getOpenRouterModels(credentialId?: string, clientApiKey?: 
       headers["Authorization"] = `Bearer ${apiKey}`;
     }
     
-    const res = await fetch("https://openrouter.ai/api/v1/models", { headers });
+    const res = await fetch("https://openrouter.ai/api/v1/models", {
+      headers,
+      cache: 'no-store'
+    });
     if (!res.ok) {
       return { success: false, error: `Failed to fetch models: ${res.status}` };
     }

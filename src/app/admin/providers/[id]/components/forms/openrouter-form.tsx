@@ -169,7 +169,14 @@ export function OpenRouterForm({ providerId, credential, onSuccess }: { provider
           <div>
             <label className="block text-sm font-medium mb-2">📝 Script / Text</label>
             <OpenRouterModelSelector 
-              models={models.filter(m => !m.architecture?.modality?.includes("image"))} 
+              models={models.filter(m => {
+                if (m.architecture?.output_modalities) {
+                  return !m.architecture.output_modalities.includes("image");
+                }
+                const parts = m.architecture?.modality?.split("->");
+                const outputModality = parts && parts.length > 1 ? parts[1] : m.architecture?.modality;
+                return !outputModality?.includes("image");
+              })}
               selectedModelId={scriptModel} 
               onSelect={setScriptModel} 
               isLoading={isLoadingModels} 

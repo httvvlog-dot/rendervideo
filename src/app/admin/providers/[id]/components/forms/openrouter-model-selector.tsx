@@ -10,6 +10,7 @@ export interface OpenRouterModel {
   contextLength?: number;
   architecture?: {
     modality?: string;
+    output_modalities?: string[];
   };
   pricing?: {
     prompt?: string;
