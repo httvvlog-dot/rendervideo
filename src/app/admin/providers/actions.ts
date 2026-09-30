@@ -379,17 +379,18 @@ export async function testCredentialConnection(credential_id: string, mode: "qui
     if (result.status === "VALID" && result.runtimeStatus === "HEALTHY") {
       updates.last_success_at = new Date().toISOString();
       updates.consecutive_failures = 0;
+      updates.last_error = null;
     } else {
       const newFailures = (cred.consecutive_failures || 0) + 1;
       updates.last_failure_at = new Date().toISOString();
       updates.consecutive_failures = newFailures;
+      updates.last_error = result.message || null;
     }
 
     // Keep legacy fields updated for compatibility
     updates.health_status = result.status === "VALID" && result.runtimeStatus === "HEALTHY" 
       ? PROVIDER_HEALTH_STATUS.HEALTHY 
       : (updates.consecutive_failures >= 3 ? PROVIDER_HEALTH_STATUS.OFFLINE : PROVIDER_HEALTH_STATUS.WARNING);
-    updates.last_error = result.message || null;
     updates.latency = result.latency || 0;
 
     await supabase.from("provider_credentials").update(updates).eq("id", credential_id);
