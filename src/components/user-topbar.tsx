@@ -1,7 +1,7 @@
 "use client"
 
 import { useTheme } from "next-themes"
-import { Moon, Sun, Menu, Bell } from "lucide-react"
+import { Moon, Sun, Menu, Bell, Loader2 } from "lucide-react"
 import { Button, buttonVariants } from "./ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "./ui/dropdown-menu"
 import Link from "next/link"
@@ -12,12 +12,18 @@ import { createClient } from "@/utils/supabase/client"
 import { HataraLogo } from "@/components/hatara-logo"
 import { ChangePasswordDialog } from "./change-password-dialog"
 
-export function UserTopbar() {
+export function UserTopbar({ user: initialUser }: { user?: any } = {}) {
   const { setTheme } = useTheme()
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(initialUser || null)
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   
   useEffect(() => {
+    if (initialUser) {
+      setProfile(initialUser)
+      return
+    }
+
     async function loadUser() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
@@ -27,16 +33,34 @@ export function UserTopbar() {
       }
     }
     loadUser()
-  }, [])
+  }, [initialUser])
 
   const handleSignOut = async () => {
+    setIsLoggingOut(true)
+
+    // Safety net: do not spin indefinitely if network or browser navigation hangs
+    const timeoutId = setTimeout(() => {
+      setIsLoggingOut(false)
+      alert("Đăng xuất quá thời gian phản hồi do mạng chậm hoặc lỗi kết nối. Vui lòng thử lại.")
+    }, 8000)
+
     try {
       const supabase = createClient()
-      await supabase.auth.signOut()
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 4000))
+      ])
     } catch (e) {
-      console.error("Client sign out error:", e)
+      console.warn("Client signOut warning:", e)
     }
-    window.location.href = "/api/logout"
+
+    try {
+      window.location.href = "/api/logout"
+    } catch (e) {
+      clearTimeout(timeoutId)
+      setIsLoggingOut(false)
+      alert("Không thể chuyển hướng đăng xuất. Vui lòng thử lại.")
+    }
   }
 
   return (
@@ -108,10 +132,18 @@ export function UserTopbar() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              className="text-red-500 cursor-pointer" 
+              className="text-red-500 cursor-pointer flex items-center gap-2" 
               onClick={handleSignOut}
+              disabled={isLoggingOut}
             >
-              Sign out
+              {isLoggingOut ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                  <span>Đang đăng xuất…</span>
+                </>
+              ) : (
+                <span>Sign out</span>
+              )}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -121,6 +153,15 @@ export function UserTopbar() {
           onOpenChange={setIsPasswordModalOpen} 
         />
       </div>
+
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-xl px-5 py-3.5 shadow-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-indigo-600 dark:text-indigo-400" />
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">Đang đăng xuất…</span>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

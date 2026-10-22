@@ -212,7 +212,7 @@ export function ScriptManager({ projectId, scripts, project, canGenerateScript =
               <Tooltip>
                 <TooltipTrigger render={<span className="inline-block" />}>
                   <Button onClick={handleGenerate} disabled={isGenerating || !canGenerateScript} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 shadow-md shadow-indigo-500/20 active:scale-[0.98] transition-all duration-200">
-                    {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : !canGenerateScript ? <><Lock className="mr-2 h-4 w-4" /> Generate Script</> : <><Play className="mr-2 h-4 w-4" /> Generate Script</>}
+                    {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang tạo kịch bản...</> : !canGenerateScript ? <><Lock className="mr-2 h-4 w-4" /> Generate Script</> : <><Play className="mr-2 h-4 w-4" /> Generate Script</>}
                   </Button>
                 </TooltipTrigger>
                 {!canGenerateScript && (
@@ -291,8 +291,7 @@ export function ScriptManager({ projectId, scripts, project, canGenerateScript =
               <Tooltip>
                 <TooltipTrigger render={<span className="inline-block" />}>
                   <Button onClick={handleGenerate} disabled={isGenerating || isGeneratingAll || !canGenerateScript} variant="outline" size="sm" className="whitespace-nowrap shrink-0 active:scale-[0.98] transition-all duration-200">
-                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : !canGenerateScript ? <Lock className="mr-2 h-4 w-4" /> : <RotateCcw className="mr-2 h-4 w-4" />}
-                    Regenerate Script
+                    {isGenerating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang tạo lại...</> : !canGenerateScript ? <><Lock className="mr-2 h-4 w-4" /> Regenerate Script</> : <><RotateCcw className="mr-2 h-4 w-4" /> Regenerate Script</>}
                   </Button>
                 </TooltipTrigger>
                 {!canGenerateScript && (

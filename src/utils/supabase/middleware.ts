@@ -7,12 +7,6 @@ export async function updateSession(request: NextRequest) {
   // Service-to-service authentication (Worker bypass)
   const authHeader = request.headers.get("authorization");
   if (verifyWorkerToken(authHeader)) {
-    const correlationId = request.headers.get("x-correlation-id");
-    console.log({
-      correlationId,
-      path: request.nextUrl.pathname,
-      worker: true
-    });
     return NextResponse.next();
   }
 
@@ -49,20 +43,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: { session } } = await supabase.auth.getSession()
-
-  console.log("[MIDDLEWARE DIAGNOSTIC] Path:", request.nextUrl.pathname)
-  console.log("[MIDDLEWARE DIAGNOSTIC] Session:", !!session)
-  console.log("[MIDDLEWARE DIAGNOSTIC] User Email:", user?.email || "null")
-
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&
     !request.nextUrl.pathname.startsWith('/auth') &&
     !request.nextUrl.pathname.startsWith('/api/logout')
   ) {
-    console.log("[MIDDLEWARE DIAGNOSTIC] Redirecting to /login because user is null")
-    // no user, potentially respond by redirecting the user to the login page
+    // no user, redirect to login page
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

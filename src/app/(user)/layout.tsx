@@ -24,7 +24,7 @@ export default async function UserLayout({
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
       <UserSidebar />
       <div className="flex flex-1 flex-col overflow-hidden lg:pl-64">
-        <UserTopbar />
+        <UserTopbar user={user} />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
         </main>

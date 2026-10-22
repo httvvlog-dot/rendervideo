@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "./supabase/server";
 
 export type CurrentUser = {
@@ -8,7 +9,7 @@ export type CurrentUser = {
   role: "admin" | "user";
 };
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -21,14 +22,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .eq("id", user.id)
     .single();
 
-
-  console.log("PROFILE RESULT", profile)
-  console.log("ROLE RESULT", profile?.role)
-
-
-  console.log("PROFILE RESULT", profile)
-  console.log("ROLE RESULT", profile?.role)
-
   return {
     id: user.id,
     email: user.email || "",
@@ -36,4 +29,4 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     avatar_url: user.user_metadata?.avatar_url || null,
     role: profile?.role || "user",
   };
-}
+});

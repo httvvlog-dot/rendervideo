@@ -24,11 +24,20 @@ function LoginForm() {
   }, [searchParams])
 
   async function onSubmit(formData: FormData) {
+    if (isLoading) return
     setIsLoading(true)
     setErrorMsg("")
-    const res = isLogin ? await login(formData) : await signup(formData)
-    if (res?.error) {
-      setErrorMsg(res.error)
+    try {
+      const res = isLogin ? await login(formData) : await signup(formData)
+      if (res?.error) {
+        setErrorMsg(res.error)
+        setIsLoading(false)
+      }
+    } catch (err: any) {
+      if (err?.message === "NEXT_REDIRECT" || err?.digest?.startsWith("NEXT_REDIRECT")) {
+        throw err
+      }
+      setErrorMsg(err?.message || "Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.")
       setIsLoading(false)
     }
   }
@@ -55,6 +64,7 @@ function LoginForm() {
               required
               autoComplete="email"
               className="h-11"
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -73,6 +83,7 @@ function LoginForm() {
               required
               autoComplete={isLogin ? "current-password" : "new-password"}
               className="h-11"
+              disabled={isLoading}
             />
           </div>
 
@@ -82,14 +93,14 @@ function LoginForm() {
             </div>
           )}
 
-          <Button type="submit" className="h-11 w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
+          <Button type="submit" className="h-11 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium active:scale-[0.99] transition-all" disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isLogin ? "Signing in..." : "Creating account..."}
+                {isLogin ? "Đang đăng nhập…" : "Đang tạo tài khoản…"}
               </>
             ) : (
-              isLogin ? "Sign in" : "Sign up"
+              isLogin ? "Đăng nhập" : "Đăng ký"
             )}
           </Button>
         </form>
@@ -102,6 +113,7 @@ function LoginForm() {
             type="button" 
             onClick={() => { setIsLogin(!isLogin); setErrorMsg(""); }} 
             className="ml-1 font-medium text-blue-600 hover:text-blue-500"
+            disabled={isLoading}
           >
             {isLogin ? "Sign up" : "Sign in"}
           </button>

@@ -42,6 +42,7 @@ export function AIImageClient({ userId }: { userId: string }) {
     if (savedJobId) {
       setActiveJobId(savedJobId)
       setIsGenerating(true)
+      setProgressState("Đang khởi tạo...")
       setProgressState("Đang khôi phục trạng thái...")
     }
   }, [])
@@ -139,7 +140,7 @@ export function AIImageClient({ userId }: { userId: string }) {
       }
 
       const jobId = data.job_id
-      setProgressState("Generating images...")
+      setProgressState("Đang tạo ảnh...")
       
       // Save for recovery
       sessionStorage.setItem('ai_image_active_job', jobId)
