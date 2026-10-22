@@ -29,12 +29,15 @@ export function UserTopbar() {
     loadUser()
   }, [])
 
-  console.log("Build v20260730-2010")
-  console.log("UserTopbar Render")
-
-  useEffect(() => {
-    console.log("Password Dialog =", isPasswordModalOpen)
-  }, [isPasswordModalOpen])
+  const handleSignOut = async () => {
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    } catch (e) {
+      console.error("Client sign out error:", e)
+    }
+    window.location.href = "/api/logout"
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:bg-slate-950/80">
@@ -106,11 +109,7 @@ export function UserTopbar() {
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               className="text-red-500 cursor-pointer" 
-              onClick={async () => {
-                const supabase = createClient()
-                await supabase.auth.signOut()
-                window.location.href = "/login"
-              }}
+              onClick={handleSignOut}
             >
               Sign out
             </DropdownMenuItem>

@@ -6,6 +6,7 @@ import { Button, buttonVariants } from "./ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/utils/supabase/client"
 
 export function AdminTopbar({ user }: { user?: any }) {
   const getInitials = (email: string) => {
@@ -13,6 +14,16 @@ export function AdminTopbar({ user }: { user?: any }) {
     return email.substring(0, 2).toUpperCase();
   };
   const { setTheme } = useTheme()
+
+  const handleSignOut = async () => {
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    } catch (e) {
+      console.error("Client sign out error:", e)
+    }
+    window.location.href = "/api/logout"
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-white/80 px-4 backdrop-blur-md sm:px-6 dark:bg-slate-950/80">
@@ -54,10 +65,15 @@ export function AdminTopbar({ user }: { user?: any }) {
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100">{getInitials(user?.email)}</AvatarFallback>
             </Avatar>
-</DropdownMenuTrigger>
+          </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Sign out</DropdownMenuItem>
+            <DropdownMenuItem 
+              className="text-red-500 cursor-pointer" 
+              onClick={handleSignOut}
+            >
+              Sign out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
