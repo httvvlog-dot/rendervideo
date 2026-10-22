@@ -9,15 +9,69 @@ import { z } from "zod"
 import { normalizeDurations } from "./duration-normalization"
 import { getProjectCanvas } from "@/lib/project-canvas"
 import { resolveSubscriptionTier, assertFeatureAccess, assertQuota, Feature } from "@/utils/entitlement"
+import { getAuthoritativeTime } from "@/utils/time-reference"
+import { auditSearchSources, buildFortifiedSearchPrompt } from "@/utils/search-validator"
 
 function requiresCurrentData(topic: string): boolean {
-  const keywords = [
-    "hiện nay", "hiện tại", "hôm nay", "mới nhất", "tin tức", 
-    "thị trường", "dự báo", "current", "news", "financial", 
-    "market", "price", "today", "recent", "latest", "now", "forecast"
+  if (!topic || typeof topic !== "string") return false;
+  const t = topic.toLowerCase().trim();
+
+  // 1. Nhận diện các cụm từ thể hiện nhu cầu dữ liệu thời sự / trực tiếp / hôm nay
+  const exactPhrases = [
+    // Tiếng Việt - Giá cả & Tỷ giá thời gian thực
+    "giá hiện tại", "giá hôm nay", "giá mới nhất", "giá cập nhật", "biến động giá",
+    "tỷ giá", "tỷ giá hôm nay", "tỷ giá ngoại tệ", "tỷ giá usd",
+    
+    // Tiếng Việt - Thị trường & Thời sự thời gian thực
+    "thị trường hôm nay", "thị trường hiện tại", "cập nhật thị trường", "nhận định thị trường hôm nay",
+    "tin tức hôm nay", "tin tức mới nhất", "tin mới nhất", "tin nóng", "tin tức 24h", "24h qua", "24 giờ qua",
+    "cập nhật mới nhất", "cập nhật hôm nay", "diễn biến mới nhất", "vừa diễn ra",
+    
+    // Tiếng Việt - Thời điểm & Độ mới cụ thể
+    "hôm nay", "hiện nay", "hiện tại", "mới nhất",
+    
+    // Tiếng Anh - Real-time Price & Market phrases
+    "current price", "price today", "latest price", "live price", "price update",
+    "exchange rate", "currency rate",
+    "market today", "current market", "market update", "markets today",
+    "latest news", "breaking news", "news today", "today's news",
+    "latest updates", "recent updates", "current trends", "latest trends",
+    "latest forecast", "real-time", "right now", "as of today"
   ];
-  const t = topic.toLowerCase();
-  return keywords.some(k => t.includes(k));
+
+  if (exactPhrases.some(phrase => t.includes(phrase))) {
+    return true;
+  }
+
+  // 2. Word boundary checks cho các từ độc lập rõ ràng (English temporal markers)
+  // Tránh substring false-positives như "know" chứa "now", "marketing" chứa "market", "pricing" chứa "price"
+  const wordBoundaryRegexes = [
+    /\btoday\b/i,
+    /\blatest\b/i,
+    /\bbreaking\b/i,
+    /\blive\b/i,
+    /\bcurrently\b/i
+  ];
+
+  if (wordBoundaryRegexes.some(rx => rx.test(t))) {
+    return true;
+  }
+
+  // 3. Kết hợp giữa danh từ tài sản biến động (giá vàng, giá xăng, giá bitcoin, giá cổ phiếu...)
+  // Hạn chế kích hoạt nếu topic là nghiên cứu thuần túy về lịch sử
+  const volatileAssets = [
+    "giá vàng", "giá xăng", "giá dầu", "giá btc", "giá bitcoin", "giá coin", "giá crypto", "giá cổ phiếu",
+    "gold price", "oil price", "gas price", "bitcoin price", "crypto price", "stock price"
+  ];
+  if (volatileAssets.some(asset => t.includes(asset))) {
+    const historicalMarkers = ["lịch sử", "history", "historical", "quá khứ", "nguồn gốc", "origin"];
+    const isHistorical = historicalMarkers.some(h => t.includes(h));
+    if (!isHistorical) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 const ScriptSectionSchema = z.object({
@@ -84,7 +138,8 @@ export async function generateScript(projectId: string): Promise<{ success?: boo
   const targetSections = Math.max(1, Math.round(targetDuration / 12));
   const targetSectionDuration = Math.round(targetDuration / targetSections);
   const targetWordsPerSection = Math.round(targetSectionDuration * wps);
-  const currentDate = new Date().toISOString().split('T')[0];
+  const timeRef = await getAuthoritativeTime({ timezone: "Asia/Ho_Chi_Minh" });
+  const currentDate = timeRef.calendarDate;
 
   const promptText = `You are a Subject Matter Expert, Professional AI Cinematographer, and Script Director.
 
@@ -196,11 +251,14 @@ Important:
         if (requiresCurrentData(project.topic)) {
           console.log("Triggering Web Search for topic:", project.topic);
           const researchModel = await runtime.getDefaultModel("RESEARCH") || "perplexity/sonar";
+          
+          const searchPrompt = buildFortifiedSearchPrompt(project.topic, currentDate);
+
           const searchResult = await runtime.execute(new OpenRouterAdapter(), {
             step: "RESEARCH",
             projectId: projectId,
             args: { 
-              prompt: `Provide the latest news, market data, and verified facts about: ${project.topic}. Include dates and sources. Keep it dense and informative.`,
+              prompt: searchPrompt,
               model: researchModel
             }
           });
@@ -209,15 +267,51 @@ Important:
             throw new Error("Không thể lấy dữ liệu mới nhất để thực hiện phân tích.");
           }
           researchData = searchResult.result.content;
+
+          // Audit search sources, citations, and groundings
+          const sourceAudit = auditSearchSources(
+            researchData,
+            searchResult.result.citations,
+            searchResult.result.annotations
+          );
+
+          // Leverage citations or annotations if returned by OpenRouter
+          const citations = searchResult.result.citations;
+          const annotations = searchResult.result.annotations;
+          if (Array.isArray(citations) && citations.length > 0) {
+            const hasCitationsInText = citations.some((c: string) => typeof c === 'string' && researchData.includes(c));
+            if (!hasCitationsInText) {
+              const formattedCitations = citations
+                .filter((c: any) => typeof c === 'string' && c.trim().length > 0)
+                .map((c: string, idx: number) => `[${idx + 1}] ${c}`)
+                .join('\n');
+              if (formattedCitations) {
+                researchData += `\n\n[SOURCES & CITATIONS]\n${formattedCitations}`;
+              }
+            }
+          } else if (Array.isArray(annotations) && annotations.length > 0) {
+            const urls = annotations
+              .map((a: any) => (typeof a === 'string' ? a : (a?.url || a?.source || null)))
+              .filter((u: any) => typeof u === 'string' && u.startsWith('http'));
+            if (urls.length > 0 && !urls.some((u: string) => researchData.includes(u))) {
+              const formattedAnnotations = urls.map((u: string, idx: number) => `[${idx + 1}] ${u}`).join('\n');
+              researchData += `\n\n[SOURCES & CITATIONS]\n${formattedAnnotations}`;
+            }
+          }
+
+          if (sourceAudit.warningPromptNotice) {
+            researchData += `\n\n${sourceAudit.warningPromptNotice}`;
+          }
+
           searchCost = searchResult.result.cost || 0;
-          console.log("Search complete. Cost:", searchCost);
+          console.log(`Search complete. Cost: ${searchCost}, Reliability: ${sourceAudit.reliabilityScore}, Verified Sources: ${sourceAudit.verifiedSources.length}`);
         }
 
         let finalPrompt = promptText;
         if (researchData) {
           finalPrompt = finalPrompt.replace("=== PART A: CONTENT & NARRATION (PRIMARY PRIORITY) ===", `
 === VERIFIED RESEARCH (CRITICAL CONTEXT) ===
-The following research data was retrieved from a real-time web search. You MUST use this data for all current facts:
+The following research data was retrieved from a real-time web search (Authoritative Reference Date: ${currentDate}). You MUST use this data for all current facts:
 ${researchData}
 
 CURRENT DATA RULES:
@@ -226,7 +320,7 @@ CURRENT DATA RULES:
 3. NEVER modify current prices.
 4. NEVER round current prices.
 5. NEVER introduce current statistics absent from Research.
-6. If Research does not contain a required current fact, say that the data is unavailable.
+6. If Research does not contain a required current fact or cites unverified footnotes, say that the data is unconfirmed or unavailable.
 7. Historical facts must be clearly treated as historical.
 8. Future forecasts MUST be expressed as scenarios.
 9. Never present a third-party forecast as a guaranteed fact.
@@ -238,7 +332,10 @@ CURRENT DATA RULES:
         const aiResult = await runtime.execute(new OpenRouterAdapter(), {
           step: "SCRIPT",
           projectId: projectId,
-          args: { prompt: finalPrompt }
+          args: { 
+            prompt: finalPrompt,
+            model: defaultModel
+          }
         });
         
         return { 

@@ -8,19 +8,18 @@ import {
   BarChart3, Wallet, FileText, Package, Bot, CreditCard, 
   DollarSign, Activity, Users, TrendingUp, Download, Plus, RefreshCw, Clock
 } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
+import { adminReleaseReservationAction } from "@/app/admin/billing/actions";
 
 export function BillingTabsClient({ analytics, wallets, rules, transactions, reservations = [] }: { analytics: any, wallets: any[], rules: any[], transactions: any[], reservations?: any[] }) {
   
   const handleReleaseReservation = async (txId: string) => {
     if (!confirm("Are you sure you want to manually release this reservation?")) return;
-    const supabase = createClient();
-    const { error } = await supabase.rpc('release_credits', {
-      p_transaction_id: txId,
-      p_reason: 'Released manually by Admin'
-    });
-    if (error) alert("Error releasing reservation: " + error.message);
-    else alert("Reservation released successfully! Please refresh.");
+    try {
+      await adminReleaseReservationAction(txId, 'Released manually by Admin');
+      alert("Reservation released successfully! Please refresh.");
+    } catch (err: any) {
+      alert("Error releasing reservation: " + (err?.message || "Unknown error"));
+    }
   };
 
   return (

@@ -1,0 +1,32 @@
+{
+  "title": "Tin Nhanh Thị Trường Bitcoin Ngày 22/10/2026",
+  "total_duration_seconds": 60,
+  "sections": [
+    {
+      "section_index": 1,
+      "title": "Giá Bitcoin Hôm Nay",
+      "narration": "Hôm nay, ngày 22 tháng 10 năm 2026, giá Bitcoin dao động từ $81,263.73 đến $81,809.90. Giá đã giảm 3.29% xuống mức thấp nhất là $81,263.73, trong khi toàn bộ thị trường crypto giảm 1.4% trong 24 giờ qua.",
+      "duration_seconds": 15,
+      "visual_description": "Cận cảnh một màn hình giao dịch với số liệu giá Bitcoin biến động, đồng hồ chỉ giờ sáng sớm, và biểu đồ giảm đi đang được hiển thị trên màn hình.",
+      "image_prompt": "Subject: Bitcoin price fluctuations displayed on a trading screen...\nScene: Close-up on a trading monitor showing Bitcoin price dropping, with a clock indicating early morning and a downward trend chart...\nPhotorealistic commercial photography.",
+      "negative_prompt": {
+        "style": [
+          "cartoon",
+          "anime"
+        ],
+        "objects": [
+          "watermark",
+          "text"
+        ],
+        "quality": [
+          "blur"
+        ]
+      },
+      "recommended_image_count": 1,
+      "keywords": [
+        "btc",
+        "crypto"
+      ]
+    }
+  ]
+}

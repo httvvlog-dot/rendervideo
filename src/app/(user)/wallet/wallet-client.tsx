@@ -128,10 +128,20 @@ export function WalletClientPage({
 
       {/* 2. Buy Credits */}
       <div id="buy-credits-section">
-        <div className="mb-4">
-          <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white"><CreditCard className="w-5 h-5 text-indigo-600 dark:text-indigo-400" /> Buy Credits</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">1 Credit = 1.000 VNĐ</p>
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50 shadow-sm shrink-0">
+            <CreditCard className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              Buy Credits
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 text-sm font-medium mt-0.5">
+              1 Credit = 1.000 VNĐ
+            </p>
+          </div>
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {packages.length === 0 ? (
             <div className="col-span-1 md:col-span-3 flex flex-col items-center justify-center h-32 sm:h-40 border border-slate-200 dark:border-slate-800 rounded-xl border-dashed bg-slate-50 dark:bg-slate-900/30">
@@ -140,35 +150,51 @@ export function WalletClientPage({
             </div>
           ) : (
             packages.map(pkg => (
-              <div key={pkg.id} className={`group relative rounded-2xl transition-all hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(99,102,241,0.1)] border bg-white dark:bg-transparent ${pkg.is_featured ? 'border-indigo-500 shadow-lg shadow-indigo-500/10 dark:shadow-indigo-500/20 hover:border-transparent' : 'border-slate-200 dark:border-slate-800 hover:border-transparent'}`}>
+              <div 
+                key={pkg.id} 
+                className={`group relative rounded-2xl transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/10 border bg-white dark:bg-slate-900 ${
+                  pkg.is_featured 
+                    ? 'border-indigo-500 shadow-md shadow-indigo-500/10 dark:shadow-indigo-500/20' 
+                    : 'border-slate-200 dark:border-slate-800'
+                }`}
+              >
                 {/* Hover Gradient Border Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] z-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-violet-500 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none p-[1px] rounded-2xl z-0">
                   <div className="bg-white dark:bg-slate-900 w-full h-full rounded-[15px]"></div>
                 </div>
                 
-                <div className="relative z-10 flex flex-col h-full p-6">
+                <div className="relative z-10 flex flex-col h-full p-5 sm:p-6">
                   {pkg.is_featured && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap z-20">
-                      <Star className="w-3 h-3 mr-1 fill-white" /> POPULAR
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap z-20">
+                      <Star className="w-3 h-3 mr-1 fill-white text-white" /> POPULAR
                     </div>
                   )}
                   {pkg.bonus_credits > 20 && !pkg.is_featured && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap z-20">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-600 to-orange-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center shadow-md whitespace-nowrap z-20">
                       🔥 BEST VALUE
                     </div>
                   )}
                   
-                  <div className="text-center mt-4 mb-4">
-                    <h3 className="text-slate-500 dark:text-slate-400 font-medium mb-1">{pkg.name}</h3>
-                    <div className="text-3xl font-bold text-slate-900 dark:text-white">{pkg.price_vnd.toLocaleString('vi-VN')} VNĐ</div>
+                  <div className="text-center mt-3 sm:mt-4 mb-4">
+                    <h3 className="text-slate-600 dark:text-slate-400 font-semibold text-xs sm:text-sm uppercase tracking-wider mb-1">
+                      {pkg.name}
+                    </h3>
+                    <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                      {pkg.price_vnd.toLocaleString('vi-VN')} VNĐ
+                    </div>
                   </div>
                   
-                  <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 mb-4 text-center border border-slate-200 dark:border-slate-800/50">
-                    <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{pkg.credits?.toLocaleString()} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">Credits</span></div>
+                  <div className="bg-slate-50 dark:bg-slate-950/80 rounded-xl p-4 mb-4 text-center border border-slate-200 dark:border-slate-800">
+                    <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                      {pkg.credits?.toLocaleString()}{' '}
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Credits</span>
+                    </div>
                     {pkg.bonus_credits > 0 ? (
-                      <div className="text-emerald-600 dark:text-emerald-400 text-xs font-medium mt-1">🎁 +{pkg.bonus_credits?.toLocaleString()} Bonus</div>
+                      <div className="text-emerald-700 dark:text-emerald-400 text-xs font-semibold mt-1">
+                        🎁 +{pkg.bonus_credits?.toLocaleString()} Bonus
+                      </div>
                     ) : (
-                      <div className="text-slate-500 text-xs mt-1">Standard rate</div>
+                      <div className="text-slate-500 dark:text-slate-400 text-xs mt-1">Standard rate</div>
                     )}
                   </div>
                   
@@ -177,11 +203,11 @@ export function WalletClientPage({
                       size="sm"
                       onClick={() => handleCheckout(pkg.id)} 
                       disabled={isProcessing}
-                      className="w-full bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-sm h-10 border border-slate-200 dark:border-slate-700/50 opacity-70 cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                      className="w-full bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 text-sm h-10 border border-slate-200 dark:border-slate-700/60 opacity-80 cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800/80 font-medium"
                     >
                       Coming Soon
                     </Button>
-                    <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center mt-2 font-medium tracking-wide">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 text-center mt-2.5 font-medium tracking-wide">
                       QR • MoMo • VNPay • Stripe
                     </div>
                   </div>

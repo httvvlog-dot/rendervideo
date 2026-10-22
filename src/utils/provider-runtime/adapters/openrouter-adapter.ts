@@ -10,6 +10,8 @@ export interface OpenRouterResult {
   tokensInput: number;
   tokensOutput: number;
   cost: number;
+  citations?: string[];
+  annotations?: any[];
 }
 
 export class OpenRouterAdapter implements ProviderAdapter<OpenRouterArgs, OpenRouterResult> {
@@ -94,12 +96,24 @@ export class OpenRouterAdapter implements ProviderAdapter<OpenRouterArgs, OpenRo
     // Calculate cost based on rough Gemini estimates, or exact if returned
     const cost = ((tokensInput * 0.15) + (tokensOutput * 0.6)) / 1000000;
 
+    const rawCitations = Array.isArray(data.citations)
+      ? data.citations
+      : (Array.isArray(data.choices?.[0]?.message?.citations)
+        ? data.choices[0].message.citations
+        : undefined);
+
+    const rawAnnotations = Array.isArray(data.choices?.[0]?.message?.annotations)
+      ? data.choices[0].message.annotations
+      : undefined;
+
     return {
       result: {
         content: data.choices?.[0]?.message?.content || "",
         tokensInput,
         tokensOutput,
-        cost
+        cost,
+        ...(rawCitations && rawCitations.length > 0 ? { citations: rawCitations } : {}),
+        ...(rawAnnotations && rawAnnotations.length > 0 ? { annotations: rawAnnotations } : {})
       },
       usage: {
         provider: "openrouter",
